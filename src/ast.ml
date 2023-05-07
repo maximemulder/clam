@@ -27,24 +27,25 @@ and type' =
   | TypeApp    of type' * (type' list)
 
 and expr =
-  | ExprIdent      of string
+  | ExprIdent   of string
   | ExprVoid
-  | ExprBool       of bool
-  | ExprInt        of int
-  | ExprChar       of char
-  | ExprString     of string
-  | ExprTuple      of expr list
-  | ExprRecord     of (string * expr) list
-  | ExprPreop      of string * expr
-  | ExprBinop      of expr * string * expr
-  | ExprCast       of expr * type'
-  | ExprAscription of expr * type'
-  | ExprBlock      of block
-  | ExprIf         of expr * expr * expr
-  | ExprAbs        of ((string * type') list) * (type' option) * block
-  | ExprApp        of expr * (expr list)
-  | ExprTypeAbs    of ((string * type') list) * expr
-  | ExprTypeApp    of expr * (type' list)
+  | ExprTrue
+  | ExprFalse
+  | ExprInt     of string
+  | ExprChar    of string
+  | ExprString  of string
+  | ExprTuple   of expr list
+  | ExprRecord  of (string * expr) list
+  | ExprPreop   of string * expr
+  | ExprBinop   of expr * string * expr
+  | ExprCast    of expr * type'
+  | ExprAscr    of expr * type'
+  | ExprBlock   of block
+  | ExprIf      of expr * expr * expr
+  | ExprAbs     of ((string * type') list) * (type' option) * block
+  | ExprApp     of expr * (expr list)
+  | ExprTypeAbs of ((string * type') list) * expr
+  | ExprTypeApp of expr * (type' list)
 
 and block = {
   block_defs: def list;

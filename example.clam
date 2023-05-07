@@ -1,1 +1,25 @@
-type a=a;
+type Fun = (A, B) -> C;
+type Tuple = (A, B);
+type Record = {a: A, b: B};
+type Union = A | B;
+type Inter = A & B;
+type Abs = [] C;
+type App = A[B, C];
+
+def name = a;
+def void_ = void;
+def true_ = true;
+def false_ = false;
+def int = 0;
+def char = 'a';
+def string = "Hello world !";
+def preop = +a;
+def binop = a + b;
+def cast = a as A;
+def ascr = a : A;
+def block = { def a = b; def c = d; e };
+def if_ = if a then b else c;
+def abs = (a: A, b: B) -> C { d };
+def app = a(b, c);
+def type_abs = [A: B, C: D] e;
+def type_app = a[B, C];

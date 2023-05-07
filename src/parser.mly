@@ -6,7 +6,8 @@
 %token VOID
 %token TRUE
 %token FALSE
-%token <int> INT
+%token <string> INT
+%token <string> CHAR
 %token <string> STRING
 
 %token AMPERSAND
@@ -67,9 +68,9 @@ let def :=
 let type_ :=
   | name = IDENT;
     { TypeIdent name }
-  | AT; PARENTHESIS_LEFT; types = list_comma(type_); PARENTHESIS_RIGHT;
+  | PARENTHESIS_LEFT; types = list_comma(type_); PARENTHESIS_RIGHT;
     { TypeTuple types }
-  | AT; BRACE_LEFT; attrs = list_comma(param); BRACE_RIGHT;
+  | BRACE_LEFT; attrs = list_comma(param); BRACE_RIGHT;
     { TypeRecord attrs }
   | PARENTHESIS_LEFT; params = list_comma(type_); PARENTHESIS_RIGHT; return = return;
     { TypeFun (params, return) }
@@ -77,6 +78,7 @@ let type_ :=
     { TypeInter (left, right) }
   | left = type_; PIPE; right = type_;
     { TypeUnion (left, right) }
+  // TODO: Check params
   | CROTCHET_LEFT; params = list_comma(param); CROTCHET_RIGHT; type_ = type_;
     { TypeAbs (params, type_) }
   | type_ = type_; CROTCHET_LEFT; args = list_comma(type_); CROTCHET_RIGHT;
@@ -90,11 +92,13 @@ let expr :=
   | VOID;
     { ExprVoid }
   | TRUE;
-    { ExprBool true }
+    { ExprTrue }
   | FALSE;
-    { ExprBool false }
+    { ExprFalse }
   | int = INT;
     { ExprInt int }
+  | char = CHAR;
+    { ExprChar char }
   | string = STRING;
     { ExprString string }
   | AT; PARENTHESIS_LEFT; exprs = list_comma(expr); PARENTHESIS_RIGHT;
@@ -106,7 +110,7 @@ let expr :=
   | left = expr; op = bin_op; right = expr;
     { ExprBinop (left, op, right) }
   | expr = expr; COLON; type_ = type_;
-    { ExprAscription (expr, type_) }
+    { ExprAscr (expr, type_) }
   | expr = expr; AS; type_ = type_;
     { ExprCast (expr, type_) }
   | block = block;
@@ -154,8 +158,5 @@ let bin_op :=
 
 // Utilities
 
-let list_comma(X) :=
-  | 
-    { [] }
-  | x = X; COMMA; t = list_comma(X);
-    { x :: t }
+let list_comma(X) := xs = separated_list(COMMA, X);
+  { xs }
