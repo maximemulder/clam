@@ -20,10 +20,10 @@ and type' =
   | TypeIdent  of string
   | TypeFun    of (type' list) * type'
   | TypeTuple  of type' list
-  | TypeRecord of (string * type') list
+  | TypeRecord of attr_type list
   | TypeInter  of type' * type'
   | TypeUnion  of type' * type'
-  | TypeAbs    of ((string * type') list) * type'
+  | TypeAbs    of (param list) * type'
   | TypeApp    of type' * (type' list)
 
 and expr =
@@ -35,17 +35,32 @@ and expr =
   | ExprChar    of string
   | ExprString  of string
   | ExprTuple   of expr list
-  | ExprRecord  of (string * expr) list
+  | ExprRecord  of attr_expr list
   | ExprPreop   of string * expr
   | ExprBinop   of expr * string * expr
   | ExprCast    of expr * type'
   | ExprAscr    of expr * type'
   | ExprBlock   of block
   | ExprIf      of expr * expr * expr
-  | ExprAbs     of ((string * type') list) * (type' option) * block
+  | ExprAbs     of (param list) * (type' option) * block
   | ExprApp     of expr * (expr list)
-  | ExprTypeAbs of ((string * type') list) * expr
+  | ExprTypeAbs of (param list) * expr
   | ExprTypeApp of expr * (type' list)
+
+and param = {
+  param_name: string;
+  param_type: type';
+}
+
+and attr_type = {
+  attr_type_name: string;
+  attr_type: type';
+}
+
+and attr_expr = {
+  attr_expr_name: string;
+  attr_expr: expr;
+}
 
 and block = {
   block_defs: def list;

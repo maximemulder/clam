@@ -37,21 +37,6 @@
 %token EOF
 
 %start <Ast.program> program
-%type <Ast.def list> list(def)
-%type <Ast.def> def
-%type <Ast.type'> type_
-%type <Ast.expr> expr
-%type <(string * Ast.expr)> expr_attr
-%type <(string * Ast.type')> param
-%type <Ast.type'> return
-%type <Ast.block> block
-%type <string> pre_op
-%type <string> bin_op
-%type <Ast.type' list> list_comma(type_)
-%type <Ast.expr list> list_comma(expr)
-%type <(string * Ast.expr) list> list_comma(expr_attr)
-%type <(string * Ast.type') list> list_comma(param)
-%type <Ast.type' option> option(return)
 
 %%
 
@@ -70,7 +55,7 @@ let type_ :=
     { TypeIdent name }
   | PARENTHESIS_LEFT; types = list_comma(type_); PARENTHESIS_RIGHT;
     { TypeTuple types }
-  | BRACE_LEFT; attrs = list_comma(param); BRACE_RIGHT;
+  | BRACE_LEFT; attrs = list_comma(attr_type); BRACE_RIGHT;
     { TypeRecord attrs }
   | PARENTHESIS_LEFT; params = list_comma(type_); PARENTHESIS_RIGHT; return = return;
     { TypeFun (params, return) }
@@ -78,7 +63,6 @@ let type_ :=
     { TypeInter (left, right) }
   | left = type_; PIPE; right = type_;
     { TypeUnion (left, right) }
-  // TODO: Check params
   | CROTCHET_LEFT; params = list_comma(param); CROTCHET_RIGHT; type_ = type_;
     { TypeAbs (params, type_) }
   | type_ = type_; CROTCHET_LEFT; args = list_comma(type_); CROTCHET_RIGHT;
@@ -103,7 +87,7 @@ let expr :=
     { ExprString string }
   | AT; PARENTHESIS_LEFT; exprs = list_comma(expr); PARENTHESIS_RIGHT;
     { ExprTuple exprs }
-  | AT; BRACE_LEFT; attrs = list_comma(expr_attr); BRACE_RIGHT;
+  | AT; BRACE_LEFT; attrs = list_comma(attr_expr); BRACE_RIGHT;
     { ExprRecord (attrs) }
   | op = pre_op; expr = expr;
     { ExprPreop (op, expr) }
@@ -126,17 +110,21 @@ let expr :=
   | expr = expr; CROTCHET_LEFT; args = list_comma(type_); CROTCHET_RIGHT;
     { ExprTypeApp (expr, args) }
 
-let expr_attr :=
-  | name = IDENT; EQUAL; expr = expr;
-    { (name, expr) }
-
 let param :=
   | name = IDENT; COLON; type_ = type_;
-    { (name, type_) }
+    { { param_name = name; param_type = type_ } }
 
 let return :=
   | ARROW; type_ = type_;
     { type_ }
+
+let attr_type :=
+  | name = IDENT; COLON; type_ = type_;
+    { { attr_type_name = name; attr_type = type_ } }
+
+let attr_expr :=
+  | name = IDENT; EQUAL; expr = expr;
+    { { attr_expr_name = name; attr_expr = expr } }
 
 let block :=
   | BRACE_LEFT; defs = list(def); expr = expr; BRACE_RIGHT;
