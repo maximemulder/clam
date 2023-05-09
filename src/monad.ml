@@ -11,11 +11,11 @@ module Monad (M: MONAD) = struct
 
   let rec map f xs =
     match xs with
-    | [] -> M.return []
+    | [] -> return []
     | x :: xs ->
       let* x = f x in
       let* xs = map f xs in
-      M.return (x :: xs)
+      return (x :: xs)
 end
 
 module type STATE = sig
@@ -23,7 +23,9 @@ module type STATE = sig
 end
 
 module StateMonad (S: STATE) = struct
-  type 'a t = S.s -> ('a * S.s)
+  open S
+
+  type 'a t = s -> ('a * s)
 
   let return a s = (a, s)
 
