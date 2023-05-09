@@ -1,10 +1,13 @@
-type Fun = (A, B) -> C;
-type Tuple = (A, B);
-type Record = {a: A, b: B};
-type Union = A | B;
-type Inter = A & B;
-type Abs = [] C;
-type App = A[B, C];
+type Fun = (Void, Void) -> Void;
+type Tuple = (Void, Void);
+type Record = {a: Void, b: Void};
+type Union = Void | Void;
+type Inter = Void & Void;
+type Abs = [] Void;
+type App = Void[Void, Void];
+
+type Pair = (IntOrString, IntOrString);
+type IntOrString = Int | String;
 
 def name = a;
 def void_ = void;

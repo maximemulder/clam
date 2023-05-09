@@ -88,9 +88,9 @@ let node_attrs node =
     | ExprBlock block -> [("block", ANode (Block block))]
     | ExprIf (cond, then', else') -> [("cond", ANode (Expr cond)); ("then", ANode (Expr then')); ("else", ANode (Expr else'))]
     | ExprAbs (params, return, block) -> [("params", AList (List.map (fun param -> Param param) params)); ("return", AOption (Option.map (fun return -> Type return) return)); ("block", ANode (Block block))]
-    | ExprApp (expr, args) -> [("expr", ANode (Expr expr)); ("args", AList(List.map (fun arg -> Expr arg) args))]
+    | ExprApp (expr, args) -> [("expr", ANode (Expr expr)); ("args", AList (List.map (fun arg -> Expr arg) args))]
     | ExprTypeAbs (params, expr) -> [("params", AList (List.map (fun param -> Param param) params)); ("expr", ANode (Expr expr))]
-    | ExprTypeApp (expr, args) -> [("expr", ANode (Expr expr)); ("args", AList(List.map (fun arg -> Type arg) args))])
+    | ExprTypeApp (expr, args) -> [("expr", ANode (Expr expr)); ("args", AList (List.map (fun arg -> Type arg) args))])
   | Param { param_name; param_type } -> [("name", AString param_name); ("type", ANode (Type param_type))]
   | AttrType { attr_type_name; attr_type } -> [("name", AString attr_type_name); ("type", ANode (Type attr_type))]
   | AttrExpr { attr_expr_name; attr_expr } -> [("name", AString attr_expr_name); ("expr", ANode (Expr attr_expr))]

@@ -1,8 +1,12 @@
 (executable
- (public_name clam)
- (name main))
+  (public_name clam)
+  (name main))
 
 (menhir
- (modules parser))
+  (modules parser))
 
 (ocamllex lexer)
+
+(env
+  (dev
+    (flags (:standard -w -33))))

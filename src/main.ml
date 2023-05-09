@@ -1,6 +1,9 @@
 open Ast
 open Display
 
+open Scope
+open Model
+
 let parse (s : string) : program =
   let lexbuf = Lexing.from_string s in
   let ast = Parser.program Lexer.read lexbuf in
@@ -12,5 +15,7 @@ let read_file name =
   close_in channel;
   string
 
-let () =   
-  print_endline (display_program (parse (read_file Sys.argv.(1))))
+let () =
+  let program = parse (read_file Sys.argv.(1)) in
+  let _ = modelize program in
+  print_endline (display_program program)

@@ -66,3 +66,15 @@ and block = {
   block_defs: def list;
   block_expr: expr;
 }
+
+let get_types program =
+  List.filter_map (fun(def) -> match def with
+    | DefType def_type -> Some def_type
+    | DefExpr _        -> None
+  ) program.program_defs
+
+let get_exprs program =
+  List.filter_map (fun(def) -> match def with
+    | DefType _        -> None
+    | DefExpr def_expr -> Some def_expr
+  ) program.program_defs
