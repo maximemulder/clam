@@ -57,7 +57,7 @@ let type_ :=
     { TypeTuple types }
   | BRACE_LEFT; attrs = list_comma(attr_type); BRACE_RIGHT;
     { TypeRecord attrs }
-  | PARENTHESIS_LEFT; params = list_comma(type_); PARENTHESIS_RIGHT; return = return;
+  | PARENTHESIS_LEFT; params = list_comma(type_); PARENTHESIS_RIGHT; ARROW; return = type_;
     { TypeFun (params, return) }
   | left = type_; AMPERSAND; right = type_;
     { TypeInter (left, right) }
@@ -95,14 +95,12 @@ let expr :=
     { ExprBinop (left, op, right) }
   | expr = expr; COLON; type_ = type_;
     { ExprAscr (expr, type_) }
-  | expr = expr; AS; type_ = type_;
-    { ExprCast (expr, type_) }
   | block = block;
     { ExprBlock block }
   | IF; cond = expr; THEN; then_ = expr; ELSE; else_ = expr;
     { ExprIf (cond, then_, else_) }
-  | PARENTHESIS_LEFT; params = list_comma(param); PARENTHESIS_RIGHT; return = option(return); block = block;
-    { ExprAbs (params, return, block) }
+  | PARENTHESIS_LEFT; params = list_comma(param); PARENTHESIS_RIGHT; return = option(return); ARROW; expr = expr;
+    { ExprAbs (params, return, expr) }
   | expr = expr; PARENTHESIS_LEFT; args = list_comma(expr); PARENTHESIS_RIGHT;
     { ExprApp (expr, args)}
   | CROTCHET_LEFT; params = list_comma(param); CROTCHET_RIGHT; expr = expr;
@@ -115,7 +113,7 @@ let param :=
     { { param_name = name; param_type = type_ } }
 
 let return :=
-  | ARROW; type_ = type_;
+  | COLON; type_ = type_;
     { type_ }
 
 let attr_type :=

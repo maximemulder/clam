@@ -43,7 +43,6 @@ let node_name node =
     | ExprRecord  _ -> "record"
     | ExprPreop   _ -> "preop"
     | ExprBinop   _ -> "binop"
-    | ExprCast    _ -> "cast"
     | ExprAscr    _ -> "ascr"
     | ExprBlock   _ -> "block"
     | ExprIf      _ -> "if"
@@ -83,11 +82,10 @@ let node_attrs node =
     | ExprRecord attrs -> [("attrs", AList (List.map (fun attr -> AttrExpr attr) attrs))]
     | ExprPreop (op, expr) -> [("op", AString op); ("expr", ANode (Expr expr))]
     | ExprBinop (left, op, right) -> [("left", ANode (Expr left)); ("op", AString op); ("right", ANode (Expr right))]
-    | ExprCast (expr, type') -> [("expr", ANode (Expr expr)); ("type", ANode (Type type'))]
     | ExprAscr (expr, type') -> [("expr", ANode (Expr expr)); ("type", ANode (Type type'))]
     | ExprBlock block -> [("block", ANode (Block block))]
     | ExprIf (cond, then', else') -> [("cond", ANode (Expr cond)); ("then", ANode (Expr then')); ("else", ANode (Expr else'))]
-    | ExprAbs (params, return, block) -> [("params", AList (List.map (fun param -> Param param) params)); ("return", AOption (Option.map (fun return -> Type return) return)); ("block", ANode (Block block))]
+    | ExprAbs (params, return, expr) -> [("params", AList (List.map (fun param -> Param param) params)); ("return", AOption (Option.map (fun return -> Type return) return)); ("expr", ANode (Expr expr))]
     | ExprApp (expr, args) -> [("expr", ANode (Expr expr)); ("args", AList (List.map (fun arg -> Expr arg) args))]
     | ExprTypeAbs (params, expr) -> [("params", AList (List.map (fun param -> Param param) params)); ("expr", ANode (Expr expr))]
     | ExprTypeApp (expr, args) -> [("expr", ANode (Expr expr)); ("args", AList (List.map (fun arg -> Type arg) args))])

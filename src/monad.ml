@@ -9,13 +9,20 @@ module Monad (M: MONAD) = struct
 
   let (let*) = bind
 
-  let rec map f xs =
+  let rec map_list f xs =
     match xs with
     | [] -> return []
     | x :: xs ->
       let* x = f x in
-      let* xs = map f xs in
+      let* xs = map_list f xs in
       return (x :: xs)
+
+  let map_option f x =
+    match x with
+    | None -> return None
+    | Some x ->
+      let* x = f x in
+      return (Some x)
 end
 
 module type STATE = sig

@@ -2,7 +2,7 @@ open Ast
 open Display
 
 open Scope
-open Model
+open Modelize
 
 let parse (s : string) : program =
   let lexbuf = Lexing.from_string s in

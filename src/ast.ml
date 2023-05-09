@@ -38,11 +38,10 @@ and expr =
   | ExprRecord  of attr_expr list
   | ExprPreop   of string * expr
   | ExprBinop   of expr * string * expr
-  | ExprCast    of expr * type'
   | ExprAscr    of expr * type'
   | ExprBlock   of block
   | ExprIf      of expr * expr * expr
-  | ExprAbs     of (param list) * (type' option) * block
+  | ExprAbs     of (param list) * (type' option) * expr
   | ExprApp     of expr * (expr list)
   | ExprTypeAbs of (param list) * expr
   | ExprTypeApp of expr * (type' list)
