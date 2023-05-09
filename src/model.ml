@@ -1,36 +1,34 @@
 exception ModelError of string
 
-let init_scope = Scope.empty
-  |> Scope.add_type "Void"   Type.TypeVoid
-  |> Scope.add_type "Int"    Type.TypeInt
-  |> Scope.add_type "Char"   Type.TypeChar
-  |> Scope.add_type "String" Type.TypeString
-
 type state = {
   remains: Ast.def_type list;
   currents: Ast.def_type list;
   scope: Scope.scope;
 }
 
-let enter name state =
-  let (defs, remains) = List.partition (fun def -> def.Ast.type_name == name) state.remains in
-  let def = List.nth defs 0 in
-  let currents = def :: state.currents in
-  (def.type', { state with remains; currents })
+module State = struct
+  type s = state
+end
 
-let exit name type' state =
-  let currents = List.filter (fun def -> def.Ast.type_name != name) state.currents in
-  let scope = Scope.add_type name type' state.scope in
-  { state with currents; scope }
+open Monad.Monad(Monad.StateMonad(State))
 
 let find_remain name state =
-  List.find_opt (fun def -> def.Ast.type_name = name) state.remains
+  (List.find_opt (fun def -> def.Ast.type_name = name) state.remains, state)
 
 let find_current name state = 
-  List.find_opt (fun def -> def.Ast.type_name = name) state.currents
+  (List.find_opt (fun def -> def.Ast.type_name = name) state.currents, state)
 
 let find_scope name state = 
-  Scope.find_type name state.scope
+  (Scope.find_type name state.scope, state)
+
+let init_scope = Scope.empty
+  |> Scope.add_type "Void"   Type.TypeVoid
+  |> Scope.add_type "Int"    Type.TypeInt
+  |> Scope.add_type "Char"   Type.TypeChar
+  |> Scope.add_type "String" Type.TypeString
+
+let init_state remains =
+  { remains; currents = []; scope = init_scope }
 
 module NameSet = Set.Make(Scope.NameKey)
 
@@ -44,66 +42,75 @@ let check_duplicates defs =
     ) names defs in
   ()
 
-let init_state remains =
-  { remains; currents = []; scope = init_scope }
+let enter name state =
+  let (defs, remains) = List.partition (fun def -> def.Ast.type_name == name) state.remains in
+  let def = List.nth defs 0 in
+  let currents = def :: state.currents in
+  (def.type', { state with remains; currents })
 
-let map modelize = fun a b -> let (c, d) = (modelize b a) in (d, c)
+let exit name type' state =
+  let currents = List.filter (fun def -> def.Ast.type_name != name) state.currents in
+  let scope = Scope.add_type name type' state.scope in
+  (0, { state with currents; scope })
 
-let rec modelize_name name state =
-  match find_remain name state with
-  | Some def -> modelize_def def state
+let rec modelize_name name =
+  let* type' = find_remain name in
+  match type' with
+  | Some def -> modelize_def def
   | None     ->
-  match find_current name state with
+  let* type' = find_current name in
+  match type' with
   | Some _ -> raise (ModelError ("recursive type `" ^ name ^ "`"))
   | None   ->
-  match find_scope name state with
-  | Some type' -> (type', state)
+  let* type' = find_scope name in
+  match type' with
+  | Some type' -> return type'
   | None       -> raise (ModelError ("unbound type `" ^ name ^ "`"))
 
-and modelize_def (node: Ast.def_type) state =
+and modelize_def (node: Ast.def_type) =
   let name = node.type_name in
-  let (node, state) = enter name state in
-  let (type', state) = modelize_type node state in
-  let state = exit name type' state in
-  (type', state)
+  let* node = enter name in
+  let* type' = modelize_type node in
+  let* _ = exit name type' in
+  return type'
 
-and modelize_type (type': Ast.type') state =
+and modelize_type (type': Ast.type') =
   match type' with
-  | TypeIdent  name -> modelize_name name state
-  | TypeFun (params, return) ->
-    let (state, params) = List.fold_left_map (map modelize_type) state params in
-    let (return, state) = modelize_type return state in
-    (Type.TypeFun (params, return), state)
+  | TypeIdent name -> modelize_name name 
+  | TypeFun (params, type') ->
+    let* params = map modelize_type params in
+    let* type' = modelize_type type' in
+    return (Type.TypeFun (params, type'))
   | TypeTuple (types) ->
-    let (state, types) = List.fold_left_map (map modelize_type) state types in
-    (Type.TypeTuple types, state)
+    let* types = map modelize_type types in
+    return (Type.TypeTuple types)
   | TypeRecord (attrs) ->
-    let (state, attrs) = List.fold_left_map (map modelize_attr) state attrs in
-    (Type.TypeRecord attrs, state)
-  | TypeInter  (left, right) ->
-    let (left, state) = modelize_type left state in
-    let (right, state) = modelize_type right state in
-    (Type.TypeInter (left, right), state)
-  | TypeUnion  (left, right) ->
-    let (left, state) = modelize_type left state in
-    let (right, state) = modelize_type right state in
-    (Type.TypeUnion (left, right), state)
+    let* attrs = map modelize_attr attrs in
+    return (Type.TypeRecord attrs)
+  | Ast.TypeInter (left, right) ->
+    let* left = modelize_type left in
+    let* right = modelize_type right in
+    return (Type.TypeInter (left, right))
+  | Ast.TypeUnion (left, right) ->
+    let* left = modelize_type left in
+    let* right = modelize_type right in
+    return (Type.TypeUnion (left, right))
   | TypeAbs (params, type') ->
-    let (state, params) = List.fold_left_map (map modelize_param) state params in
-    let (type', state) = modelize_type type' state in
-    (Type.TypeAbs (params, type'), state)
+    let* params = map modelize_param params in
+    let* type' = modelize_type type' in
+    return (Type.TypeAbs (params, type'))
   | TypeApp (type', args) ->
-    let (type', state) = modelize_type type' state in
-    let (state, args) = List.fold_left_map (map modelize_type) state args in
-    (Type.TypeApp (type', args), state)
+    let* type' = modelize_type type' in
+    let* args = map modelize_type args in
+    return (Type.TypeApp (type', args))
 
-and modelize_param (param: Ast.param) state =
-  let (type', state) = modelize_type param.param_type state in
-  ({ Type.param_name = param.param_name; Type.param_type = type' }, state)
+and modelize_param (param: Ast.param)=
+  let* type' = modelize_type param.param_type in
+  return { Type.param_name = param.param_name; Type.param_type = type' }
 
-and modelize_attr (attr: Ast.attr_type) state =
-  let (type', state) = modelize_type attr.attr_type state in
-  ({ Type.attr_name = attr.attr_type_name; Type.attr_type = type' }, state)
+and modelize_attr (attr: Ast.attr_type) =
+  let* type' = modelize_type attr.attr_type in
+  return { Type.attr_name = attr.attr_type_name; Type.attr_type = type' }
 
 let rec modelize_defs state =
   match state.remains with 
