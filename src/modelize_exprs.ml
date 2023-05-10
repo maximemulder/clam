@@ -29,7 +29,7 @@ let check_duplicates defs =
   let _ = List.fold_left (fun names def ->
     let name = def.Ast.expr_name in
     if NameSet.mem name names
-      then Modelize_error.raise ("duplicate expr `" ^ name ^ "`")
+      then Modelize_errors.raise ("duplicate expr `" ^ name ^ "`")
       else NameSet.add name names
     ) names defs in
   ()
@@ -37,7 +37,7 @@ let check_duplicates defs =
 let parse_int (value: string) =
   match int_of_string_opt value with
   | Some int -> int
-  | None     -> Modelize_error.raise ("invalid integer `" ^ value ^ "`")
+  | None     -> Modelize_errors.raise ("invalid integer `" ^ value ^ "`")
 
 let parse_char (value: string) =
   value.[0]
@@ -54,7 +54,7 @@ let enter name state =
 let exit name expr state =
   let currents = List.filter (fun def -> def.Ast.expr_name != name) state.currents in
   let scope = Scope.add_expr name expr state.scope in
-  (0, { state with currents; scope })
+  ((), { state with currents; scope })
 
 let modelize_type (type': Ast.type') state =
   (Modelize_types.modelize_type_expr type' state.scope, state)
@@ -66,12 +66,12 @@ let rec modelize_name name =
   | None     ->
   let* expr = find_current name in
   match expr with
-  | Some _ -> Modelize_error.raise ("recursive expr `" ^ name ^ "`")
+  | Some _ -> Modelize_errors.raise ("recursive expr `" ^ name ^ "`")
   | None   ->
   let* expr = find_scope name in
   match expr with
   | Some expr -> return expr
-  | None      -> Modelize_error.raise ("unbound expr `" ^ name ^ "`")
+  | None      -> Modelize_errors.raise ("unbound expr `" ^ name ^ "`")
 
 and modelize_def (node: Ast.def_expr) =
   let name = node.expr_name in

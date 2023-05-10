@@ -32,7 +32,7 @@ module NameSet = Set.Make(Scope.NameKey)
 let check_duplicates names set =
   List.fold_left (fun set name ->
     if NameSet.mem name set
-      then Modelize_error.raise ("duplicate type `" ^ name ^ "`")
+      then Modelize_errors.raise ("duplicate type `" ^ name ^ "`")
       else NameSet.add name set
     ) set names
 
@@ -55,34 +55,33 @@ let extract key map =
   let map = NameMap.remove key map in
   (value, map)
 
-let enter name state =
+let with_name name call state =
   let (type', remains) = extract name state.remains in
   let currents = NameMap.add name type' state.currents in
-  (type', { state with remains; currents })
-
-let exit name type' state =
+  let state = { state with remains; currents } in
+  let (type', state) = call type' state in
   let currents = NameMap.remove name state.currents in
   let dones = NameMap.add name type' state.dones in
-  ((), { state with currents; dones })
+  (type', { state with currents; dones })
+
+let with_scope call types state =
+  let parent = state in
+  let state = new_state (Some parent) [] types in
+  let (result, state) = call state in
+  let state = Option.get state.parent in
+  (result, state)
 
 let add_param param state =
   let type' = Model.TypeVar param in
   let dones = NameMap.add param.Model.param_name type' state.dones in
   ((), { state with dones })
 
-let with_scope call state =
-  let parent = state in
-  let state = new_state (Some parent) [] [] in
-  let (result, state) = call state in
-  let state = Option.get state.parent in
-  (result, state)
-
-let rec modelize_name (name: string) (state: state) : Model.type' * state =
+let rec modelize_name name state =
   match find_remain name state with
   | Some def -> modelize_def name def state
   | None     ->
   match find_current name state with
-  | Some _ -> Modelize_error.raise ("recursive type `" ^ name ^ "`")
+  | Some _ -> Modelize_errors.raise ("recursive type `" ^ name ^ "`")
   | None   ->
   match find_done name state with
   | Some type' -> (type', state)
@@ -90,17 +89,16 @@ let rec modelize_name (name: string) (state: state) : Model.type' * state =
   match state.parent with
   | Some parent -> let (type', parent) = modelize_name name parent in
     (type', { state with parent = Some parent })
-  | None        -> Modelize_error.raise ("unbound type `" ^ name ^ "`")
+  | None        -> Modelize_errors.raise ("unbound type `" ^ name ^ "`")
 
-and modelize_def (name: string) (_type': Ast.type') : state -> (Model.type' * state) =
-  let* type' = enter name in
-  let* type' = modelize_type type' in
-  let* _ = exit name type' in
-  return type'
+and modelize_def name _type' =
+  with_name name modelize_type
 
 and modelize_params params type' =
-  let* _ = map_list add_param params in
-  modelize_type type'
+  let* params = map_list modelize_param params in
+  let types = List.map (fun param -> (param.Model.param_name, Model.TypeVar param)) params in
+  let* type' = with_scope (modelize_type type') types in
+  return (params, type')
 
 and modelize_type (type': Ast.type') =
   match type' with
@@ -110,8 +108,7 @@ and modelize_type (type': Ast.type') =
     let* type' = modelize_type type' in
     return (Model.TypeAbsExpr (params, type'))
   | TypeAbsExprType (params, type') ->
-    let* params = map_list modelize_param params in
-    let* type' = with_scope (modelize_params params type') in
+    let* (params, type') = modelize_params params type' in
     return (Model.TypeAbsExprType (params, type'))
   | TypeTuple (types) ->
     let* types = map_list modelize_type types in
@@ -128,15 +125,14 @@ and modelize_type (type': Ast.type') =
     let* right = modelize_type right in
     return (Model.TypeUnion (left, right))
   | TypeAbs (params, type') ->
-    let* params = map_list modelize_param params in
-    let* type' = with_scope (modelize_params params type') in
+    let* (params, type') = modelize_params params type' in
     return (Model.TypeAbs (params, type'))
   | TypeApp (type', args) ->
     let* type' = modelize_type type' in
     let* args = map_list modelize_type args in
     return (Model.TypeApp (type', args))
 
-and modelize_param (param: Ast.param)=
+and modelize_param param =
   let* type' = modelize_type param.param_type in
   return { Model.param_name = param.param_name; Model.param_type = type' }
 
@@ -160,12 +156,11 @@ let rec modelize_defs state =
     let (_, state) = modelize_def name remain state in
     modelize_defs state
 
-
 let primitives = [
-  ("Any", Model.TypeAny);
-  ("Void", Model.TypeVoid);
-  ("Int", Model.TypeInt);
-  ("Char", Model.TypeChar);
+  ("Any",    Model.TypeAny);
+  ("Void",   Model.TypeVoid);
+  ("Int",    Model.TypeInt);
+  ("Char",   Model.TypeChar);
   ("String", Model.TypeString);
 ]
 
