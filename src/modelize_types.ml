@@ -52,6 +52,18 @@ let exit name type' state =
   let scope = Scope.add_type name type' state.scope in
   (0, { state with currents; scope })
 
+let add_param param state =
+  let type' = Model.TypeVar param in
+  let scope = Scope.add_type param.Model.param_name type' state.scope in
+  ((), { state with scope })
+
+let with_scope call state =
+  let parent = state.scope in
+  let state = { state with scope = Scope.empty_child state.scope } in
+  let (result, state) = call state in
+  let state = { state with scope = parent } in
+  (result, state)
+
 let rec modelize_name name =
   let* type' = find_remain name in
   match type' with
@@ -66,6 +78,10 @@ let rec modelize_name name =
   | Some type' -> return type'
   | None       -> Modelize_error.raise ("unbound type `" ^ name ^ "`")
 
+and modelize_params params type' =
+  let* _ = map_list add_param params in
+  modelize_type type'
+
 and modelize_def (node: Ast.def_type) =
   let name = node.type_name in
   let* node = enter name in
@@ -76,10 +92,14 @@ and modelize_def (node: Ast.def_type) =
 and modelize_type (type': Ast.type') =
   match type' with
   | TypeIdent name -> modelize_name name
-  | TypeFun (params, type') ->
+  | TypeAbsExpr (params, type') ->
     let* params = map_list modelize_type params in
     let* type' = modelize_type type' in
-    return (Model.TypeFun (params, type'))
+    return (Model.TypeAbsExpr (params, type'))
+  | TypeAbsExprType (params, type') ->
+    let* params = map_list modelize_param params in
+    let* type' = with_scope (modelize_params params type') in
+    return (Model.TypeAbsExprType (params, type'))
   | TypeTuple (types) ->
     let* types = map_list modelize_type types in
     return (Model.TypeTuple types)
@@ -96,7 +116,7 @@ and modelize_type (type': Ast.type') =
     return (Model.TypeUnion (left, right))
   | TypeAbs (params, type') ->
     let* params = map_list modelize_param params in
-    let* type' = modelize_type type' in
+    let* type' = with_scope (modelize_params params type') in
     return (Model.TypeAbs (params, type'))
   | TypeApp (type', args) ->
     let* type' = modelize_type type' in

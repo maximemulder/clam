@@ -23,14 +23,15 @@ let node_name node =
     | DefType _ -> "type"
     | DefExpr _ -> "expr")
   | Type type' -> "type." ^ (match type' with
-    | TypeIdent  _ -> "name"
-    | TypeFun    _ -> "fun"
-    | TypeTuple  _ -> "tuple"
-    | TypeRecord _ -> "record"
-    | TypeInter  _ -> "inter"
-    | TypeUnion  _ -> "union"
-    | TypeAbs    _ -> "abs"
-    | TypeApp    _ -> "app")
+    | TypeIdent       _ -> "name"
+    | TypeAbsExpr     _ -> "abs_expr"
+    | TypeAbsExprType _ -> "abs_expr_type"
+    | TypeTuple       _ -> "tuple"
+    | TypeRecord      _ -> "record"
+    | TypeInter       _ -> "inter"
+    | TypeUnion       _ -> "union"
+    | TypeAbs         _ -> "abs"
+    | TypeApp         _ -> "app")
   | Expr expr -> "expr." ^ (match expr with
     | ExprIdent   _ -> "name"
     | ExprVoid      -> "void"
@@ -62,37 +63,66 @@ let node_attrs node =
     | Ast.DefType type' -> [("name", AString type'.type_name); ("type", ANode (Type type'.type'))]
     | Ast.DefExpr expr  -> [("name", AString expr.expr_name); ("expr", ANode (Expr expr.expr))])
   | Type type' -> (match type' with
-    | TypeIdent  name -> [("name", AString name)]
-    | TypeFun    (params, return) -> [("params", AList (List.map (fun param -> Type param) params)); ("return", ANode (Type return))]
-    | TypeTuple  types -> [("types", AList (List.map (fun type' -> Type type') types))]
-    | TypeRecord attrs -> [("attrs", AList (List.map (fun attr -> AttrType attr) attrs))]
-    | TypeInter  (left, right) -> [("left", ANode (Type left)); ("right", ANode (Type right))]
-    | TypeUnion  (left, right) -> [("left", ANode (Type left)); ("right", ANode (Type right))]
-    | TypeAbs    (params, return) -> [("params", AList (List.map (fun param -> Param param) params)); ("return", ANode (Type return))]
-    | TypeApp    (type', args) -> [("type", ANode (Type type')); ("args", AList (List.map (fun arg -> Type arg) args))])
+    | TypeIdent name ->
+      [("name", AString name)]
+    | TypeAbsExpr (params, return) ->
+      [("params", AList (List.map (fun param -> Type param) params)); ("expr", ANode (Type return))]
+    | TypeAbsExprType (params, return) ->
+      [("params", AList (List.map (fun param -> Param param) params)); ("expr", ANode (Type return))]
+    | TypeTuple types ->
+      [("types", AList (List.map (fun type' -> Type type') types))]
+    | TypeRecord attrs ->
+      [("attrs", AList (List.map (fun attr -> AttrType attr) attrs))]
+    | TypeInter (left, right) ->
+      [("left", ANode (Type left)); ("right", ANode (Type right))]
+    | TypeUnion (left, right) ->
+      [("left", ANode (Type left)); ("right", ANode (Type right))]
+    | TypeAbs (params, return) ->
+      [("params", AList (List.map (fun param -> Param param) params)); ("type", ANode (Type return))]
+    | TypeApp (type', args) ->
+      [("type", ANode (Type type')); ("args", AList (List.map (fun arg -> Type arg) args))])
   | Expr expr -> (match expr with
-    | ExprIdent name -> [("name", AString name)]
+    | ExprIdent name ->
+      [("name", AString name)]
     | ExprVoid -> []
     | ExprTrue -> []
     | ExprFalse -> []
-    | ExprInt value -> [("value", AString value)]
-    | ExprChar value -> [("value", AString value)]
-    | ExprString value -> [("value", AString value)]
-    | ExprTuple exprs -> [("exprs", AList (List.map (fun expr -> Expr expr) exprs))]
-    | ExprRecord attrs -> [("attrs", AList (List.map (fun attr -> AttrExpr attr) attrs))]
-    | ExprPreop (op, expr) -> [("op", AString op); ("expr", ANode (Expr expr))]
-    | ExprBinop (left, op, right) -> [("left", ANode (Expr left)); ("op", AString op); ("right", ANode (Expr right))]
-    | ExprAscr (expr, type') -> [("expr", ANode (Expr expr)); ("type", ANode (Type type'))]
-    | ExprBlock block -> [("block", ANode (Block block))]
-    | ExprIf (cond, then', else') -> [("cond", ANode (Expr cond)); ("then", ANode (Expr then')); ("else", ANode (Expr else'))]
-    | ExprAbs (params, return, expr) -> [("params", AList (List.map (fun param -> Param param) params)); ("return", AOption (Option.map (fun return -> Type return) return)); ("expr", ANode (Expr expr))]
-    | ExprApp (expr, args) -> [("expr", ANode (Expr expr)); ("args", AList (List.map (fun arg -> Expr arg) args))]
-    | ExprTypeAbs (params, expr) -> [("params", AList (List.map (fun param -> Param param) params)); ("expr", ANode (Expr expr))]
-    | ExprTypeApp (expr, args) -> [("expr", ANode (Expr expr)); ("args", AList (List.map (fun arg -> Type arg) args))])
-  | Param { param_name; param_type } -> [("name", AString param_name); ("type", ANode (Type param_type))]
-  | AttrType { attr_type_name; attr_type } -> [("name", AString attr_type_name); ("type", ANode (Type attr_type))]
-  | AttrExpr { attr_expr_name; attr_expr } -> [("name", AString attr_expr_name); ("expr", ANode (Expr attr_expr))]
-  | Block block -> [("defs", AList (List.map (fun def -> Def def) block.block_defs)); ("expr", ANode (Expr block.block_expr))]
+    | ExprInt value ->
+      [("value", AString value)]
+    | ExprChar value ->
+      [("value", AString value)]
+    | ExprString value ->
+      [("value", AString value)]
+    | ExprTuple exprs ->
+      [("exprs", AList (List.map (fun expr -> Expr expr) exprs))]
+    | ExprRecord attrs ->
+      [("attrs", AList (List.map (fun attr -> AttrExpr attr) attrs))]
+    | ExprPreop (op, expr) ->
+      [("op", AString op); ("expr", ANode (Expr expr))]
+    | ExprBinop (left, op, right) ->
+      [("left", ANode (Expr left)); ("op", AString op); ("right", ANode (Expr right))]
+    | ExprAscr (expr, type') ->
+      [("expr", ANode (Expr expr)); ("type", ANode (Type type'))]
+    | ExprBlock block ->
+      [("block", ANode (Block block))]
+    | ExprIf (cond, then', else') ->
+      [("cond", ANode (Expr cond)); ("then", ANode (Expr then')); ("else", ANode (Expr else'))]
+    | ExprAbs (params, return, expr) ->
+      [("params", AList (List.map (fun param -> Param param) params)); ("return", AOption (Option.map (fun return -> Type return) return)); ("expr", ANode (Expr expr))]
+    | ExprApp (expr, args) ->
+      [("expr", ANode (Expr expr)); ("args", AList (List.map (fun arg -> Expr arg) args))]
+    | ExprTypeAbs (params, expr) ->
+      [("params", AList (List.map (fun param -> Param param) params)); ("expr", ANode (Expr expr))]
+    | ExprTypeApp (expr, args) ->
+      [("expr", ANode (Expr expr)); ("args", AList (List.map (fun arg -> Type arg) args))])
+  | Param { param_name; param_type } ->
+    [("name", AString param_name); ("type", ANode (Type param_type))]
+  | AttrType { attr_type_name; attr_type } ->
+    [("name", AString attr_type_name); ("type", ANode (Type attr_type))]
+  | AttrExpr { attr_expr_name; attr_expr } ->
+    [("name", AString attr_expr_name); ("expr", ANode (Expr attr_expr))]
+  | Block block ->
+    [("defs", AList (List.map (fun def -> Def def) block.block_defs)); ("expr", ANode (Expr block.block_expr))]
 
 let rec indent tab =
   if tab == 0

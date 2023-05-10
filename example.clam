@@ -6,8 +6,15 @@ type Inter = Void & Void;
 type Abs = [] Void;
 type App = Void[Void, Void];
 
+type Self = [T: Any] T;
+type Universal = [T: Any] -> T;
+
 type Pair = (IntOrString, IntOrString);
 type IntOrString = Int | String;
+
+type A = [T: Any] -> B;
+type B = Int;
+type C = B;
 
 def name = string;
 def void_ = void;
@@ -21,7 +28,7 @@ def binop = name + name;
 def ascr = name : Tuple;
 def block = { def a = b; def c = d; name };
 def if_ = if name then name else name;
-def abs = (a: Tuple, b: Tuple): Tuple -> { name };
+def abs = (a: Tuple, b: Tuple): Tuple -> name;
 def app = name(name, name);
-def type_abs = [A: Tuple, C: Tuple] name;
+def type_abs = [A: Tuple, C: Tuple] -> name;
 def type_app = name[Tuple, Tuple];

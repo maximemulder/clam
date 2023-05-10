@@ -57,8 +57,10 @@ let type_ :=
     { TypeTuple types }
   | BRACE_LEFT; attrs = list_comma(attr_type); BRACE_RIGHT;
     { TypeRecord attrs }
-  | PARENTHESIS_LEFT; params = list_comma(type_); PARENTHESIS_RIGHT; ARROW; return = type_;
-    { TypeFun (params, return) }
+  | PARENTHESIS_LEFT; params = list_comma(type_); PARENTHESIS_RIGHT; ARROW; expr = type_;
+    { TypeAbsExpr (params, expr) }
+  | CROTCHET_LEFT; params = list_comma(param); CROTCHET_RIGHT; ARROW; expr = type_;
+    { TypeAbsExprType (params, expr) }
   | left = type_; AMPERSAND; right = type_;
     { TypeInter (left, right) }
   | left = type_; PIPE; right = type_;
@@ -103,7 +105,7 @@ let expr :=
     { ExprAbs (params, return, expr) }
   | expr = expr; PARENTHESIS_LEFT; args = list_comma(expr); PARENTHESIS_RIGHT;
     { ExprApp (expr, args)}
-  | CROTCHET_LEFT; params = list_comma(param); CROTCHET_RIGHT; expr = expr;
+  | CROTCHET_LEFT; params = list_comma(param); CROTCHET_RIGHT; ARROW; expr = expr;
     { ExprTypeAbs (params, expr) }
   | expr = expr; CROTCHET_LEFT; args = list_comma(type_); CROTCHET_RIGHT;
     { ExprTypeApp (expr, args) }

@@ -1,16 +1,18 @@
 type type' =
+  | TypeVar of param
   | TypeAny
   | TypeVoid
   | TypeInt
   | TypeChar
   | TypeString
-  | TypeFun    of (type' list) * type'
-  | TypeTuple  of type' list
-  | TypeRecord of attr_type list
-  | TypeInter  of type' * type'
-  | TypeUnion  of type' * type'
-  | TypeAbs    of (param list) * type'
-  | TypeApp    of type' * (type' list)
+  | TypeAbsExpr     of (type' list) * type'
+  | TypeAbsExprType of (param list) * type'
+  | TypeTuple       of type' list
+  | TypeRecord      of attr_type list
+  | TypeInter       of type' * type'
+  | TypeUnion       of type' * type'
+  | TypeAbs         of (param list) * type'
+  | TypeApp         of type' * (type' list)
 
 and attr_type = {
   attr_type_name: string;

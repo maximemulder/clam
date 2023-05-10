@@ -17,14 +17,15 @@ and def_expr = {
 }
 
 and type' =
-  | TypeIdent  of string
-  | TypeFun    of (type' list) * type'
-  | TypeTuple  of type' list
-  | TypeRecord of attr_type list
-  | TypeInter  of type' * type'
-  | TypeUnion  of type' * type'
-  | TypeAbs    of (param list) * type'
-  | TypeApp    of type' * (type' list)
+  | TypeIdent       of string
+  | TypeAbsExpr     of (type' list) * type'
+  | TypeAbsExprType of (param list) * type'
+  | TypeTuple       of type' list
+  | TypeRecord      of attr_type list
+  | TypeInter       of type' * type'
+  | TypeUnion       of type' * type'
+  | TypeAbs         of (param list) * type'
+  | TypeApp         of type' * (type' list)
 
 and expr =
   | ExprIdent   of string
