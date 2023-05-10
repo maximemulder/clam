@@ -1,7 +1,15 @@
+module NameKey = struct
+  type t = string
+  let compare = String.compare
+end
+
+module NameMap = Map.Make(NameKey)
+
 type state = {
-  remains: Ast.def_type list;
-  currents: Ast.def_type list;
-  scope: Scope.scope;
+  parent: state option;
+  remains: Ast.type' NameMap.t;
+  currents: Ast.type' NameMap.t;
+  dones: Model.type' NameMap.t;
 }
 
 module State = struct
@@ -11,83 +19,88 @@ end
 open Monad.Monad(Monad.StateMonad(State))
 
 let find_remain name state =
-  (List.find_opt (fun def -> def.Ast.type_name = name) state.remains, state)
+  NameMap.find_opt name state.remains
 
 let find_current name state =
-  (List.find_opt (fun def -> def.Ast.type_name = name) state.currents, state)
+  NameMap.find_opt name state.currents
 
-let find_scope name state =
-  (Scope.find_type name state.scope, state)
-
-let init_scope = Scope.empty
-  |> Scope.add_type "Any"    Model.TypeAny
-  |> Scope.add_type "Void"   Model.TypeVoid
-  |> Scope.add_type "Int"    Model.TypeInt
-  |> Scope.add_type "Char"   Model.TypeChar
-  |> Scope.add_type "String" Model.TypeString
-
-let init_state remains =
-  { remains; currents = []; scope = init_scope }
+let find_done name state =
+  NameMap.find_opt name state.dones
 
 module NameSet = Set.Make(Scope.NameKey)
 
-let check_duplicates defs =
-  let names = NameSet.empty in
-  let _ = List.fold_left (fun names def ->
-    let name = def.Ast.type_name in
-    if NameSet.mem name names
+let check_duplicates names set =
+  List.fold_left (fun set name ->
+    if NameSet.mem name set
       then Modelize_error.raise ("duplicate type `" ^ name ^ "`")
-      else NameSet.add name names
-    ) names defs in
-  ()
+      else NameSet.add name set
+    ) set names
+
+let fold_remain map remain =
+  NameMap.add remain.Ast.type_name remain.Ast.type' map
+
+let fold_done map done' =
+  NameMap.add (fst done') (snd done') map
+
+let new_state parent remains dones =
+  let names = NameSet.empty in
+  let names = check_duplicates (List.map (fun remain -> remain.Ast.type_name) remains) names in
+  let _ = check_duplicates (List.map (fun done' -> fst done') dones) names in
+  let remains = List.fold_left fold_remain NameMap.empty remains in
+  let dones = List.fold_left fold_done NameMap.empty dones in
+  { parent; remains; currents = NameMap.empty; dones }
+
+let extract key map =
+  let value = NameMap.find key map in
+  let map = NameMap.remove key map in
+  (value, map)
 
 let enter name state =
-  let (defs, remains) = List.partition (fun def -> def.Ast.type_name == name) state.remains in
-  let def = List.nth defs 0 in
-  let currents = def :: state.currents in
-  (def.type', { state with remains; currents })
+  let (type', remains) = extract name state.remains in
+  let currents = NameMap.add name type' state.currents in
+  (type', { state with remains; currents })
 
 let exit name type' state =
-  let currents = List.filter (fun def -> def.Ast.type_name != name) state.currents in
-  let scope = Scope.add_type name type' state.scope in
-  (0, { state with currents; scope })
+  let currents = NameMap.remove name state.currents in
+  let dones = NameMap.add name type' state.dones in
+  ((), { state with currents; dones })
 
 let add_param param state =
   let type' = Model.TypeVar param in
-  let scope = Scope.add_type param.Model.param_name type' state.scope in
-  ((), { state with scope })
+  let dones = NameMap.add param.Model.param_name type' state.dones in
+  ((), { state with dones })
 
 let with_scope call state =
-  let parent = state.scope in
-  let state = { state with scope = Scope.empty_child state.scope } in
+  let parent = state in
+  let state = new_state (Some parent) [] [] in
   let (result, state) = call state in
-  let state = { state with scope = parent } in
+  let state = Option.get state.parent in
   (result, state)
 
-let rec modelize_name name =
-  let* type' = find_remain name in
-  match type' with
-  | Some def -> modelize_def def
+let rec modelize_name (name: string) (state: state) : Model.type' * state =
+  match find_remain name state with
+  | Some def -> modelize_def name def state
   | None     ->
-  let* type' = find_current name in
-  match type' with
+  match find_current name state with
   | Some _ -> Modelize_error.raise ("recursive type `" ^ name ^ "`")
   | None   ->
-  let* type' = find_scope name in
-  match type' with
-  | Some type' -> return type'
-  | None       -> Modelize_error.raise ("unbound type `" ^ name ^ "`")
+  match find_done name state with
+  | Some type' -> (type', state)
+  | None       ->
+  match state.parent with
+  | Some parent -> let (type', parent) = modelize_name name parent in
+    (type', { state with parent = Some parent })
+  | None        -> Modelize_error.raise ("unbound type `" ^ name ^ "`")
+
+and modelize_def (name: string) (_type': Ast.type') : state -> (Model.type' * state) =
+  let* type' = enter name in
+  let* type' = modelize_type type' in
+  let* _ = exit name type' in
+  return type'
 
 and modelize_params params type' =
   let* _ = map_list add_param params in
   modelize_type type'
-
-and modelize_def (node: Ast.def_type) =
-  let name = node.type_name in
-  let* node = enter name in
-  let* type' = modelize_type node in
-  let* _ = exit name type' in
-  return type'
 
 and modelize_type (type': Ast.type') =
   match type' with
@@ -131,20 +144,32 @@ and modelize_attr (attr: Ast.attr_type) =
   let* type' = modelize_type attr.attr_type in
   return { Model.attr_type_name = attr.attr_type_name; Model.attr_type = type' }
 
+let rec translate_scope scope =
+  let dones = NameMap.of_seq (Scope.NameMap.to_seq scope.Scope.types) in
+  { parent = Option.map translate_scope scope.parent; remains = NameMap.empty; currents =  NameMap.empty; dones }
+
 let modelize_type_expr (type': Ast.type') scope =
-  let state = { remains = []; currents =  []; scope } in
+  let state = translate_scope scope in
   let (type', _) = modelize_type type' state in
   type'
 
 let rec modelize_defs state =
-  match state.remains with
-  | [] -> state
-  | remain :: _ ->
-    let (_, state) = modelize_def remain state in
+  match NameMap.choose_opt state.remains with
+  | None -> state
+  | Some (name, remain) ->
+    let (_, state) = modelize_def name remain state in
     modelize_defs state
+
+
+let primitives = [
+  ("Any", Model.TypeAny);
+  ("Void", Model.TypeVoid);
+  ("Int", Model.TypeInt);
+  ("Char", Model.TypeChar);
+  ("String", Model.TypeString);
+]
 
 let modelize_program (program: Ast.program) =
   let defs = Ast.get_types program in
-  let _ = check_duplicates defs in
-  let state = init_state defs in
-  (modelize_defs state).scope
+  let state = new_state None defs primitives in
+  (modelize_defs state)
