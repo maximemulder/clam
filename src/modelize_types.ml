@@ -1,9 +1,4 @@
-module NameKey = struct
-  type t = string
-  let compare = String.compare
-end
-
-module NameMap = Map.Make(NameKey)
+open Modelize_state
 
 type state = {
   parent: state option;
@@ -26,8 +21,6 @@ let find_current name state =
 
 let find_done name state =
   NameMap.find_opt name state.dones
-
-module NameSet = Set.Make(Scope.NameKey)
 
 let check_duplicates names set =
   List.fold_left (fun set name ->
@@ -87,9 +80,10 @@ let rec modelize_name name state =
   | Some type' -> (type', state)
   | None       ->
   match state.parent with
-  | Some parent -> let (type', parent) = modelize_name name parent in
+  | Some parent ->
+    let (type', parent) = modelize_name name parent in
     (type', { state with parent = Some parent })
-  | None        -> Modelize_errors.raise ("unbound type `" ^ name ^ "`")
+  | None -> Modelize_errors.raise ("unbound type `" ^ name ^ "`")
 
 and modelize_def name _type' =
   with_name name modelize_type
@@ -140,12 +134,7 @@ and modelize_attr (attr: Ast.attr_type) =
   let* type' = modelize_type attr.attr_type in
   return { Model.attr_type_name = attr.attr_type_name; Model.attr_type = type' }
 
-let rec translate_scope scope =
-  let dones = NameMap.of_seq (Scope.NameMap.to_seq scope.Scope.types) in
-  { parent = Option.map translate_scope scope.parent; remains = NameMap.empty; currents =  NameMap.empty; dones }
-
-let modelize_type_expr (type': Ast.type') scope =
-  let state = translate_scope scope in
+let modelize_type_expr (type': Ast.type') state =
   let (type', _) = modelize_type type' state in
   type'
 
@@ -165,6 +154,16 @@ let primitives = [
 ]
 
 let modelize_program (program: Ast.program) =
-  let defs = Ast.get_types program in
+  let defs = Ast.get_program_types program in
   let state = new_state None defs primitives in
-  (modelize_defs state)
+  (modelize_defs state).dones
+
+let modelize_block (block: Ast.block) parent =
+  let defs = Ast.get_block_types block in
+  let state = new_state (Some parent) defs [] in
+  (modelize_defs state).dones
+
+let modelize_abs (params: Model.param list) parent =
+  let types = List.map (fun param -> (param.Model.param_name, param.Model.param_type)) params in
+  let state = new_state (Some parent) [] types in
+  state.dones
