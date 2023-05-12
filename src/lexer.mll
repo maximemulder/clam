@@ -12,7 +12,6 @@ rule read =
   parse
   | int      { INT (Lexing.lexeme lexbuf) }
   | white    { read lexbuf }
-  | "as"     { AS }
   | "def"    { DEF }
   | "else"   { ELSE }
   | "false"  { FALSE }

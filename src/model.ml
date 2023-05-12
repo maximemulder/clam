@@ -1,17 +1,18 @@
 type type' =
-  | TypeVar of param
+  | TypeVar of type_param
   | TypeAny
   | TypeVoid
+  | TypeBool
   | TypeInt
   | TypeChar
   | TypeString
   | TypeAbsExpr     of (type' list) * type'
-  | TypeAbsExprType of (param list) * type'
+  | TypeAbsExprType of (type_param list) * type'
   | TypeTuple       of type' list
   | TypeRecord      of attr_type list
   | TypeInter       of type' * type'
   | TypeUnion       of type' * type'
-  | TypeAbs         of (param list) * type'
+  | TypeAbs         of (type_param list) * type'
   | TypeApp         of type' * (type' list)
 
 and attr_type = {
@@ -19,9 +20,9 @@ and attr_type = {
   attr_type: type';
 }
 
-and param = {
-  param_name: string;
-  param_type: type';
+and type_param = {
+  type_param_name: string;
+  type_param_type: type';
 }
 
 type expr =
@@ -39,10 +40,15 @@ type expr =
   | ExprAscr    of expr * type'
   | ExprBlock   of block
   | ExprIf      of expr * expr * expr
-  | ExprAbs     of (param list) * (type' option) * block
+  | ExprAbs     of (expr_param list) * (type' option) * block
   | ExprApp     of expr * (expr list)
-  | ExprTypeAbs of (param list) * expr
+  | ExprTypeAbs of (type_param list) * expr
   | ExprTypeApp of expr * (type' list)
+
+and expr_param = {
+  expr_param_name: string;
+  expr_param_type: type' option;
+}
 
 and attr_expr = {
   attr_expr_name: string;

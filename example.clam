@@ -1,6 +1,6 @@
 type Fun = (Void, Void) -> Void;
 type Tuple = (Void, Void);
-type Record = {a: Void, b: Void};
+type Recorda = {a: Void, b: Void};
 type Union = Void | Void;
 type Inter = Void & Void;
 type Abs = [] Void;
@@ -9,7 +9,7 @@ type App = Void[Void, Void];
 type Self = [T: Any] T;
 type Universal = [T: Any] -> T;
 
-type Pair = (IntOrString, IntOrString);
+type PairO = (IntOrString, IntOrString);
 type IntOrString = Int | String;
 
 type A = [T: Any] -> B;
@@ -33,3 +33,31 @@ def app = name(name, name);
 def type_abs = [AA: Tuple, C: Tuple] -> { name: AA };
 def type_app = name[Tuple, Tuple];
 def a = (b: Int) -> b + a();
+
+type AB = [T] T;
+
+def ab: AB[Bool] = true;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+type Pair = [T] (T, T);
+
+def pair: Pair[Bool] = @(true, false);
+
+type Record = [T] { a: T, b: T };
+
+def record: Record[Bool] = @{ a = true, b = false };

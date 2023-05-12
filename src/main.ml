@@ -1,8 +1,8 @@
 open Ast
-open Display
+open Display_ast
+open Display_type
 
 open Scope
-open Modelize
 
 let parse (s : string) : program =
   let lexbuf = Lexing.from_string s in
@@ -17,5 +17,7 @@ let read_file name =
 
 let () =
   let program = parse (read_file Sys.argv.(1)) in
-  let _ = modelize program in
-  print_endline (display_program program)
+  let types = Modelize_types.modelize_program program in
+  let model = Modelize_exprs.modelize_program program types in
+  Typecheck.check model
+  (*print_endline (display_program program)*)

@@ -59,11 +59,6 @@ let with_scope call types state =
   let state = Option.get state.parent in
   (result, state)
 
-let add_param param state =
-  let type' = Model.TypeVar param in
-  let dones = NameMap.add param.Model.param_name type' state.dones in
-  ((), { state with dones })
-
 let rec modelize_name name state =
   match find_remain name state with
   | Some def -> modelize_def name def state
@@ -85,7 +80,7 @@ and modelize_def name _type' =
 
 and modelize_params params type' =
   let* params = map_list modelize_param params in
-  let types = List.map (fun param -> (param.Model.param_name, Model.TypeVar param)) params in
+  let types = List.map (fun param -> (param.Model.type_param_name, Model.TypeVar param)) params in
   let* type' = with_scope (modelize_type type') types in
   return (params, type')
 
@@ -122,8 +117,9 @@ and modelize_type (type': Ast.type') =
     return (Model.TypeApp (type', args))
 
 and modelize_param param =
-  let* type' = modelize_type param.param_type in
-  return { Model.param_name = param.param_name; Model.param_type = type' }
+  let* type' = map_option modelize_type param.param_type in
+  let type' = Option.value type' ~default:Model.TypeAny in
+  return { Model.type_param_name = param.param_name; Model.type_param_type = type' }
 
 and modelize_attr (attr: Ast.attr_type) =
   let* type' = modelize_type attr.attr_type in
@@ -143,6 +139,7 @@ let rec modelize_defs state =
 let primitives = [
   ("Any",    Model.TypeAny);
   ("Void",   Model.TypeVoid);
+  ("Bool",   Model.TypeBool);
   ("Int",    Model.TypeInt);
   ("Char",   Model.TypeChar);
   ("String", Model.TypeString);
@@ -158,7 +155,7 @@ let modelize_block (block: Ast.block) parent =
   let state = new_state (Some parent) defs [] in
   (modelize_defs state).dones
 
-let modelize_abs (params: Model.param list) parent =
-  let types = List.map (fun param -> (param.Model.param_name, param.Model.param_type)) params in
+let modelize_abs (params: Model.type_param list) parent =
+  let types = List.map (fun param -> (param.Model.type_param_name, param.Model.type_param_type)) params in
   let state = new_state (Some parent) [] types in
   state.dones

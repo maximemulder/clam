@@ -13,6 +13,7 @@ and def_type = {
 
 and def_expr = {
   expr_name: string;
+  expr_type: type' option;
   expr: expr;
 }
 
@@ -49,7 +50,7 @@ and expr =
 
 and param = {
   param_name: string;
-  param_type: type';
+  param_type: type' option;
 }
 
 and attr_type = {

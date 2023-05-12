@@ -60,8 +60,10 @@ let node_attrs node =
   match node with
   | Prog { program_defs } -> [("defs", AList (List.map (fun def -> Def def) program_defs))]
   | Def def -> (match def with
-    | Ast.DefType type' -> [("name", AString type'.type_name); ("type", ANode (Type type'.type'))]
-    | Ast.DefExpr expr  -> [("name", AString expr.expr_name); ("expr", ANode (Expr expr.expr))])
+    | Ast.DefType type' ->
+      [("name", AString type'.type_name); ("type", ANode (Type type'.type'))]
+    | Ast.DefExpr { expr_name; expr_type; expr } ->
+      [("name", AString expr_name); ("type", AOption (Option.map (fun type' -> Type type') expr_type)); ("expr", ANode (Expr expr))])
   | Type type' -> (match type' with
     | TypeIdent name ->
       [("name", AString name)]
@@ -116,7 +118,7 @@ let node_attrs node =
     | ExprTypeApp (expr, args) ->
       [("expr", ANode (Expr expr)); ("args", AList (List.map (fun arg -> Type arg) args))])
   | Param { param_name; param_type } ->
-    [("name", AString param_name); ("type", ANode (Type param_type))]
+    [("name", AString param_name); ("type", AOption (Option.map (fun type' -> Type type') param_type))]
   | AttrType { attr_type_name; attr_type } ->
     [("name", AString attr_type_name); ("type", ANode (Type attr_type))]
   | AttrExpr { attr_expr_name; attr_expr } ->

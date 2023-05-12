@@ -27,7 +27,6 @@
 %token PLUS
 %token SEMICOLON
 
-%token AS
 %token DEF
 %token ELSE
 %token IF
@@ -47,8 +46,8 @@ let program :=
 let def :=
   | TYPE; name = IDENT; EQUAL; type_ = type_; SEMICOLON;
     { DefType {type_name = name; type' = type_} }
-  | DEF; name = IDENT; EQUAL; expr = expr; SEMICOLON;
-    { DefExpr {expr_name = name; expr = expr} }
+  | DEF; name = IDENT; type_ = option(typing); EQUAL; expr = expr; SEMICOLON;
+    { DefExpr {expr_name = name; expr_type = type_; expr = expr} }
 
 let type_ :=
   | name = IDENT;
@@ -101,7 +100,7 @@ let expr :=
     { ExprBlock block }
   | IF; cond = expr; THEN; then_ = expr; ELSE; else_ = expr;
     { ExprIf (cond, then_, else_) }
-  | PARENTHESIS_LEFT; params = list_comma(param); PARENTHESIS_RIGHT; return = option(return); ARROW; expr = expr;
+  | PARENTHESIS_LEFT; params = list_comma(param); PARENTHESIS_RIGHT; return = option(typing); ARROW; expr = expr;
     { ExprAbs (params, return, expr) }
   | expr = expr; PARENTHESIS_LEFT; args = list_comma(expr); PARENTHESIS_RIGHT;
     { ExprApp (expr, args)}
@@ -111,10 +110,10 @@ let expr :=
     { ExprTypeApp (expr, args) }
 
 let param :=
-  | name = IDENT; COLON; type_ = type_;
+  | name = IDENT; type_ = option(typing);
     { { param_name = name; param_type = type_ } }
 
-let return :=
+let typing :=
   | COLON; type_ = type_;
     { type_ }
 
@@ -146,5 +145,4 @@ let bin_op :=
 
 // Utilities
 
-let list_comma(X) := xs = separated_list(COMMA, X);
-  { xs }
+let list_comma(X) := separated_list(COMMA, X)
