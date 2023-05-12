@@ -43,13 +43,8 @@ let new_state parent remains dones =
   let dones = List.fold_left fold_done NameMap.empty dones in
   { parent; remains; currents = NameMap.empty; dones }
 
-let extract key map =
-  let value = NameMap.find key map in
-  let map = NameMap.remove key map in
-  (value, map)
-
 let with_name name call state =
-  let (type', remains) = extract name state.remains in
+  let (type', remains) = Modelize_state.extract name state.remains in
   let currents = NameMap.add name type' state.currents in
   let state = { state with remains; currents } in
   let (type', state) = call type' state in

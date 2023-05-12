@@ -25,12 +25,13 @@ and param = {
 }
 
 type expr =
-  | ExprName    of string * expr
   | ExprVoid
   | ExprBool    of bool
   | ExprInt     of int
   | ExprChar    of char
   | ExprString  of string
+  | ExprParam   of string
+  | ExprBind    of bind
   | ExprTuple   of expr list
   | ExprRecord  of attr_expr list
   | ExprPreop   of string * expr
@@ -49,3 +50,7 @@ and attr_expr = {
 }
 
 and block = expr
+
+and bind = {
+  mutable expr: expr option;
+}

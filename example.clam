@@ -32,3 +32,4 @@ def abs = (a: Tuple, b: Tuple): Tuple -> name;
 def app = name(name, name);
 def type_abs = [AA: Tuple, C: Tuple] -> { name: AA };
 def type_app = name[Tuple, Tuple];
+def a = (b: Int) -> b + a();
