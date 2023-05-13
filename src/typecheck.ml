@@ -5,11 +5,11 @@ type context = {
   binds: (Model.type_param * Model.type') list;
 }
 
-module Context = struct
-  type c = context
+module Reader = struct
+  type r = context
 end
 
-open Functor.Functor(Functor.ContextFunctor(Context))
+open Monad.Monad(Monad.ReaderMonad(Reader))
 
 let rec get_type param context =
   match List.find_opt (fun other -> (fst other) == param) context.binds with
@@ -53,27 +53,27 @@ let rec promote (type': Model.type') =
   match type' with
   | TypeVar param -> get_type param
   | TypeAbsExpr (params, expr) ->
-    let+ params = map_list promote params in
-    let+ expr = promote expr in
+    let* params = map_list promote params in
+    let* expr = promote expr in
     return (Model.TypeAbsExpr (params, expr))
   | TypeTuple types ->
-    let+ types = map_list promote types in
+    let* types = map_list promote types in
     return (Model.TypeTuple types)
   | TypeRecord attrs ->
     let attrs = (List.sort (fun a b -> String.compare a.Model.attr_type_name b.Model.attr_type_name) attrs) in
-    let+ attrs = map_list promote_attr attrs in
+    let* attrs = map_list promote_attr attrs in
     return (Model.TypeRecord attrs)
   | TypeInter (left, right) ->
-    let+ left = promote left in
-    let+ right = promote right in
+    let* left = promote left in
+    let* right = promote right in
     return (Model.TypeInter (left, right))
   | TypeUnion (left, right) ->
-    let+ left = promote left in
-    let+ right = promote right in
+    let* left = promote left in
+    let* right = promote right in
     return (Model.TypeUnion (left, right))
   | TypeAbs (params, type') ->
-    let+ params = map_list promote_param params in
-    let+ type' =  promote type' in
+    let* params = map_list promote_param params in
+    let* type' =  promote type' in
     return (Model.TypeAbs (params, type'))
   | TypeApp (type', args) -> promote_app type' args
   | _ -> return type'
@@ -91,18 +91,18 @@ and promote_app type' args context =
   | _ -> Typecheck_errors.raise_app_kind type'
 
 and promote_attr (attr: Model.attr_type) =
-  let+ type' = promote attr.Model.attr_type in
+  let* type' = promote attr.Model.attr_type in
   return { attr with Model.attr_type = type' }
 
 and promote_param (param: Model.type_param) =
-  let+ type' = promote param.Model.type_param_type in
+  let* type' = promote param.Model.type_param_type in
   return { param with Model.type_param_type = type' }
 
 let require_constraint constraint' type' =
   match constraint' with
   | Some constraint' ->
-    let+ constraint' = promote constraint' in
-    let+ type' = promote type' in
+    let* constraint' = promote constraint' in
+    let* type' = promote type' in
     return (require_subtype type' constraint')
   | None -> return ()
 
