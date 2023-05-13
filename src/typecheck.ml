@@ -1,3 +1,4 @@
+open Collection
 open Display_type
 
 type context = {
@@ -25,23 +26,27 @@ let rec is_subtype_of (type': Model.type') (other: Model.type') =
   | TypeInt -> other == TypeInt
   | TypeChar -> other == TypeChar
   | TypeString -> other == TypeString
-  | TypeTuple types -> (match other with
-    | TypeTuple others ->
-      let length_types = List.length types in
-      let length_others = List.length others in
-      if length_types == length_others
-        then
-          let pairs = List.combine types others in
-          List.for_all (fun (type', other) -> is_subtype_of type' other) pairs
-        else false
-    | _ -> false)
-  | TypeRecord attrs -> (match other with
-    | TypeRecord others ->
-      let attrs = (List.sort (fun a b -> String.compare a.Model.attr_type_name b.Model.attr_type_name) attrs) in
-      let others = (List.sort (fun a b -> String.compare a.Model.attr_type_name b.Model.attr_type_name) others) in
-      let pairs = List.combine attrs others in
-      List.for_all (fun (type', other) -> is_subtype_of type'.Model.attr_type other.Model.attr_type) pairs
-    | _ -> false)
+  | TypeTuple types -> is_tuple_subtype_of types other
+  | TypeRecord attrs -> is_record_subtype_of attrs other
+  | _ -> false
+
+and is_tuple_subtype_of (types: Model.type' list) (other: Model.type') =
+  match other with
+  | TypeTuple others ->
+    let length_types = List.length types in
+    let length_others = List.length others in
+    if length_types != length_others then false else
+    let pairs = List.combine types others in
+    List.for_all (fun (type', other) -> is_subtype_of type' other) pairs
+  | _ -> false
+
+and is_record_subtype_of (attrs: Model.attr_type NameMap.t) (other: Model.type') =
+  match other with
+  | TypeRecord others ->
+    NameMap.for_all (fun name other -> match NameMap.find_opt name attrs with
+    | Some attr -> is_subtype_of attr.Model.attr_type other.Model.attr_type
+    | None -> false
+    ) others
   | _ -> false
 
 let require_subtype (type': Model.type') (constraint': Model.type') =
@@ -60,8 +65,7 @@ let rec promote (type': Model.type') =
     let* types = map_list promote types in
     return (Model.TypeTuple types)
   | TypeRecord attrs ->
-    let attrs = (List.sort (fun a b -> String.compare a.Model.attr_type_name b.Model.attr_type_name) attrs) in
-    let* attrs = map_list promote_attr attrs in
+    let* attrs = map_map promote_attr attrs in
     return (Model.TypeRecord attrs)
   | TypeInter (left, right) ->
     let* left = promote left in
@@ -106,6 +110,8 @@ let require_constraint constraint' type' =
     return (require_subtype type' constraint')
   | None -> return ()
 
+
+
 let rec get_expr_type expr =
   match expr with
   | Model.ExprVoid         -> Model.TypeVoid
@@ -114,14 +120,16 @@ let rec get_expr_type expr =
   | Model.ExprChar   _     -> Model.TypeChar
   | Model.ExprString _     -> Model.TypeString
   | Model.ExprTuple exprs  -> Model.TypeTuple (List.map get_expr_type exprs)
-  | Model.ExprRecord attrs -> Model.TypeRecord (List.map
-    (fun attr -> { Model.attr_type_name = attr.Model.attr_expr_name; Model.attr_type = get_expr_type attr.Model.attr_expr })
-    (List.sort (fun a b -> String.compare a.Model.attr_expr_name b.Model.attr_expr_name) attrs)
-  )
+  | Model.ExprRecord attrs -> Model.TypeRecord (get_attrs_types attrs)
   | _ -> Model.TypeAny
+
+and get_attrs_types attrs =
+  List.fold_left (fun map attr ->
+    NameMap.add attr.Model.attr_expr_name (Model.make_attr_type attr.Model.attr_expr_name (get_expr_type attr.Model.attr_expr)) map
+  ) NameMap.empty attrs
 
 let check_expr expr constraint' =
   require_constraint constraint' (get_expr_type expr)
 
 let check exprs =
-  Modelize_state.NameMap.iter (fun _ done' -> check_expr done'.Modelize_exprs.done_expr done'.Modelize_exprs.done_type { parent = None; binds = [] }) exprs
+  Collection.NameMap.iter (fun _ done' -> check_expr done'.Modelize_exprs.done_expr done'.Modelize_exprs.done_type { parent = None; binds = [] }) exprs

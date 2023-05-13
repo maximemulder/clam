@@ -1,3 +1,5 @@
+open Collection
+
 let rec display (type': Model.type') =
   match type' with
   | TypeVar { type_param_name; _ } -> type_param_name
@@ -17,7 +19,7 @@ let rec display (type': Model.type') =
     let types = List.map display types in
     "(" ^ (String.concat ", " types) ^ ")"
   | TypeRecord attrs ->
-    let attrs = List.map (fun attr -> attr.Model.attr_type_name ^ ": " ^ display attr.Model.attr_type) attrs in
+    let attrs = List.map (fun (name, attr) -> name ^ ": " ^ display attr.Model.attr_type) (List.of_seq (NameMap.to_seq attrs)) in
     "{" ^ (String.concat ", " attrs) ^ "}"
   | TypeInter (left, right) -> (display left) ^ " & " ^ (display right)
   | TypeUnion (left, right) -> (display left) ^ " | " ^ (display right)

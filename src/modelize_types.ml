@@ -1,4 +1,4 @@
-open Modelize_state
+open Collection
 
 type state = {
   parent: state option;
@@ -35,7 +35,7 @@ let fold_remain map remain =
 let fold_done map done' =
   NameMap.add (fst done') (snd done') map
 
-let new_state parent remains dones =
+let make_state parent remains dones =
   let names = NameSet.empty in
   let names = check_duplicates (List.map (fun remain -> remain.Ast.type_name) remains) names in
   let _ = check_duplicates (List.map (fun done' -> fst done') dones) names in
@@ -43,8 +43,16 @@ let new_state parent remains dones =
   let dones = List.fold_left fold_done NameMap.empty dones in
   { parent; remains; currents = NameMap.empty; dones }
 
+let make_attrs attrs =
+  List.fold_left (fun map attr ->
+    let name = attr.Model.attr_type_name in
+    if NameMap.mem name map
+      then Modelize_errors.raise ("duplicate attribute `" ^ name ^ "`")
+      else NameMap.add name attr map
+  ) NameMap.empty attrs
+
 let with_name name call state =
-  let (type', remains) = Modelize_state.extract name state.remains in
+  let (type', remains) = Collection.extract name state.remains in
   let currents = NameMap.add name type' state.currents in
   let state = { state with remains; currents } in
   let (type', state) = call type' state in
@@ -54,7 +62,7 @@ let with_name name call state =
 
 let with_scope call types state =
   let parent = state in
-  let state = new_state (Some parent) [] types in
+  let state = make_state (Some parent) [] types in
   let (result, state) = call state in
   let state = Option.get state.parent in
   (result, state)
@@ -99,7 +107,7 @@ and modelize_type (type': Ast.type') =
     return (Model.TypeTuple types)
   | TypeRecord (attrs) ->
     let* attrs = map_list modelize_attr attrs in
-    return (Model.TypeRecord attrs)
+    return (Model.TypeRecord (make_attrs attrs))
   | TypeInter (left, right) ->
     let* left = modelize_type left in
     let* right = modelize_type right in
@@ -147,15 +155,15 @@ let primitives = [
 
 let modelize_program (program: Ast.program) =
   let defs = Ast.get_program_types program in
-  let state = new_state None defs primitives in
+  let state = make_state None defs primitives in
   (modelize_defs state).dones
 
 let modelize_block (block: Ast.block) parent =
   let defs = Ast.get_block_types block in
-  let state = new_state (Some parent) defs [] in
+  let state = make_state (Some parent) defs [] in
   (modelize_defs state).dones
 
 let modelize_abs (params: Model.type_param list) parent =
   let types = List.map (fun param -> (param.Model.type_param_name, param.Model.type_param_type)) params in
-  let state = new_state (Some parent) [] types in
+  let state = make_state (Some parent) [] types in
   state.dones

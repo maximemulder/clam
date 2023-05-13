@@ -1,4 +1,4 @@
-open Modelize_state
+open Collection
 
 type remain = {
   remain_expr: Ast.expr;
@@ -57,7 +57,7 @@ let fold_remain map remain =
 let fold_done map done' =
   NameMap.add (fst done') (snd done') map
 
-let new_state parent types remains dones =
+let make_state parent types remains dones =
   let names = NameSet.empty in
   let names = check_duplicates (List.map fst remains) names in
   let _ = check_duplicates (List.map (fun done' -> fst done') dones) names in
@@ -78,7 +78,7 @@ let parse_string (value: string) =
 
 let with_scope call types defs dones state =
   let parent = state in
-  let state = new_state (Some parent) types defs dones in
+  let state = make_state (Some parent) types defs dones in
   let (result, state) = call state in
   let state = Option.get state.parent in
   (result, state)
@@ -112,12 +112,12 @@ let rec modelize_name name state =
   | None -> Modelize_errors.raise ("unbound expr `" ^ name ^ "`")
 
 and modelize_def name state =
-  let (remain, remains) = Modelize_state.extract name state.remains in
+  let (remain, remains) = Collection.extract name state.remains in
   let currents = NameMap.add name { Model.expr = None } state.currents in
   let state = { state with remains; currents } in
   let type' = Option.map (fun type' -> fst (modelize_type type' state)) remain.remain_type in
   let (expr, state) = modelize_expr remain.remain_expr state in
-  let (current, currents) = Modelize_state.extract name state.currents in
+  let (current, currents) = Collection.extract name state.currents in
   let _ = current.expr <- Some expr in
   let done' = done_from_components expr type' in
   let dones = NameMap.add name done' state.dones in
@@ -211,5 +211,5 @@ and modelize_defs state =
 let modelize_program (program: Ast.program) (types: Model.type' NameMap.t) =
   let defs = Ast.get_program_exprs program in
   let defs = List.map (fun def -> (def.Ast.expr_name, remain_from_def def)) defs in
-  let state = new_state None types defs [] in
+  let state = make_state None types defs [] in
   (modelize_defs state).dones

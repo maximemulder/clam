@@ -5,7 +5,7 @@ end
 
 module NameMap = Map.Make(NameKey)
 
-module NameSet = Set.Make(Scope.NameKey)
+module NameSet = Set.Make(NameKey)
 
 let extract key map =
   let value = NameMap.find key map in

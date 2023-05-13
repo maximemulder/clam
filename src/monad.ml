@@ -1,3 +1,5 @@
+open Collection
+
 module type MONAD = sig
   type 'a t
   val return: 'a -> 'a t
@@ -16,6 +18,12 @@ module Monad (M: MONAD) = struct
       let* x = f x in
       let* xs = map_list f xs in
       return (x :: xs)
+
+  let map_map f xs =
+    let f = (fun (k, v) -> let* v = f v in return (k, v)) in
+    let xs = List.of_seq (NameMap.to_seq xs) in
+    let* xs = map_list f xs in
+    return (NameMap.of_seq (List.to_seq xs))
 
   let map_option f x =
     match x with

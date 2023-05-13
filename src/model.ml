@@ -1,3 +1,5 @@
+open Collection
+
 type type' =
   | TypeVar of type_param
   | TypeAny
@@ -9,7 +11,7 @@ type type' =
   | TypeAbsExpr     of (type' list) * type'
   | TypeAbsExprType of (type_param list) * type'
   | TypeTuple       of type' list
-  | TypeRecord      of attr_type list
+  | TypeRecord      of attr_type NameMap.t
   | TypeInter       of type' * type'
   | TypeUnion       of type' * type'
   | TypeAbs         of (type_param list) * type'
@@ -60,3 +62,15 @@ and block = expr
 and bind = {
   mutable expr: expr option;
 }
+
+let make_attr_expr name expr =
+  {
+    attr_expr_name = name;
+    attr_expr = expr;
+  }
+
+let make_attr_type name type' =
+  {
+    attr_type_name = name;
+    attr_type = type';
+  }

@@ -2,8 +2,6 @@ open Ast
 open Display_ast
 open Display_type
 
-open Scope
-
 let parse (s : string) : program =
   let lexbuf = Lexing.from_string s in
   let ast = Parser.program Lexer.read lexbuf in
