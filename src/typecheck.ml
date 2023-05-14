@@ -24,72 +24,37 @@ let rec get_type param context =
   | None -> get_type param (Option.get context.parent)
 
 let rec is_subtype_of (type': Model.type') (other: Model.type') =
-  if other == TypeAny then true else
-  match type' with
-  | TypeAny    -> false
-  | TypeVoid   -> other == TypeVoid
-  | TypeBool   -> other == TypeBool
-  | TypeInt    -> other == TypeInt
-  | TypeChar   -> other == TypeChar
-  | TypeString -> other == TypeString
-  | TypeVar         param          -> other == (TypeVar param) || is_subtype_of param.Model.type_param_type other
-  | TypeAbsExpr     (params, expr) -> is_abs_expr_subtype_of params expr other
-  | TypeAbsExprType (params, expr) -> is_abs_expr_type_subtype_of params expr other
-  | TypeTuple       types          -> is_tuple_subtype_of types other
-  | TypeRecord      attrs          -> is_record_subtype_of attrs other
-  | TypeInter      (left, right)   -> is_inter_subtype_of left right other
-  | TypeUnion      (left, right)   -> is_union_subtype_of left right other
-  | TypeAbs        (params, type') -> is_abs_subtype_of params type' other
-  | TypeApp        (type', args)   -> is_app_subtype_of type' args other
-
-and is_abs_expr_subtype_of params expr other =
-  match other with
-  | Model.TypeAbsExpr (other_params, other_expr) ->
+  match (type', other) with
+  | (_, TypeAny) -> true
+  | (type', TypeInter (left, right)) ->
+    is_subtype_of type' left && is_subtype_of type' right
+  | (type', TypeUnion (left, right)) ->
+    is_subtype_of type' left || is_subtype_of type' right
+  | (TypeVoid, TypeVoid) -> true
+  | (TypeBool, TypeBool) -> true
+  | (TypeInt, TypeInt) -> true
+  | (TypeChar, TypeChar) -> true
+  | (TypeString, TypeString) -> true
+  | (TypeVar param, other) ->
+    other == (TypeVar param) || is_subtype_of param.Model.type_param_type other
+  | (TypeAbsExpr (params, expr), TypeAbsExpr (other_params, other_expr)) ->
     compare_lists is_subtype_of other_params params && is_subtype_of expr other_expr
-  | _ -> false
-
-and is_abs_expr_type_subtype_of params expr other =
-  match other with
-  | Model.TypeAbsExprType (other_params, other_expr) ->
+  | (TypeAbsExprType (params, expr), TypeAbsExprType (other_params, other_expr)) ->
     compare_lists (==) other_params params && is_subtype_of expr other_expr
-  | _ -> false
-
-and is_tuple_subtype_of (types: Model.type' list) (other: Model.type') =
-  match other with
-  | Model.TypeTuple others ->
-    compare_lists is_subtype_of types others
-  | _ -> false
-
-and is_record_subtype_of attrs other =
-  match other with
-  | Model.TypeRecord others ->
+  | (TypeTuple (types), TypeTuple (other_types)) ->
+    compare_lists is_subtype_of types other_types
+  | (TypeRecord (attrs), TypeRecord (other_attrs)) ->
     NameMap.for_all (fun name other -> match NameMap.find_opt name attrs with
     | Some attr -> is_subtype_of attr.Model.attr_type other.Model.attr_type
     | None -> false
-    ) others
-  | _ -> false
-
-and is_inter_subtype_of left right other =
-  match other with
-  | Model.TypeInter (other_left, other_right) ->
-    is_subtype_of left other_left && is_subtype_of right other_right
-  | _ -> false
-
-and is_union_subtype_of left right other =
-  match other with
-  | Model.TypeUnion (other_left, other_right) ->
-    is_subtype_of left other_left && is_subtype_of right other_right
-  | _ -> false
-
-and is_abs_subtype_of params type' other =
-  match other with
-  | Model.TypeAbs (other_params, other_expr) ->
-    compare_lists (==) other_params params && is_subtype_of type' other_expr
-  | _ -> false
-
-and is_app_subtype_of type' args other =
-  match other with
-  | Model.TypeApp (other_type, other_args) ->
+    ) other_attrs
+  | (TypeInter (left, right), other) ->
+    is_subtype_of left other || is_subtype_of right other
+  | (TypeUnion (left, right), other) ->
+    is_subtype_of left other && is_subtype_of right other
+  | (TypeAbs (params, type'), TypeAbs (other_params, other_type)) ->
+    compare_lists (==) other_params params && is_subtype_of type' other_type
+  | (TypeApp (type', args), TypeApp (other_type, other_args)) ->
     is_subtype_of type' other_type && compare_lists (==) args other_args
   | _ -> false
 
