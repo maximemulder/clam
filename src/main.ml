@@ -17,5 +17,6 @@ let () =
   let program = parse (read_file Sys.argv.(1)) in
   let types = Modelize_types.modelize_program program in
   let model = Modelize_exprs.modelize_program program types in
-  Typecheck.check model
+  let _ = Typing.check_exprs model in
+  Typing.check_types types
   (*print_endline (display_program program)*)

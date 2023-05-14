@@ -3,8 +3,8 @@ type Tuple = (Void, Void);
 type Recorda = {a: Void, b: Void};
 type Union = Void | Void;
 type Inter = Void & Void;
-type Abs = [] Void;
-type App = Void[Void, Void];
+type Abs = [T, U] Void;
+type App = Abs[Void, Void];
 
 type Self = [T: Any] T;
 type Universal = [T: Any] -> T;
@@ -38,26 +38,10 @@ type AB = [T] T;
 
 def ab: AB[Bool] = true;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 type Pair = [T] (T, T);
 
 def pair: Pair[Bool] = @(true, false);
 
 type Record = [T] { a: T, b: T };
 
-def record: Record[Bool] = @{ a = true, b = false };
+def record: Record[Bool | Int] = @{ a = true, b = 0 };
