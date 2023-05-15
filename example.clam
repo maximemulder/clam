@@ -28,7 +28,7 @@ def binop = name + name;
 def ascr = name : Tuple;
 def block = { type AAAA = Int; def a = b; def b = c; def c = name; name : AAAA };
 def if_ = if name then name else name;
-def abs = (a: Tuple, b: Tuple): Tuple -> name;
+def abs = (a: Tuple, b: Tuple): Tuple -> @(name, name);
 def app = name(name, name);
 def type_abs = [AA: Tuple, C: Tuple] -> { name: AA };
 def type_app = name[Tuple, Tuple];
@@ -45,3 +45,9 @@ def pair: Pair[Bool] = @(true, false);
 type Record = [T] { a: T, b: T };
 
 def record: Record[Bool | Int] = @{ a = true, b = 0 };
+
+def aaa = {
+    type AI = [T: Bool] T;
+    type BI = AI[Bool];
+    0
+};

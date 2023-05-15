@@ -32,7 +32,7 @@ let check_expr expr constraint' =
   require_constraint constraint' (get_expr_type expr)
 
 let check_exprs exprs =
-  Collection.NameMap.iter (fun _ done' -> check_expr done'.Modelize_exprs.done_expr done'.Modelize_exprs.done_type { parent = None; binds = [] }) exprs
+  List.iter (fun done' -> check_expr done'.Modelize_exprs.done_expr done'.Modelize_exprs.done_type { parent = None; binds = [] }) exprs
 
 let check_type type' =
   let context =  { parent = None; binds = [] } in
@@ -40,4 +40,4 @@ let check_type type' =
   ()
 
 let check_types types =
-  Collection.NameMap.iter (fun _ type' -> check_type type') types
+  List.iter (fun type' -> check_type type') types

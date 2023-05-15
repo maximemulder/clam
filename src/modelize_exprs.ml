@@ -25,6 +25,8 @@ type state = {
   remains: remain NameMap.t;
   currents: Model.bind NameMap.t;
   dones: done' NameMap.t;
+  all_types: Model.type' list;
+  all_exprs: done' list;
 }
 
 module State = struct
@@ -62,8 +64,9 @@ let make_state parent types remains dones =
   let names = check_duplicates (List.map fst remains) names in
   let _ = check_duplicates (List.map (fun done' -> fst done') dones) names in
   let remains = List.fold_left fold_remain NameMap.empty remains in
+  let all = List.map snd dones in
   let dones = List.fold_left fold_done NameMap.empty dones in
-  { parent; remains; types; currents = NameMap.empty; dones }
+  { parent; remains; types; currents = NameMap.empty; dones; all_exprs = all; all_types = [] }
 
 let parse_int (value: string) =
   match int_of_string_opt value with
@@ -80,15 +83,18 @@ let with_scope call types defs dones state =
   let parent = state in
   let state = make_state (Some parent) types defs dones in
   let (result, state) = call state in
+  let all_types = state.all_types in
+  let all_exprs = state.all_exprs in
   let state = Option.get state.parent in
-  (result, state)
+  (result, { state with all_exprs = List.append state.all_exprs all_exprs; all_types = List.append state.all_types all_types })
 
 let rec translate_state state =
   {
     Modelize_types.parent = Option.map translate_state state.parent;
     Modelize_types.remains = NameMap.empty;
     Modelize_types.currents =  NameMap.empty;
-    Modelize_types.dones = state.types
+    Modelize_types.dones = state.types;
+    Modelize_types.all = [];
   }
 
 (* TODO: Can I remove state from the return ? *)
@@ -121,7 +127,7 @@ and modelize_def name state =
   let _ = current.expr <- Some expr in
   let done' = done_from_components expr type' in
   let dones = NameMap.add name done' state.dones in
-  (expr, { state with currents; dones })
+  (expr, { state with currents; dones; all_exprs = done' :: state.all_exprs })
 
 and modelize_expr (expr: Ast.expr) =
   match expr with
@@ -186,12 +192,12 @@ and modelize_attr (attr: Ast.attr_expr) =
   return { Model.attr_expr_name = attr.attr_expr_name; Model.attr_expr = expr }
 
 and modelize_block (block: Ast.block) state =
-  let types = Modelize_types.modelize_block block (translate_state state) in
+  let (types, all) = Modelize_types.modelize_block block (translate_state state) in
   let defs = List.map (fun def -> (def.Ast.expr_name, remain_from_def def)) (Ast.get_block_exprs block) in
   with_scope (fun state ->
     let state = modelize_defs state in
     modelize_expr block.block_expr state
-  ) types defs [] state
+  ) types defs [] { state with all_types = List.append state.all_types all }
 
 and modelize_abs_expr params expr state =
   let params = List.map (fun param -> (param.Model.expr_param_name, done_from_param param)) params in
@@ -208,8 +214,10 @@ and modelize_defs state =
     let (_, state) = modelize_def name state in
     modelize_defs state
 
-let modelize_program (program: Ast.program) (types: Model.type' NameMap.t) =
+let modelize_program (program: Ast.program) (types: Model.type' NameMap.t) (all_types: Model.type' list)=
   let defs = Ast.get_program_exprs program in
   let defs = List.map (fun def -> (def.Ast.expr_name, remain_from_def def)) defs in
   let state = make_state None types defs [] in
-  (modelize_defs state).dones
+  let state = { state with all_types = all_types } in
+  let state = modelize_defs state in
+  (state.all_exprs, state.all_types)

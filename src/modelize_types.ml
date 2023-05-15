@@ -5,6 +5,7 @@ type state = {
   remains: Ast.type' NameMap.t;
   currents: Ast.type' NameMap.t;
   dones: Model.type' NameMap.t;
+  all: Model.type' list
 }
 
 module State = struct
@@ -40,8 +41,9 @@ let make_state parent remains dones =
   let names = check_duplicates (List.map (fun remain -> remain.Ast.type_name) remains) names in
   let _ = check_duplicates (List.map (fun done' -> fst done') dones) names in
   let remains = List.fold_left fold_remain NameMap.empty remains in
+  let all = List.map snd dones in
   let dones = List.fold_left fold_done NameMap.empty dones in
-  { parent; remains; currents = NameMap.empty; dones }
+  { parent; remains; currents = NameMap.empty; dones; all }
 
 let make_attrs attrs =
   List.fold_left (fun map attr ->
@@ -58,14 +60,16 @@ let with_name name call state =
   let (type', state) = call type' state in
   let currents = NameMap.remove name state.currents in
   let dones = NameMap.add name type' state.dones in
-  (type', { state with currents; dones })
+  let all = type' :: state.all in
+  (type', { state with currents; dones; all })
 
 let with_scope call types state =
   let parent = state in
   let state = make_state (Some parent) [] types in
   let (result, state) = call state in
+  let all = state.all in
   let state = Option.get state.parent in
-  (result, state)
+  (result, { state with all = List.append state.all all })
 
 let rec modelize_name name state =
   match find_remain name state with
@@ -156,12 +160,14 @@ let primitives = [
 let modelize_program (program: Ast.program) =
   let defs = Ast.get_program_types program in
   let state = make_state None defs primitives in
-  (modelize_defs state).dones
+  let state = modelize_defs state in
+  (state.dones, state.all)
 
 let modelize_block (block: Ast.block) parent =
   let defs = Ast.get_block_types block in
   let state = make_state (Some parent) defs [] in
-  (modelize_defs state).dones
+  let state = modelize_defs state in
+  (state.dones, state.all)
 
 let modelize_abs (params: Model.type_param list) parent =
   let types = List.map (fun param -> (param.Model.type_param_name, param.Model.type_param_type)) params in
