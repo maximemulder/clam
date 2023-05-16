@@ -1,32 +1,13 @@
 open Collection
 
-type remain = {
-  remain_expr: Ast.expr;
-  remain_type: Ast.type' option;
-}
-
-let remain_from_def def =
-  { remain_expr = def.Ast.expr; remain_type = def.Ast.expr_type }
-
-type done' = {
-  done_expr: Model.expr;
-  done_type: Model.type' option;
-}
-
-let done_from_components expr type' =
-  { done_expr = expr; done_type = type'}
-
-let done_from_param param =
-  { done_expr = Model.ExprParam (param.Model.expr_param_name); done_type = (param.Model.expr_param_type) }
-
 type state = {
   parent: state option;
   types: Model.type' NameMap.t;
-  remains: remain NameMap.t;
-  currents: Model.bind NameMap.t;
-  dones: done' NameMap.t;
+  remains: Ast.def_expr NameMap.t;
+  currents: Model.expr_bind NameMap.t;
+  dones: Model.expr_bind NameMap.t;
   all_types: Model.type' list;
-  all_exprs: done' list;
+  all_exprs: Model.def_expr list;
 }
 
 module State = struct
@@ -36,15 +17,13 @@ end
 open Monad.Monad(Monad.StateMonad(State))
 
 let find_remain name state =
-  let remain = NameMap.find_opt name state.remains in
-  Option.map (fun remain -> remain.remain_expr) remain
+  NameMap.find_opt name state.remains
 
 let find_current name state =
   NameMap.find_opt name state.currents
 
 let find_done name state =
-  let done' = NameMap.find_opt name state.dones in
-  Option.map (fun done' -> done'.done_expr) done'
+  NameMap.find_opt name state.dones
 
 let check_duplicates names set =
   List.fold_left (fun set name ->
@@ -54,19 +33,18 @@ let check_duplicates names set =
     ) set names
 
 let fold_remain map remain =
-  NameMap.add (fst remain) (snd remain) map
+  NameMap.add remain.Ast.expr_name remain map
 
 let fold_done map done' =
-  NameMap.add (fst done') (snd done') map
+  NameMap.add (fst done') { Model.bind_expr = Some (snd done') } map
 
-let make_state parent types remains dones =
+let make_state parent types (remains: Ast.def_expr list) dones =
   let names = NameSet.empty in
-  let names = check_duplicates (List.map fst remains) names in
+  let names = check_duplicates (List.map (fun remain -> remain.Ast.expr_name) remains) names in
   let _ = check_duplicates (List.map (fun done' -> fst done') dones) names in
   let remains = List.fold_left fold_remain NameMap.empty remains in
-  let all = List.map snd dones in
   let dones = List.fold_left fold_done NameMap.empty dones in
-  { parent; remains; types; currents = NameMap.empty; dones; all_exprs = all; all_types = [] }
+  { parent; remains; types; currents = NameMap.empty; dones; all_exprs = []; all_types = [] }
 
 let parse_int (value: string) =
   match int_of_string_opt value with
@@ -109,7 +87,7 @@ let rec modelize_name name state =
   | Some bind -> (Model.ExprBind bind, state)
   | None      ->
   match find_done name state with
-  | Some expr -> (expr, state)
+  | Some bind -> (Model.ExprBind bind, state)
   | None      ->
   match state.parent with
   | Some parent ->
@@ -119,17 +97,17 @@ let rec modelize_name name state =
 
 and modelize_def name state =
   let (remain, remains) = Collection.extract name state.remains in
-  let currents = NameMap.add name { Model.expr = None } state.currents in
+  let currents = NameMap.add name { Model.bind_expr = None } state.currents in
   let state = { state with remains; currents } in
-  let type' = Option.map (fun type' -> fst (modelize_type type' state)) remain.remain_type in
-  let (expr, state) = modelize_expr remain.remain_expr state in
+  let type' = Option.map (fun type' -> fst (modelize_type type' state)) remain.Ast.expr_type in
+  let (expr, state) = modelize_expr remain.Ast.expr state in
   let (current, currents) = Collection.extract name state.currents in
-  let _ = current.expr <- Some expr in
-  let done' = done_from_components expr type' in
-  let dones = NameMap.add name done' state.dones in
-  (expr, { state with currents; dones; all_exprs = done' :: state.all_exprs })
+  let def = Model.make_def_expr name type' expr in
+  let _ = current.bind_expr <- Some (Model.BindExprDef def) in
+  let dones = NameMap.add name current state.dones in
+  (expr, { state with currents; dones; all_exprs = def :: state.all_exprs })
 
-and modelize_expr (expr: Ast.expr) =
+and modelize_expr (expr: Ast.expr): state -> Model.expr * state =
   match expr with
   | ExprIdent name   -> modelize_name name
   | ExprVoid         -> return Model.ExprVoid
@@ -180,7 +158,7 @@ and modelize_expr (expr: Ast.expr) =
 
 and modelize_param (param: Ast.param) =
   let* type' = map_option modelize_type param.param_type in
-  return { Model.expr_param_name = param.param_name; Model.expr_param_type = type' }
+  return { Model.param_expr_name = param.param_name; Model.param_expr_type = type' }
 
 and modelize_type_param (param: Ast.param) =
   let* type' = map_option modelize_type param.param_type in
@@ -193,14 +171,15 @@ and modelize_attr (attr: Ast.attr_expr) =
 
 and modelize_block (block: Ast.block) state =
   let (types, all) = Modelize_types.modelize_block block (translate_state state) in
-  let defs = List.map (fun def -> (def.Ast.expr_name, remain_from_def def)) (Ast.get_block_exprs block) in
+  let defs = Ast.get_block_exprs block in
   with_scope (fun state ->
     let state = modelize_defs state in
-    modelize_expr block.block_expr state
+    let (expr, state) = modelize_expr block.block_expr state in
+    (Model.ExprBlock { Model.block_expr = expr }, state)
   ) types defs [] { state with all_types = List.append state.all_types all }
 
 and modelize_abs_expr params expr state =
-  let params = List.map (fun param -> (param.Model.expr_param_name, done_from_param param)) params in
+  let params = List.map (fun param -> (param.Model.param_expr_name, Model.BindExprParam param)) params in
   with_scope (modelize_expr expr) NameMap.empty [] params state
 
 and modelize_type_abs_expr params expr state =
@@ -216,7 +195,6 @@ and modelize_defs state =
 
 let modelize_program (program: Ast.program) (types: Model.type' NameMap.t) (all_types: Model.type' list)=
   let defs = Ast.get_program_exprs program in
-  let defs = List.map (fun def -> (def.Ast.expr_name, remain_from_def def)) defs in
   let state = make_state None types defs [] in
   let state = { state with all_types = all_types } in
   let state = modelize_defs state in

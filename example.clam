@@ -31,7 +31,7 @@ def if_ = if name then name else name;
 def abs = (a: Tuple, b: Tuple): Tuple -> @(name, name);
 def app = name(name, name);
 def type_abs = [AA: Tuple, C: Tuple] -> { name: AA };
-def type_app = name[Tuple, Tuple];
+def type_app = type_abs[Tuple, Tuple];
 def a = (b: Int) -> b + a();
 
 type AB = [T] T;

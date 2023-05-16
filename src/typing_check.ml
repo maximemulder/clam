@@ -78,5 +78,5 @@ and check_app type' args context =
       then let binds = List.combine params args in
       let _ = List.iter (fun (param, arg) -> check_subtype arg param.Model.type_param_type) binds in
       check type' { parent = Some context; binds }
-      else Typing_errors.raise_app_arity length_params length_args
-  | _ -> Typing_errors.raise_app_kind type'
+      else Typing_errors.raise_type_app_arity length_params length_args
+  | _ -> Typing_errors.raise_type_app_kind type'
