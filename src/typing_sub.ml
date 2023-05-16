@@ -17,7 +17,7 @@ let rec is_subtype_of (type': Model.type') (other: Model.type') =
   | (TypeAbsExpr (params, expr), TypeAbsExpr (other_params, other_expr)) ->
     compare_lists is_subtype_of other_params params && is_subtype_of expr other_expr
   | (TypeAbsExprType (params, expr), TypeAbsExprType (other_params, other_expr)) ->
-    compare_lists (==) other_params params && is_subtype_of expr other_expr
+    compare_lists (=) other_params params && is_subtype_of expr other_expr
   | (TypeTuple (types), TypeTuple (other_types)) ->
     compare_lists is_subtype_of types other_types
   | (TypeRecord (attrs), TypeRecord (other_attrs)) ->
@@ -30,7 +30,7 @@ let rec is_subtype_of (type': Model.type') (other: Model.type') =
   | (TypeUnion (left, right), other) ->
     is_subtype_of left other && is_subtype_of right other
   | (TypeAbs (params, type'), TypeAbs (other_params, other_type)) ->
-    compare_lists (==) other_params params && is_subtype_of type' other_type
+    compare_lists (=) other_params params && is_subtype_of type' other_type
   | (TypeApp (type', args), TypeApp (other_type, other_args)) ->
-    is_subtype_of type' other_type && compare_lists (==) args other_args
+    is_subtype_of type' other_type && compare_lists (=) args other_args
   | _ -> false

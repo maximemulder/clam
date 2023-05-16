@@ -8,6 +8,7 @@ type state = {
   dones: Model.expr_bind NameMap.t;
   all_types: Model.type' list;
   all_exprs: Model.def_expr list;
+  id: int;
 }
 
 module State = struct
@@ -38,13 +39,13 @@ let fold_remain map remain =
 let fold_done map done' =
   NameMap.add (fst done') { Model.bind_expr = Some (snd done') } map
 
-let make_state parent types (remains: Ast.def_expr list) dones =
+let make_state parent types (remains: Ast.def_expr list) dones id =
   let names = NameSet.empty in
   let names = check_duplicates (List.map (fun remain -> remain.Ast.expr_name) remains) names in
   let _ = check_duplicates (List.map (fun done' -> fst done') dones) names in
   let remains = List.fold_left fold_remain NameMap.empty remains in
   let dones = List.fold_left fold_done NameMap.empty dones in
-  { parent; remains; types; currents = NameMap.empty; dones; all_exprs = []; all_types = [] }
+  { parent; remains; types; currents = NameMap.empty; dones; all_exprs = []; all_types = []; id }
 
 let parse_int (value: string) =
   match int_of_string_opt value with
@@ -59,12 +60,12 @@ let parse_string (value: string) =
 
 let with_scope call types defs dones state =
   let parent = state in
-  let state = make_state (Some parent) types defs dones in
+  let state = make_state (Some parent) types defs dones state.id in
   let (result, state) = call state in
   let all_types = state.all_types in
   let all_exprs = state.all_exprs in
   let state = Option.get state.parent in
-  (result, { state with all_exprs = List.append state.all_exprs all_exprs; all_types = List.append state.all_types all_types })
+  (result, { state with all_exprs = List.append state.all_exprs all_exprs; all_types = List.append state.all_types all_types; id = state.id })
 
 let rec translate_state state =
   {
@@ -102,10 +103,10 @@ and modelize_def name state =
   let type' = Option.map (fun type' -> fst (modelize_type type' state)) remain.Ast.expr_type in
   let (expr, state) = modelize_expr remain.Ast.expr state in
   let (current, currents) = Collection.extract name state.currents in
-  let def = Model.make_def_expr name type' expr in
+  let def = Model.make_def_expr state.id name type' expr in
   let _ = current.bind_expr <- Some (Model.BindExprDef def) in
   let dones = NameMap.add name current state.dones in
-  (expr, { state with currents; dones; all_exprs = def :: state.all_exprs })
+  (expr, { state with currents; dones; all_exprs = def :: state.all_exprs; id = state.id + 1 })
 
 and modelize_expr (expr: Ast.expr): state -> Model.expr * state =
   match expr with
@@ -156,9 +157,9 @@ and modelize_expr (expr: Ast.expr): state -> Model.expr * state =
     let* args = map_list modelize_type args in
     return (Model.ExprTypeApp (expr, args))
 
-and modelize_param (param: Ast.param) =
-  let* type' = map_option modelize_type param.param_type in
-  return { Model.param_expr_name = param.param_name; Model.param_expr_type = type' }
+and modelize_param (param: Ast.param) state =
+  let (type', state) = map_option modelize_type param.param_type state in
+  (Model.make_param_expr state.id param.param_name type', { state with id = state.id + 1 })
 
 and modelize_type_param (param: Ast.param) =
   let* type' = map_option modelize_type param.param_type in
@@ -184,7 +185,8 @@ and modelize_abs_expr params expr state =
 
 and modelize_type_abs_expr params expr state =
   let types = Modelize_types.modelize_abs params (translate_state state) in
-  with_scope (modelize_expr expr) types [] [] state
+  let (expr, state) = with_scope (modelize_expr expr) types [] [] state in
+  (Model.ExprTypeAbs (params, expr), state)
 
 and modelize_defs state =
   match NameMap.choose_opt state.remains with
@@ -195,7 +197,7 @@ and modelize_defs state =
 
 let modelize_program (program: Ast.program) (types: Model.type' NameMap.t) (all_types: Model.type' list)=
   let defs = Ast.get_program_exprs program in
-  let state = make_state None types defs [] in
+  let state = make_state None types defs [] 0 in
   let state = { state with all_types = all_types } in
   let state = modelize_defs state in
   (state.all_exprs, state.all_types)

@@ -22,3 +22,6 @@ let raise_expr_app_kind type' =
 
 let raise_expr_app_arity length_params length_args =
   raise ("expected " ^ (string_of_int length_params) ^ " arguments but found " ^ (string_of_int length_args) ^ " arguments")
+
+let raise_recursive def =
+  raise ("recursive definition `" ^ def.Model.def_expr_name ^ "`")

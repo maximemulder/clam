@@ -23,16 +23,16 @@ def false_ = false;
 def int = 0;
 def char = 'a';
 def string = "Hello world !";
-def preop = +name;
-def binop = name + name;
-def ascr = name : Tuple;
-def block = { type AAAA = Int; def a = b; def b = c; def c = name; name : AAAA };
-def if_ = if name then name else name;
-def abs = (a: Tuple, b: Tuple): Tuple -> @(name, name);
-def app = name(name, name);
-def type_abs = [AA: Tuple, C: Tuple] -> { name: AA };
+def preop = +2;
+def binop = 0 + 1;
+def ascr = name : String;
+def block = { type AAAA = Int; def a = b; def b = c; def c = name; 0 : AAAA };
+def if_ = if true then name else name;
+def abs = (a: String, b: String): Tuple -> @(void, void);
+def app = abs(name, name);
+def type_abs: [AA: Tuple, C: Tuple] -> Tuple = [AA: Tuple, C: Tuple] -> { @(void, void): AA };
 def type_app = type_abs[Tuple, Tuple];
-def a = (b: Int) -> b + a();
+def a: (Int) -> Int = (b: Int) -> b + a(b);
 
 type AB = [T] T;
 
