@@ -1,6 +1,6 @@
 open Collection
-open Display_type
-open Typing_check
+open TypingCheck
+open TypingDisplay
 
 module DefKey = struct
   type t = Model.def_expr
@@ -42,8 +42,8 @@ let check_type type' =
 
 let rec check_expr_with_constraint (expr: Model.expr) (constraint': Model.type') =
   let* type' = check_expr_without_constraint expr in
-  let constraint' = Typing_check.check constraint' empty_context in
-  return (Typing_check.check_subtype type' constraint')
+  let constraint' = TypingCheck.check constraint' empty_context in
+  return (TypingCheck.check_subtype type' constraint')
 
 and check_expr_without_constraint (expr: Model.expr) =
   match expr with
@@ -100,7 +100,7 @@ and check_bind_without_constraint bind state =
   | BindExprDef def when DefSet.mem def state.remains ->
     check_def def state
   | BindExprDef def when DefSet.mem def state.currents ->
-    Typing_errors.raise_recursive def
+    TypingErrors.raise_recursive def
   | _ -> (BindMap.find bind state.dones, state)
 
 and check_def def state =
@@ -132,7 +132,7 @@ and check_attrs_without_constraint attrs =
 and check_abs_params params state =
   let types = List.map (fun param -> match param.Model.param_expr_type with
   | Some type' -> type'
-  | None -> Typing_errors.raise_param param
+  | None -> TypingErrors.raise_param param
   ) params in
   let params = List.map (fun param -> Model.BindExprParam param) params in
   let pairs = List.combine params types in
@@ -161,8 +161,8 @@ and check_app expr args =
       ) in
       let* _ = list_map mapper pairs in
       return type'
-      else Typing_errors.raise_expr_app_arity length_params length_args
-  | type' -> Typing_errors.raise_expr_app_kind type'
+      else TypingErrors.raise_expr_app_arity length_params length_args
+  | type' -> TypingErrors.raise_expr_app_kind type'
 
 and check_type_app expr args =
   let* type' = check_expr_without_constraint expr in
@@ -174,14 +174,14 @@ and check_type_app expr args =
       let params = List.map (fun param -> param.Model.type_param_type) params in
       let pairs = List.combine params args in
       let mapper = (fun (param, arg) ->
-        let arg = Typing_check.check arg empty_context in
-        let _ = Typing_check.check_subtype arg param in
+        let arg = TypingCheck.check arg empty_context in
+        let _ = TypingCheck.check_subtype arg param in
         return ()
       ) in
       let* _ = list_map mapper pairs in
       return type'
-    else Typing_errors.raise_type_app_arity length_params length_args
-  | type' -> Typing_errors.raise_type_app_kind type'
+    else TypingErrors.raise_type_app_arity length_params length_args
+  | type' -> TypingErrors.raise_type_app_kind type'
 
 let check_expr expr constraint' =
   match constraint' with

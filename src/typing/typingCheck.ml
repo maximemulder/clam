@@ -1,4 +1,4 @@
-open Typing_sub
+open TypingSub
 
 type context = {
   parent: context option;
@@ -13,7 +13,7 @@ open Monad.Monad(Monad.ReaderMonad(Reader))
 
 let check_subtype (type': Model.type') (constraint': Model.type') =
   if Bool.not (is_subtype_of type' constraint')
-    then Typing_errors.raise_type type' constraint'
+    then TypingErrors.raise_type type' constraint'
     else ()
 
 let rec check (type': Model.type') =
@@ -78,5 +78,5 @@ and check_app type' args context =
       then let binds = List.combine params args in
       let _ = List.iter (fun (param, arg) -> check_subtype arg param.Model.type_param_type) binds in
       check type' { parent = Some context; binds }
-      else Typing_errors.raise_type_app_arity length_params length_args
-  | _ -> Typing_errors.raise_type_app_kind type'
+      else TypingErrors.raise_type_app_arity length_params length_args
+  | _ -> TypingErrors.raise_type_app_kind type'

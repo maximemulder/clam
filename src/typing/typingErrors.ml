@@ -1,4 +1,4 @@
-open Display_type
+open TypingDisplay
 open Model
 
 let raise message =

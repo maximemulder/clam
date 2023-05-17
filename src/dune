@@ -2,6 +2,8 @@
   (public_name clam)
   (name main))
 
+(include_subdirs unqualified)
+
 (menhir
   (modules parser))
 
@@ -9,4 +11,4 @@
 
 (env
   (dev
-    (flags (:standard -w -33))))
+    (flags (:standard -w -A))))

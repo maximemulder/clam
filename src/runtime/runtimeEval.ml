@@ -1,5 +1,5 @@
 open Collection
-open Runtime_value
+open RuntimeValue
 
 module BindKey = struct
   type t = Model.bind_expr
@@ -83,7 +83,7 @@ and eval_preop op expr =
   | "!" ->
     let* value = eval_bool expr in
     return (VBool (not value))
-  | _ -> Runtime_errors.raise_operator op
+  | _ -> RuntimeErrors.raise_operator op
 
 and eval_binop left op right =
   match op with
@@ -111,7 +111,7 @@ and eval_binop left op right =
     let* left = eval_string left in
     let* right = eval_string right in
     return (VString (left ^ right))
-  | _ -> Runtime_errors.raise_operator op
+  | _ -> RuntimeErrors.raise_operator op
 
 and eval_expr_app expr args stack =
   let (params, expr) = eval_abs expr stack in
@@ -125,25 +125,25 @@ and eval_bool (expr: Model.expr) =
   let* value = eval expr in
   match value with
   | VBool bool -> return bool
-  | _ -> Runtime_errors.raise_value ()
+  | _ -> RuntimeErrors.raise_value ()
 
 and eval_int (expr: Model.expr) =
   let* value = eval expr in
   match value with
   | VInt int -> return int
-  | _ -> Runtime_errors.raise_value ()
+  | _ -> RuntimeErrors.raise_value ()
 
 and eval_string (expr: Model.expr) =
   let* value = eval expr in
   match value with
   | VString string -> return string
-  | _ -> Runtime_errors.raise_value ()
+  | _ -> RuntimeErrors.raise_value ()
 
 and eval_abs (expr: Model.expr) =
   let* value = eval expr in
   match value with
   | VExprAbs (params, expr) -> return (params, expr)
-  | _ -> Runtime_errors.raise_value ()
+  | _ -> RuntimeErrors.raise_value ()
 
 let eval_def def =
   eval def.Model.def_expr { parent = None; params = BindMap.empty }

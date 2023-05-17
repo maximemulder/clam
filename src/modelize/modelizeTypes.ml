@@ -26,7 +26,7 @@ let find_done name state =
 let check_duplicates names set =
   List.fold_left (fun set name ->
     if NameSet.mem name set
-      then Modelize_errors.raise ("duplicate type `" ^ name ^ "`")
+      then ModelizeErrors.raise ("duplicate type `" ^ name ^ "`")
       else NameSet.add name set
     ) set names
 
@@ -49,7 +49,7 @@ let make_attrs attrs =
   List.fold_left (fun map attr ->
     let name = attr.Model.attr_type_name in
     if NameMap.mem name map
-      then Modelize_errors.raise ("duplicate attribute `" ^ name ^ "`")
+      then ModelizeErrors.raise ("duplicate attribute `" ^ name ^ "`")
       else NameMap.add name attr map
   ) NameMap.empty attrs
 
@@ -76,7 +76,7 @@ let rec modelize_name name state =
   | Some def -> modelize_def name def state
   | None     ->
   match find_current name state with
-  | Some _ -> Modelize_errors.raise ("recursive type `" ^ name ^ "`")
+  | Some _ -> ModelizeErrors.raise ("recursive type `" ^ name ^ "`")
   | None   ->
   match find_done name state with
   | Some type' -> (type', state)
@@ -85,7 +85,7 @@ let rec modelize_name name state =
   | Some parent ->
     let (type', parent) = modelize_name name parent in
     (type', { state with parent = Some parent })
-  | None -> Modelize_errors.raise ("unbound type `" ^ name ^ "`")
+  | None -> ModelizeErrors.raise ("unbound type `" ^ name ^ "`")
 
 and modelize_def name _type' =
   with_name name modelize_type

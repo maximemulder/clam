@@ -29,7 +29,7 @@ let find_done name state =
 let check_duplicates names set =
   List.fold_left (fun set name ->
     if NameSet.mem name set
-      then Modelize_errors.raise ("duplicate expr `" ^ name ^ "`")
+      then ModelizeErrors.raise ("duplicate expr `" ^ name ^ "`")
       else NameSet.add name set
     ) set names
 
@@ -50,7 +50,7 @@ let make_state parent types (remains: Ast.def_expr list) dones id =
 let parse_int (value: string) =
   match int_of_string_opt value with
   | Some int -> int
-  | None     -> Modelize_errors.raise ("invalid integer `" ^ value ^ "`")
+  | None     -> ModelizeErrors.raise ("invalid integer `" ^ value ^ "`")
 
 let parse_char (value: string) =
   value.[0]
@@ -69,16 +69,16 @@ let with_scope call types defs dones state =
 
 let rec translate_state state =
   {
-    Modelize_types.parent = Option.map translate_state state.parent;
-    Modelize_types.remains = NameMap.empty;
-    Modelize_types.currents =  NameMap.empty;
-    Modelize_types.dones = state.types;
-    Modelize_types.all = [];
+    ModelizeTypes.parent = Option.map translate_state state.parent;
+    ModelizeTypes.remains = NameMap.empty;
+    ModelizeTypes.currents =  NameMap.empty;
+    ModelizeTypes.dones = state.types;
+    ModelizeTypes.all = [];
   }
 
 (* TODO: Can I remove state from the return ? *)
 let modelize_type (type': Ast.type') state =
-  (Modelize_types.modelize_type_expr type' (translate_state state), state)
+  (ModelizeTypes.modelize_type_expr type' (translate_state state), state)
 
 let rec modelize_name name state =
   match find_remain name state with
@@ -94,7 +94,7 @@ let rec modelize_name name state =
   | Some parent ->
     let (type', parent) = modelize_name name parent in
     (type', { state with parent = Some parent })
-  | None -> Modelize_errors.raise ("unbound expr `" ^ name ^ "`")
+  | None -> ModelizeErrors.raise ("unbound expr `" ^ name ^ "`")
 
 and modelize_def name state =
   let (remain, remains) = Collection.extract name state.remains in
@@ -171,7 +171,7 @@ and modelize_attr (attr: Ast.attr_expr) =
   return { Model.attr_expr_name = attr.attr_expr_name; Model.attr_expr = expr }
 
 and modelize_block (block: Ast.block) state =
-  let (types, all) = Modelize_types.modelize_block block (translate_state state) in
+  let (types, all) = ModelizeTypes.modelize_block block (translate_state state) in
   let defs = Ast.get_block_exprs block in
   with_scope (fun state ->
     let state = modelize_defs state in
@@ -184,7 +184,7 @@ and modelize_abs_expr params expr state =
   with_scope (modelize_expr expr) NameMap.empty [] params state
 
 and modelize_type_abs_expr params expr state =
-  let types = Modelize_types.modelize_abs params (translate_state state) in
+  let types = ModelizeTypes.modelize_abs params (translate_state state) in
   let (expr, state) = with_scope (modelize_expr expr) types [] [] state in
   (Model.ExprTypeAbs (params, expr), state)
 
