@@ -11,21 +11,28 @@ module Monad (M: MONAD) = struct
 
   let (let*) = bind
 
-  let rec map_list f xs =
+  let rec list_map f xs =
     match xs with
     | [] -> return []
     | x :: xs ->
       let* x = f x in
-      let* xs = map_list f xs in
+      let* xs = list_map f xs in
       return (x :: xs)
+
+  let rec list_fold f a xs =
+    match xs with
+    | [] -> return a
+    | x :: xs ->
+      let* b = f a x in
+      list_fold f b xs
 
   let map_map f xs =
     let f = (fun (k, v) -> let* v = f v in return (k, v)) in
     let xs = List.of_seq (NameMap.to_seq xs) in
-    let* xs = map_list f xs in
+    let* xs = list_map f xs in
     return (NameMap.of_seq (List.to_seq xs))
 
-  let map_option f x =
+  let option_map f x =
     match x with
     | None -> return None
     | Some x ->

@@ -118,10 +118,10 @@ and modelize_expr (expr: Ast.expr): state -> Model.expr * state =
   | ExprChar   value -> return (Model.ExprChar (parse_char value))
   | ExprString value -> return (Model.ExprString (parse_string value))
   | ExprTuple exprs ->
-    let* exprs = map_list modelize_expr exprs in
+    let* exprs = list_map modelize_expr exprs in
     return (Model.ExprTuple exprs)
   | ExprRecord attrs ->
-    let* attrs = map_list modelize_attr attrs in
+    let* attrs = list_map modelize_attr attrs in
     return (Model.ExprRecord attrs)
   | ExprPreop (op, expr) ->
     let* expr = modelize_expr expr in
@@ -141,28 +141,28 @@ and modelize_expr (expr: Ast.expr): state -> Model.expr * state =
     let* else' = modelize_expr else' in
     return (Model.ExprIf (cond, then', else'))
   | ExprAbs (params, type', expr) ->
-    let* params = map_list modelize_param params in
-    let* type' = map_option modelize_type type' in
+    let* params = list_map modelize_param params in
+    let* type' = option_map modelize_type type' in
     let* expr = modelize_abs_expr params expr in
     return (Model.ExprAbs (params, type', expr))
   | ExprApp (expr, args) ->
     let* expr = modelize_expr expr in
-    let* args = map_list modelize_expr args in
+    let* args = list_map modelize_expr args in
     return (Model.ExprApp (expr, args))
   | ExprTypeAbs (params, expr) ->
-    let* params = map_list modelize_type_param params in
+    let* params = list_map modelize_type_param params in
     modelize_type_abs_expr params expr
   | ExprTypeApp (expr, args) ->
     let* expr = modelize_expr expr in
-    let* args = map_list modelize_type args in
+    let* args = list_map modelize_type args in
     return (Model.ExprTypeApp (expr, args))
 
 and modelize_param (param: Ast.param) state =
-  let (type', state) = map_option modelize_type param.param_type state in
+  let (type', state) = option_map modelize_type param.param_type state in
   (Model.make_param_expr state.id param.param_name type', { state with id = state.id + 1 })
 
 and modelize_type_param (param: Ast.param) =
-  let* type' = map_option modelize_type param.param_type in
+  let* type' = option_map modelize_type param.param_type in
   let type' = Option.value type' ~default:Model.TypeAny in
   return { Model.type_param_name = param.param_name; Model.type_param_type = type' }
 

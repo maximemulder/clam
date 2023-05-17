@@ -51,3 +51,36 @@ def aaa = {
     type BI = AI[Bool];
     0
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def increment = (i: Int) -> i + 1;
+
+def main = increment(5);

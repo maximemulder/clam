@@ -91,7 +91,7 @@ and modelize_def name _type' =
   with_name name modelize_type
 
 and modelize_params params type' =
-  let* params = map_list modelize_param params in
+  let* params = list_map modelize_param params in
   let types = List.map (fun param -> (param.Model.type_param_name, Model.TypeVar param)) params in
   let* type' = with_scope (modelize_type type') types in
   return (params, type')
@@ -100,17 +100,17 @@ and modelize_type (type': Ast.type') =
   match type' with
   | TypeIdent name -> modelize_name name
   | TypeAbsExpr (params, type') ->
-    let* params = map_list modelize_type params in
+    let* params = list_map modelize_type params in
     let* type' = modelize_type type' in
     return (Model.TypeAbsExpr (params, type'))
   | TypeAbsExprType (params, type') ->
     let* (params, type') = modelize_params params type' in
     return (Model.TypeAbsExprType (params, type'))
   | TypeTuple (types) ->
-    let* types = map_list modelize_type types in
+    let* types = list_map modelize_type types in
     return (Model.TypeTuple types)
   | TypeRecord (attrs) ->
-    let* attrs = map_list modelize_attr attrs in
+    let* attrs = list_map modelize_attr attrs in
     return (Model.TypeRecord (make_attrs attrs))
   | TypeInter (left, right) ->
     let* left = modelize_type left in
@@ -125,11 +125,11 @@ and modelize_type (type': Ast.type') =
     return (Model.TypeAbs (params, type'))
   | TypeApp (type', args) ->
     let* type' = modelize_type type' in
-    let* args = map_list modelize_type args in
+    let* args = list_map modelize_type args in
     return (Model.TypeApp (type', args))
 
 and modelize_param param =
-  let* type' = map_option modelize_type param.param_type in
+  let* type' = option_map modelize_type param.param_type in
   let type' = Option.value type' ~default:Model.TypeAny in
   return { Model.type_param_name = param.param_name; Model.type_param_type = type' }
 

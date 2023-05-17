@@ -26,15 +26,15 @@ let rec check (type': Model.type') =
   | TypeString -> return Model.TypeString
   | TypeVar param -> check_var param
   | TypeAbsExpr (params, expr) ->
-    let* params = map_list check params in
+    let* params = list_map check params in
     let* expr = check expr in
     return (Model.TypeAbsExpr (params, expr))
   | TypeAbsExprType (params, expr) ->
-    let* params = map_list check_param params in
+    let* params = list_map check_param params in
     let* expr =  check expr in
     return (Model.TypeAbsExprType (params, expr))
   | TypeTuple types ->
-    let* types = map_list check types in
+    let* types = list_map check types in
     return (Model.TypeTuple types)
   | TypeRecord attrs ->
     let* attrs = map_map check_attr attrs in
@@ -48,7 +48,7 @@ let rec check (type': Model.type') =
     let* right = check right in
     return (Model.TypeUnion (left, right))
   | TypeAbs (params, type') ->
-    let* params = map_list check_param params in
+    let* params = list_map check_param params in
     let* type' =  check type' in
     return (Model.TypeAbs (params, type'))
   | TypeApp (type', args) -> check_app type' args

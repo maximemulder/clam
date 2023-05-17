@@ -60,7 +60,7 @@ and check_expr_without_constraint (expr: Model.expr) =
   | ExprBind bind ->
     check_bind_without_constraint (Option.get bind.Model.bind_expr)
   | ExprTuple types ->
-    let* types = map_list check_expr_without_constraint types in
+    let* types = list_map check_expr_without_constraint types in
     return (Model.TypeTuple types)
   | ExprRecord attrs ->
     let* attrs = check_attrs_without_constraint attrs in
@@ -159,7 +159,7 @@ and check_app expr args =
         let* _ = check_expr_with_constraint arg param in
         return ()
       ) in
-      let* _ = map_list mapper pairs in
+      let* _ = list_map mapper pairs in
       return type'
       else Typing_errors.raise_expr_app_arity length_params length_args
   | type' -> Typing_errors.raise_expr_app_kind type'
@@ -178,7 +178,7 @@ and check_type_app expr args =
         let _ = Typing_check.check_subtype arg param in
         return ()
       ) in
-      let* _ = map_list mapper pairs in
+      let* _ = list_map mapper pairs in
       return type'
     else Typing_errors.raise_type_app_arity length_params length_args
   | type' -> Typing_errors.raise_type_app_kind type'
