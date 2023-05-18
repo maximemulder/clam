@@ -75,6 +75,6 @@ def aaa = {
 
 
 
-def increment = (i: Int) -> i + 1;
+def increment = (i: Int) -> i  + 123;
 
 def main = increment(5);

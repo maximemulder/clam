@@ -1,17 +1,27 @@
 {
   open Parser
+  open Lexing
 
-  exception SyntaxError of string
+  exception Error of string
+
+  let next_line lexbuf =
+    let pos = lexbuf.lex_curr_p in
+    lexbuf.lex_curr_p <- { pos with
+      pos_bol = lexbuf.lex_curr_pos;
+      pos_lnum = pos.pos_lnum + 1;
+    }
 }
 
 let int = ['0'-'9']+
 let ident = ['a'-'z' 'A'-'Z' '_'] ['a'-'z' 'A'-'Z' '0'-'9' '_']*
-let white = [' ' '\t' '\r' '\n']+
+let space = [' ' '\t']+
+let line = '\r' | '\n' | "\r\n"
 
 rule read =
   parse
   | int      { INT (Lexing.lexeme lexbuf) }
-  | white    { read lexbuf }
+  | space    { read lexbuf }
+  | line     { next_line lexbuf; read lexbuf }
   | "def"    { DEF }
   | "else"   { ELSE }
   | "false"  { FALSE }
@@ -39,7 +49,7 @@ rule read =
   | ';'      { SEMICOLON }
   | '\''     { read_char (Buffer.create 2) lexbuf }
   | '"'      { read_string (Buffer.create 16) lexbuf }
-  | _        { raise (SyntaxError ("Unexpected char: " ^ Lexing.lexeme lexbuf)) }
+  | _        { raise (Error ("unexpected character: `" ^ Lexing.lexeme lexbuf ^ "`")) }
   | eof      { EOF }
 
 and read_char buf =
@@ -55,14 +65,14 @@ and read_char buf =
     { Buffer.add_string buf (Lexing.lexeme lexbuf);
       read_char_end buf lexbuf
     }
-  | _ { raise (SyntaxError ("Illegal char character: " ^ Lexing.lexeme lexbuf)) }
-  | eof { raise (SyntaxError ("Char is not terminated")) }
+  | _ { raise (Error ("invalid literal character: `" ^ Lexing.lexeme lexbuf ^ "`")) }
+  | eof { raise (Error ("character literal is not terminated")) }
 
 and read_char_end buf =
   parse
   | '\'' { CHAR (Buffer.contents buf) }
-  | _    { raise (SyntaxError ("Invalid char character: ")) }
-  | eof  { raise (SyntaxError ("Char is not terminated")) }
+  | _    { raise (Error ("invalid literal character: `" ^ Lexing.lexeme lexbuf ^ "`")) }
+  | eof  { raise (Error ("character literal is not terminated")) }
 
 and read_string buf =
   parse
@@ -78,5 +88,5 @@ and read_string buf =
     { Buffer.add_string buf (Lexing.lexeme lexbuf);
       read_string buf lexbuf
     }
-  | _ { raise (SyntaxError ("Illegal string character: " ^ Lexing.lexeme lexbuf)) }
-  | eof { raise (SyntaxError ("String is not terminated")) }
+  | _ { raise (Error ("invalid string character: `" ^ Lexing.lexeme lexbuf ^ "`")) }
+  | eof { raise (Error ("string literal is not terminated")) }
