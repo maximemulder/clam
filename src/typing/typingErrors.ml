@@ -25,3 +25,6 @@ let raise_expr_app_arity length_params length_args =
 
 let raise_recursive def =
   raise ("recursive definition `" ^ def.Model.def_expr_name ^ "`")
+
+let raise_unexpected _ =
+  raise "unexpected error"

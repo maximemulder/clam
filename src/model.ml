@@ -1,13 +1,13 @@
 open Collection
 
 type type' =
-  | TypeVar of type_param
   | TypeAny
   | TypeVoid
   | TypeBool
   | TypeInt
   | TypeChar
   | TypeString
+  | TypeVar         of type_param
   | TypeAbsExpr     of (type' list) * type'
   | TypeAbsExprType of (type_param list) * type'
   | TypeTuple       of type' list

@@ -1,6 +1,5 @@
 open Collection
 open TypingCheck
-open TypingDisplay
 
 module DefKey = struct
   type t = Model.def_expr
@@ -33,17 +32,10 @@ let make_state (defs: Model.def_expr list) =
   let remains = List.fold_left (fun set def -> DefSet.add def set) DefSet.empty defs in
   { remains; currents = DefSet.empty; dones = BindMap.empty }
 
-let empty_context = { parent = None; binds = [] }
-
-let check_type type' =
-  let context = { parent = None; binds = [] } in
-  let _ = check type' context in
-  ()
-
 let rec check_expr_with_constraint (expr: Model.expr) (constraint': Model.type') =
   let* type' = check_expr_without_constraint expr in
-  let constraint' = TypingCheck.check constraint' empty_context in
-  return (TypingCheck.check_subtype type' constraint')
+  let _ = check constraint' in
+  return (check_subtype type' constraint')
 
 and check_expr_without_constraint (expr: Model.expr) =
   match expr with
@@ -89,7 +81,7 @@ and check_expr_without_constraint (expr: Model.expr) =
   | ExprApp (expr, args) ->
     check_app expr args
   | ExprTypeAbs (params, expr) ->
-    let _ = List.iter (fun param -> check_type param.Model.type_param_type) params in
+    let _ = List.iter (fun param -> check param.Model.type_param_type) params in
     let* type' = check_expr_without_constraint expr in
     return (Model.TypeAbsExprType (params, type'))
   | ExprTypeApp (expr, args) ->
@@ -174,8 +166,8 @@ and check_type_app expr args =
       let params = List.map (fun param -> param.Model.type_param_type) params in
       let pairs = List.combine params args in
       let mapper = (fun (param, arg) ->
-        let arg = TypingCheck.check arg empty_context in
-        let _ = TypingCheck.check_subtype arg param in
+        let _ = check arg in
+        let _ = check_subtype arg param in
         return ()
       ) in
       let* _ = list_map mapper pairs in
@@ -199,4 +191,4 @@ let check_exprs defs =
   check_exprs_state (make_state defs)
 
 let check_types types =
-  List.iter (fun type' -> check_type type') types
+  List.iter (fun type' -> check type') types

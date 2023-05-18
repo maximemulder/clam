@@ -1,6 +1,9 @@
 open Collection
+open TypingApp
 
 let rec is_subtype_of (type': Model.type') (other: Model.type') =
+  let type' = apply type' in
+  let other = apply other in
   match (type', other) with
   | (_, TypeAny) -> true
   | (type', TypeInter (left, right)) ->
@@ -31,6 +34,14 @@ let rec is_subtype_of (type': Model.type') (other: Model.type') =
     is_subtype_of left other && is_subtype_of right other
   | (TypeAbs (params, type'), TypeAbs (other_params, other_type)) ->
     compare_lists (=) other_params params && is_subtype_of type' other_type
-  | (TypeApp (type', args), TypeApp (other_type, other_args)) ->
-    is_subtype_of type' other_type && compare_lists (=) args other_args
   | _ -> false
+
+let merge_union left right =
+  if is_subtype_of left right then right else
+  if is_subtype_of right left then left else
+  TypeUnion (left, right)
+
+let merge_inter left right =
+  if is_subtype_of left right then left else
+  if is_subtype_of right left then right else
+  TypeInter (left, right)
