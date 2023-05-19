@@ -22,7 +22,7 @@ let node_name node =
   | Def def -> "def." ^ (match def with
     | DefType _ -> "type"
     | DefExpr _ -> "expr")
-  | Type type' -> "type." ^ (match type' with
+  | Type type' -> "type." ^ (match snd type' with
     | TypeIdent       _ -> "name"
     | TypeAbsExpr     _ -> "abs_expr"
     | TypeAbsExprType _ -> "abs_expr_type"
@@ -64,7 +64,7 @@ let node_attrs node =
       [("name", AString type'.type_name); ("type", ANode (Type type'.type'))]
     | Ast.DefExpr { expr_name; expr_type; expr } ->
       [("name", AString expr_name); ("type", AOption (Option.map (fun type' -> Type type') expr_type)); ("expr", ANode (Expr expr))])
-  | Type type' -> (match type' with
+  | Type type' -> (match snd type' with
     | TypeIdent name ->
       [("name", AString name)]
     | TypeAbsExpr (params, return) ->

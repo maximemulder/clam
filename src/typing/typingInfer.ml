@@ -40,7 +40,7 @@ let rec check_expr_with_constraint expr constraint' =
     then TypingErrors.raise_expr_constraint expr type' constraint'
     else return ()
 
-and check_expr_without_constraint expr =
+and check_expr_without_constraint2 expr =
   match snd expr with
   | ExprVoid ->
     return TypeVoid
@@ -61,22 +61,22 @@ and check_expr_without_constraint expr =
     let* attrs = check_attrs_without_constraint attrs in
     return (TypeRecord attrs)
   | ExprPreop (_, expr) ->
-    let* _ = check_expr_with_constraint expr TypeInt in
+    let* _ = check_expr_with_constraint expr (fst expr, TypeInt) in
     return TypeInt
   | ExprBinop (left, _, right) ->
-    let* _ = check_expr_with_constraint left TypeInt in
-    let* _ = check_expr_with_constraint right TypeInt in
+    let* _ = check_expr_with_constraint left (fst expr, TypeInt) in
+    let* _ = check_expr_with_constraint right (fst expr, TypeInt) in
     return TypeInt
   | ExprAscr (expr, type') ->
     let* _ = check_expr_with_constraint expr type' in
-    return type'
+    return (snd type')
   | ExprIf (if', then', else') ->
-    let* _ = check_expr_with_constraint if' TypeBool in
+    let* _ = check_expr_with_constraint if' (fst expr, TypeBool) in
     let* then' = check_expr_without_constraint then' in
     let* else' = check_expr_without_constraint else' in
     return (TypeUnion (then', else'))
   | ExprBlock { block_expr } ->
-    check_expr_without_constraint block_expr
+    check_expr_without_constraint2 block_expr
   | ExprAbs (params, type', expr) ->
     let* params = check_abs_params params in
     let* type' = check_abs_return type' expr in
@@ -90,13 +90,17 @@ and check_expr_without_constraint expr =
   | ExprTypeApp (expr, args) ->
     check_type_app expr args
 
+and check_expr_without_constraint expr =
+  let* type_data = check_expr_without_constraint2 expr in
+  return (fst expr, type_data)
+
 and check_bind_without_constraint bind state =
   match bind with
   | BindExprDef def when DefSet.mem def state.remains ->
     check_def def state
   | BindExprDef def when DefSet.mem def state.currents ->
     TypingErrors.raise_recursive def
-  | _ -> (BindMap.find bind state.dones, state)
+  | _ -> (snd (BindMap.find bind state.dones), state)
 
 and check_def def state =
   let remains = DefSet.remove def state.remains in
@@ -104,17 +108,18 @@ and check_def def state =
   let state = { state with remains; currents } in
   match def.def_expr_type with
   | Some type' ->
+    check type';
     let currents = DefSet.remove def state.currents in
     let dones = BindMap.add (BindExprDef def) type' state.dones in
     let state = { state with currents; dones } in
     let (_, state) = check_expr_with_constraint def.def_expr type' state in
-    (type', state)
+    (snd type', state)
   | None ->
     let (type', state) = check_expr_without_constraint def.def_expr state in
     let currents = DefSet.remove def state.currents in
     let dones = BindMap.add (BindExprDef def) type' state.dones in
     let state = { state with currents; dones } in
-    (type', state)
+    (snd type', state)
 
 and check_attrs_without_constraint attrs =
   let attrs = List.fold_left (fun map attr -> NameMap.add attr.attr_expr_name attr map) NameMap.empty attrs in
@@ -144,10 +149,10 @@ and check_abs_return type' expr =
 
 and check_expr_app expr args =
   let* type' = check_expr_without_constraint expr in
-  match type' with
+  match snd type' with
   | TypeAbsExpr (params, type') ->
     check_expr_app_abs expr type' params args
-  | type' -> TypingErrors.raise_expr_app_kind expr type'
+  | _ -> TypingErrors.raise_expr_app_kind expr type'
 
 and check_expr_app_abs expr type' params args =
   if List.compare_lengths params args != 0 then
@@ -155,14 +160,14 @@ and check_expr_app_abs expr type' params args =
   else
   let pairs = List.combine params args in
   let* _ = list_map (fun (param, arg) -> check_expr_with_constraint arg param) pairs in
-  return type'
+  return (snd type')
 
 and check_type_app expr args =
   let* type' = check_expr_without_constraint expr in
-  match type' with
+  match snd type' with
   | TypeAbsExprType (params, type') ->
     check_type_app_abs expr type' params args
-  | type' -> TypingErrors.raise_expr_type_app_kind expr type'
+  | _ -> TypingErrors.raise_expr_type_app_kind expr type'
 
 and check_type_app_abs expr type' params args =
   if List.compare_lengths params args != 0 then
@@ -176,7 +181,7 @@ and check_type_app_abs expr type' params args =
     return ()
   ) in
   let* _ = list_map mapper pairs in
-  return type'
+  return (snd type')
 
 let check_expr expr constraint' =
   match constraint' with

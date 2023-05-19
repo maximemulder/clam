@@ -51,23 +51,23 @@ let def :=
 
 let type_ :=
   | name = IDENT;
-    { TypeIdent name }
+    { $startpos, TypeIdent name }
   | PARENTHESIS_LEFT; types = list_comma(type_); PARENTHESIS_RIGHT;
-    { TypeTuple types }
+    { $startpos, TypeTuple types }
   | BRACE_LEFT; attrs = list_comma(attr_type); BRACE_RIGHT;
-    { TypeRecord attrs }
+    { $startpos, TypeRecord attrs }
   | PARENTHESIS_LEFT; params = list_comma(type_); PARENTHESIS_RIGHT; ARROW; expr = type_;
-    { TypeAbsExpr (params, expr) }
+    { $startpos, TypeAbsExpr (params, expr) }
   | CROTCHET_LEFT; params = list_comma(param); CROTCHET_RIGHT; ARROW; expr = type_;
-    { TypeAbsExprType (params, expr) }
+    { $startpos, TypeAbsExprType (params, expr) }
   | left = type_; AMPERSAND; right = type_;
-    { TypeInter (left, right) }
+    { $startpos, TypeInter (left, right) }
   | left = type_; PIPE; right = type_;
-    { TypeUnion (left, right) }
+    { $startpos, TypeUnion (left, right) }
   | CROTCHET_LEFT; params = list_comma(param); CROTCHET_RIGHT; type_ = type_;
-    { TypeAbs (params, type_) }
+    { $startpos, TypeAbs (params, type_) }
   | type_ = type_; CROTCHET_LEFT; args = list_comma(type_); CROTCHET_RIGHT;
-    { TypeApp (type_, args) }
+    { $startpos, TypeApp (type_, args) }
 
 // Expressions
 

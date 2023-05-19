@@ -21,7 +21,9 @@ and def_expr = {
   expr: expr;
 }
 
-and type' =
+and type' = pos * type_data
+
+and type_data =
   | TypeIdent       of string
   | TypeAbsExpr     of (type' list) * type'
   | TypeAbsExprType of (param list) * type'

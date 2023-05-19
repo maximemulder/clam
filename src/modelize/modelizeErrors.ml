@@ -17,11 +17,11 @@ let raise_expr_integer expr value =
 let raise_type_duplicate name =
   Error.raise "MODEL ERROR" ("duplicate type definition `" ^ name ^ "`")
 
-let raise_type_recursive name =
-  Error.raise "MODEL ERROR" ("recursive type `" ^ name ^ "`")
+let raise_type_bound type' name =
+  raise ("unbound type `" ^ name ^ "`") (fst type')
 
-let raise_type_bound name =
-  Error.raise "MODEL ERROR" ("unbound type `" ^ name ^ "`")
+let raise_type_recursive type' name =
+  raise ("recursive type `" ^ name ^ "`") (fst type')
 
 let raise_type_duplicate_attribute attr =
   raise ("duplicate attribute `" ^ attr.Model.attr_type_name ^ "`") attr.Model.attr_type_pos

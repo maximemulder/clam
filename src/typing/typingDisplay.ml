@@ -2,7 +2,7 @@ open Collection
 open Model
 
 let rec display type' =
-  match type' with
+  match snd type' with
   | TypeVar { param_type_name; _ } -> param_type_name
   | TypeAny     -> "Any"
   | TypeVoid    -> "Void"

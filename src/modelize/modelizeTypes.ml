@@ -53,6 +53,9 @@ let make_attrs attrs =
       else NameMap.add name attr map
   ) NameMap.empty attrs
 
+let return_type type' type_data =
+  return ((fst type'), type_data)
+
 let with_name name call state =
   let (type', remains) = Collection.extract name state.remains in
   let currents = NameMap.add name type' state.currents in
@@ -71,66 +74,68 @@ let with_scope call types state =
   let state = Option.get state.parent in
   (result, { state with all = List.append state.all all })
 
-let rec modelize_name name state =
+let rec modelize_name type' name state =
   match find_remain name state with
   | Some def -> modelize_def name def state
   | None     ->
   match find_current name state with
-  | Some _ -> ModelizeErrors.raise_type_recursive name
+  | Some _ -> ModelizeErrors.raise_type_recursive type' name
   | None   ->
   match find_done name state with
   | Some type' -> (type', state)
   | None       ->
   match state.parent with
   | Some parent ->
-    let (type', parent) = modelize_name name parent in
+    let (type', parent) = modelize_name type' name parent in
     (type', { state with parent = Some parent })
-  | None -> ModelizeErrors.raise_type_bound name
+  | None -> ModelizeErrors.raise_type_bound type' name
 
 and modelize_def name _type' =
   with_name name modelize_type
 
 and modelize_params params type' =
   let* params = list_map modelize_param params in
-  let types = List.map (fun param -> (param.Model.param_type_name, Model.TypeVar param)) params in
+  let types = List.map (fun param -> (param.Model.param_type_name, (fst param.param_type, Model.TypeVar param))) params in
   let* type' = with_scope (modelize_type type') types in
   return (params, type')
 
 and modelize_type (type': Ast.type') =
-  match type' with
-  | TypeIdent name -> modelize_name name
+  match snd type' with
+  | TypeIdent name ->
+    let* named = modelize_name type' name in
+    return_type type' (snd named)
   | TypeAbsExpr (params, type') ->
     let* params = list_map modelize_type params in
     let* type' = modelize_type type' in
-    return (Model.TypeAbsExpr (params, type'))
+    return_type type' (Model.TypeAbsExpr (params, type'))
   | TypeAbsExprType (params, type') ->
     let* (params, type') = modelize_params params type' in
-    return (Model.TypeAbsExprType (params, type'))
+    return_type type' (Model.TypeAbsExprType (params, type'))
   | TypeTuple (types) ->
     let* types = list_map modelize_type types in
-    return (Model.TypeTuple types)
+    return_type type' (Model.TypeTuple types)
   | TypeRecord (attrs) ->
     let* attrs = list_map modelize_attr attrs in
-    return (Model.TypeRecord (make_attrs attrs))
+    return_type type' (Model.TypeRecord (make_attrs attrs))
   | TypeInter (left, right) ->
     let* left = modelize_type left in
     let* right = modelize_type right in
-    return (Model.TypeInter (left, right))
+    return_type type' (Model.TypeInter (left, right))
   | TypeUnion (left, right) ->
     let* left = modelize_type left in
     let* right = modelize_type right in
-    return (Model.TypeUnion (left, right))
+    return_type type' (Model.TypeUnion (left, right))
   | TypeAbs (params, type') ->
     let* (params, type') = modelize_params params type' in
-    return (Model.TypeAbs (params, type'))
+    return_type type' (Model.TypeAbs (params, type'))
   | TypeApp (type', args) ->
     let* type' = modelize_type type' in
     let* args = list_map modelize_type args in
-    return (Model.TypeApp (type', args))
+    return_type type' (Model.TypeApp (type', args))
 
 and modelize_param param =
   let* type' = option_map modelize_type param.param_type in
-  let type' = Option.value type' ~default:Model.TypeAny in
+  let type' = Option.value type' ~default:(param.param_pos, Model.TypeAny) in
   return { Model.param_type_name = param.param_name; Model.param_type = type' }
 
 and modelize_attr attr =
@@ -152,13 +157,20 @@ let rec modelize_defs state =
     let (_, state) = modelize_def name remain state in
     modelize_defs state
 
+let primitive_pos = {
+  Lexing.pos_fname = "primitives.clam";
+  Lexing.pos_lnum = 0;
+  Lexing.pos_bol = 0;
+  Lexing.pos_cnum = 0;
+}
+
 let primitives = [
-  ("Any",    Model.TypeAny);
-  ("Void",   Model.TypeVoid);
-  ("Bool",   Model.TypeBool);
-  ("Int",    Model.TypeInt);
-  ("Char",   Model.TypeChar);
-  ("String", Model.TypeString);
+  ("Any",    (primitive_pos, Model.TypeAny));
+  ("Void",   (primitive_pos, Model.TypeVoid));
+  ("Bool",   (primitive_pos, Model.TypeBool));
+  ("Int",    (primitive_pos, Model.TypeInt));
+  ("Char",   (primitive_pos, Model.TypeChar));
+  ("String", (primitive_pos, Model.TypeString));
 ]
 
 let modelize_program (program: Ast.program) =

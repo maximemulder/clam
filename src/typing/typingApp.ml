@@ -11,8 +11,8 @@ end
 
 open Monad.Monad(Monad.ReaderMonad(Reader))
 
-let rec apply_type type' =
-  match type' with
+let rec apply_type_data type' =
+  match snd type' with
   | TypeAny ->
     return TypeAny
   | TypeVoid ->
@@ -20,7 +20,7 @@ let rec apply_type type' =
   | TypeBool ->
     return TypeBool
   | TypeInt ->
-    return TypeInt
+    return TypeBool
   | TypeChar ->
     return TypeChar
   | TypeString ->
@@ -55,6 +55,10 @@ let rec apply_type type' =
     return (TypeAbs (params, type'))
   | TypeApp (type', args) -> apply_app_type type' args
 
+and apply_type type' =
+  let* type_data = apply_type_data type' in
+  return (fst type', type_data)
+
 and apply_attr attr =
   let* type' = apply_type attr.attr_type in
   return { attr with attr_type = type' }
@@ -64,18 +68,18 @@ and apply_param param =
   return { param with param_type = type' }
 
 and apply_app_type type' args =
-  match type' with
+  match snd type' with
   | TypeAbs (params, type') -> apply_app_abs type' params args
   | _ -> TypingErrors.raise_unexpected ()
 
 and apply_app_abs type' params args context =
   let binds = List.combine params args in
   let context = { parent = Some context; binds } in
-  apply_type type' context
+  snd (apply_type type' context)
 
 and apply_var param context =
   match List.find_opt (fun other -> (fst other) == param) context.binds with
-  | Some pair -> snd pair
+  | Some pair -> snd (snd pair)
   | None ->
   match context.parent with
   | Some parent -> apply_var param parent

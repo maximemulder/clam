@@ -2,7 +2,9 @@ open Collection
 
 type pos = Lexing.position
 
-type type' =
+type type' = pos * type_data
+
+and type_data =
   | TypeAny
   | TypeVoid
   | TypeBool
