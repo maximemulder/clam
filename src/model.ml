@@ -62,6 +62,7 @@ and expr_bind = {
 }
 
 and def_expr = {
+  def_expr_pos: pos;
   def_expr_id: int;
   def_expr_name: string;
   def_expr_type: type' option;
@@ -84,8 +85,9 @@ and attr_expr = {
   attr_expr: expr;
 }
 
-let make_def_expr id name type' expr =
+let make_def_expr pos id name type' expr =
   {
+    def_expr_pos = pos;
     def_expr_id = id;
     def_expr_name = name;
     def_expr_type = type';

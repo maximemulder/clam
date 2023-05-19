@@ -53,9 +53,6 @@ let make_attrs attrs =
       else NameMap.add name attr map
   ) NameMap.empty attrs
 
-let return_type type' type_data =
-  return ((fst type'), type_data)
-
 let with_name name call state =
   let (type', remains) = Collection.extract name state.remains in
   let currents = NameMap.add name type' state.currents in
@@ -64,7 +61,7 @@ let with_name name call state =
   let currents = NameMap.remove name state.currents in
   let dones = NameMap.add name type' state.dones in
   let all = type' :: state.all in
-  (type', { state with currents; dones; all })
+  (snd type', { state with currents; dones; all })
 
 let with_scope call types state =
   let parent = state in
@@ -82,7 +79,7 @@ let rec modelize_name type' name state =
   | Some _ -> ModelizeErrors.raise_type_recursive type' name
   | None   ->
   match find_done name state with
-  | Some type' -> (type', state)
+  | Some type' -> (snd type', state)
   | None       ->
   match state.parent with
   | Some parent ->
@@ -99,39 +96,42 @@ and modelize_params params type' =
   let* type' = with_scope (modelize_type type') types in
   return (params, type')
 
-and modelize_type (type': Ast.type') =
+and modelize_type_data (type': Ast.type') =
   match snd type' with
   | TypeIdent name ->
-    let* named = modelize_name type' name in
-    return_type type' (snd named)
+    modelize_name type' name
   | TypeAbsExpr (params, type') ->
     let* params = list_map modelize_type params in
     let* type' = modelize_type type' in
-    return_type type' (Model.TypeAbsExpr (params, type'))
+    return (Model.TypeAbsExpr (params, type'))
   | TypeAbsExprType (params, type') ->
     let* (params, type') = modelize_params params type' in
-    return_type type' (Model.TypeAbsExprType (params, type'))
+    return (Model.TypeAbsExprType (params, type'))
   | TypeTuple (types) ->
     let* types = list_map modelize_type types in
-    return_type type' (Model.TypeTuple types)
+    return (Model.TypeTuple types)
   | TypeRecord (attrs) ->
     let* attrs = list_map modelize_attr attrs in
-    return_type type' (Model.TypeRecord (make_attrs attrs))
+    return (Model.TypeRecord (make_attrs attrs))
   | TypeInter (left, right) ->
     let* left = modelize_type left in
     let* right = modelize_type right in
-    return_type type' (Model.TypeInter (left, right))
+    return (Model.TypeInter (left, right))
   | TypeUnion (left, right) ->
     let* left = modelize_type left in
     let* right = modelize_type right in
-    return_type type' (Model.TypeUnion (left, right))
+    return (Model.TypeUnion (left, right))
   | TypeAbs (params, type') ->
     let* (params, type') = modelize_params params type' in
-    return_type type' (Model.TypeAbs (params, type'))
+    return (Model.TypeAbs (params, type'))
   | TypeApp (type', args) ->
     let* type' = modelize_type type' in
     let* args = list_map modelize_type args in
-    return_type type' (Model.TypeApp (type', args))
+    return (Model.TypeApp (type', args))
+
+and modelize_type type' =
+  let* type_data = modelize_type_data type' in
+  return (fst type', type_data)
 
 and modelize_param param =
   let* type' = option_map modelize_type param.param_type in

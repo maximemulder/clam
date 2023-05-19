@@ -27,6 +27,9 @@ let raise_expr_type_app_arity expr params args =
   let length_args = string_of_int (List.length args) in
   raise ("expected " ^ length_params ^ " arguments but found " ^ length_args ^ " arguments") (fst expr)
 
+let raise_expr_recursive def =
+  raise ("recursive definition `" ^ def.def_expr_name ^ "`, type annotation needed") def.def_expr_pos
+
 let raise_param param =
   raise ("require type annotation for parameter `" ^ param.param_expr_name ^ "`") param.param_expr_pos
 
@@ -45,9 +48,6 @@ let raise_type_app_arity type' params args =
   let length_params = string_of_int (List.length params) in
   let length_args = string_of_int (List.length args) in
   raise ("expected " ^ length_params ^ " arguments but found " ^ length_args ^ " arguments") (fst type')
-
-let raise_recursive def =
-  Error.raise "" ("recursive definition `" ^ def.Model.def_expr_name ^ "`")
 
 let raise_unexpected _ =
   Error.raise "TYPE ERROR" "unexpected error"
