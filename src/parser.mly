@@ -45,9 +45,9 @@ let program :=
 
 let def :=
   | TYPE; name = IDENT; EQUAL; type_ = type_; SEMICOLON;
-    { DefType {type_name = name; type' = type_} }
+    { DefType { type_pos = $startpos; type_name = name; type' = type_ } }
   | DEF; name = IDENT; type_ = option(typing); EQUAL; expr = expr; SEMICOLON;
-    { DefExpr {expr_name = name; expr_type = type_; expr = expr} }
+    { DefExpr { expr_pos = $startpos; expr_name = name; expr_type = type_; expr = expr } }
 
 let type_ :=
   | name = IDENT;
@@ -111,7 +111,7 @@ let expr :=
 
 let param :=
   | name = IDENT; type_ = option(typing);
-    { { param_name = name; param_type = type_ } }
+    { { param_pos = $startpos; param_name = name; param_type = type_ } }
 
 let typing :=
   | COLON; type_ = type_;
@@ -119,7 +119,7 @@ let typing :=
 
 let attr_type :=
   | name = IDENT; COLON; type_ = type_;
-    { { attr_type_name = name; attr_type = type_ } }
+    { { attr_type_pos = $startpos; attr_type_name = name; attr_type = type_ } }
 
 let attr_expr :=
   | name = IDENT; EQUAL; expr = expr;

@@ -1,24 +1,27 @@
 open Lexing
 
-let raise message =
-  print_endline ("MODEL ERROR: " ^ message);
-  exit (-1)
+let raise message pos =
+  Error.raise "MODEL ERROR" (message ^ "\n" ^ (Error.display_pos pos))
 
 let raise_expr_duplicate name =
-  raise ("duplicate expression definition `" ^ name ^ "`")
+  Error.raise "MODEL ERROR" ("duplicate expression definition `" ^ name ^ "`")
 
 let raise_expr_bound expr name =
   let pos = fst expr in
-  raise ("unbound expression `" ^ name ^ "`\n"
-    ^ "in file `" ^ pos.pos_fname ^ "` "
-    ^ "line " ^ (string_of_int pos.pos_lnum) ^ " "
-    ^ "column " ^ (string_of_int (pos.pos_cnum - pos.pos_bol))
-  )
+  raise ("unbound expression `" ^ name ^ "`") pos
 
 let raise_expr_integer expr value =
   let pos = fst expr in
-  raise ("invalid integer literal `" ^ value ^ "`\n"
-    ^ "in file `" ^ pos.pos_fname ^ "` "
-    ^ "line " ^ (string_of_int pos.pos_lnum) ^ " "
-    ^ "column " ^ (string_of_int (pos.pos_cnum - pos.pos_bol))
-  )
+  raise ("invalid integer literal `" ^ value ^ "`") pos
+
+let raise_type_duplicate name =
+  Error.raise "MODEL ERROR" ("duplicate type definition `" ^ name ^ "`")
+
+let raise_type_recursive name =
+  Error.raise "MODEL ERROR" ("recursive type `" ^ name ^ "`")
+
+let raise_type_bound name =
+  Error.raise "MODEL ERROR" ("unbound type `" ^ name ^ "`")
+
+let raise_type_duplicate_attribute attr =
+  raise ("duplicate attribute `" ^ attr.Model.attr_type_name ^ "`") attr.Model.attr_type_pos

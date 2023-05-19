@@ -1,4 +1,5 @@
 open Collection
+open Model
 
 type value =
 | VVoid
@@ -8,5 +9,5 @@ type value =
 | VString  of string
 | VTuple   of value list
 | VRecord  of value NameMap.t
-| VExprAbs of (Model.param_expr list) * Model.expr
-| VTypeAbs of (Model.type_param list) * Model.expr
+| VExprAbs of (param_expr list) * expr
+| VTypeAbs of (param_type list) * expr

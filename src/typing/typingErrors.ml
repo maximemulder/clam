@@ -30,6 +30,9 @@ let raise_expr_type_app_arity expr params args =
   let length_args = string_of_int (List.length args) in
   raise2 ("expected " ^ length_params ^ " arguments but found " ^ length_args ^ " arguments") (fst expr)
 
+let raise_param param =
+  raise2 ("require type annotation for parameter `" ^ param.param_expr_name ^ "`") param.param_expr_pos
+
 let raise_type type' constraint' =
   raise ("expected type `" ^ (display constraint') ^ "` but found type `" ^ (display type') ^ "`")
 
@@ -38,9 +41,6 @@ let raise_type_app_arity length_params length_args =
 
 let raise_type_app_kind type' =
   raise ("expected type abstraction but found type `" ^ (display type') ^ "`")
-
-let raise_param param =
-  raise ("require type annotation for parameter `" ^ param.param_expr_name ^ "`")
 
 let raise_recursive def =
   raise ("recursive definition `" ^ def.Model.def_expr_name ^ "`")

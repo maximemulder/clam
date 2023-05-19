@@ -26,7 +26,7 @@ let find_done name state =
 let check_duplicates names set =
   List.fold_left (fun set name ->
     if NameSet.mem name set
-      then ModelizeErrors.raise ("duplicate type `" ^ name ^ "`")
+      then ModelizeErrors.raise_type_duplicate name
       else NameSet.add name set
     ) set names
 
@@ -49,7 +49,7 @@ let make_attrs attrs =
   List.fold_left (fun map attr ->
     let name = attr.Model.attr_type_name in
     if NameMap.mem name map
-      then ModelizeErrors.raise ("duplicate attribute `" ^ name ^ "`")
+      then ModelizeErrors.raise_type_duplicate_attribute attr
       else NameMap.add name attr map
   ) NameMap.empty attrs
 
@@ -76,7 +76,7 @@ let rec modelize_name name state =
   | Some def -> modelize_def name def state
   | None     ->
   match find_current name state with
-  | Some _ -> ModelizeErrors.raise ("recursive type `" ^ name ^ "`")
+  | Some _ -> ModelizeErrors.raise_type_recursive name
   | None   ->
   match find_done name state with
   | Some type' -> (type', state)
@@ -85,14 +85,14 @@ let rec modelize_name name state =
   | Some parent ->
     let (type', parent) = modelize_name name parent in
     (type', { state with parent = Some parent })
-  | None -> ModelizeErrors.raise ("unbound type `" ^ name ^ "`")
+  | None -> ModelizeErrors.raise_type_bound name
 
 and modelize_def name _type' =
   with_name name modelize_type
 
 and modelize_params params type' =
   let* params = list_map modelize_param params in
-  let types = List.map (fun param -> (param.Model.type_param_name, Model.TypeVar param)) params in
+  let types = List.map (fun param -> (param.Model.param_type_name, Model.TypeVar param)) params in
   let* type' = with_scope (modelize_type type') types in
   return (params, type')
 
@@ -131,13 +131,17 @@ and modelize_type (type': Ast.type') =
 and modelize_param param =
   let* type' = option_map modelize_type param.param_type in
   let type' = Option.value type' ~default:Model.TypeAny in
-  return { Model.type_param_name = param.param_name; Model.type_param_type = type' }
+  return { Model.param_type_name = param.param_name; Model.param_type = type' }
 
-and modelize_attr (attr: Ast.attr_type) =
+and modelize_attr attr =
   let* type' = modelize_type attr.attr_type in
-  return { Model.attr_type_name = attr.attr_type_name; Model.attr_type = type' }
+  return {
+    Model.attr_type_pos = attr.attr_type_pos;
+    Model.attr_type_name = attr.attr_type_name;
+    Model.attr_type = type'
+  }
 
-let modelize_type_expr (type': Ast.type') state =
+let modelize_type_expr type' state =
   let (type', _) = modelize_type type' state in
   type'
 
@@ -169,7 +173,7 @@ let modelize_block (block: Ast.block) parent =
   let state = modelize_defs state in
   (state.dones, state.all)
 
-let modelize_abs (params: Model.type_param list) parent =
-  let types = List.map (fun param -> (param.Model.type_param_name, param.Model.type_param_type)) params in
+let modelize_abs params parent =
+  let types = List.map (fun param -> (param.Model.param_type_name, param.Model.param_type)) params in
   let state = make_state (Some parent) [] types in
   state.dones

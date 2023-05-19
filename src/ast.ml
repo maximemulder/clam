@@ -1,4 +1,4 @@
-type loc = Lexing.position
+type pos = Lexing.position
 
 type program = {
   program_defs: def list
@@ -9,11 +9,13 @@ and def =
   | DefExpr of def_expr
 
 and def_type = {
+  type_pos: pos;
   type_name: string;
   type': type';
 }
 
 and def_expr = {
+  expr_pos: pos;
   expr_name: string;
   expr_type: type' option;
   expr: expr;
@@ -30,7 +32,7 @@ and type' =
   | TypeAbs         of (param list) * type'
   | TypeApp         of type' * (type' list)
 
-and expr = loc * expr_data
+and expr = pos * expr_data
 
 and expr_data =
   | ExprIdent   of string
@@ -53,11 +55,13 @@ and expr_data =
   | ExprTypeApp of expr * (type' list)
 
 and param = {
+  param_pos: pos;
   param_name: string;
   param_type: type' option;
 }
 
 and attr_type = {
+  attr_type_pos: pos;
   attr_type_name: string;
   attr_type: type';
 }
@@ -83,7 +87,6 @@ let get_program_exprs program =
     | DefType _        -> None
     | DefExpr def_expr -> Some def_expr
   ) program.program_defs
-
 
 let get_block_types block =
   List.filter_map (fun(def) -> match def with

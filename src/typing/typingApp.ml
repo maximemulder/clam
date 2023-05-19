@@ -2,7 +2,7 @@ open Model
 
 type context = {
   parent: context option;
-  binds: (Model.type_param * Model.type') list;
+  binds: (param_type * type') list;
 }
 
 module Reader = struct
@@ -11,7 +11,7 @@ end
 
 open Monad.Monad(Monad.ReaderMonad(Reader))
 
-let rec apply_type (type': Model.type') =
+let rec apply_type type' =
   match type' with
   | TypeAny ->
     return TypeAny
@@ -60,8 +60,8 @@ and apply_attr attr =
   return { attr with attr_type = type' }
 
 and apply_param param =
-  let* type' = apply_type param.type_param_type in
-  return { param with type_param_type = type' }
+  let* type' = apply_type param.param_type in
+  return { param with param_type = type' }
 
 and apply_app_type type' args =
   match type' with
@@ -82,4 +82,4 @@ and apply_var param context =
   | None -> TypeVar param
 
 let apply type' =
-  apply_type type' { parent =  None; binds = [] }
+  apply_type type' { parent = None; binds = [] }

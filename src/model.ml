@@ -1,6 +1,6 @@
 open Collection
 
-type loc = Lexing.position
+type pos = Lexing.position
 
 type type' =
   | TypeAny
@@ -9,27 +9,28 @@ type type' =
   | TypeInt
   | TypeChar
   | TypeString
-  | TypeVar         of type_param
+  | TypeVar         of param_type
   | TypeAbsExpr     of (type' list) * type'
-  | TypeAbsExprType of (type_param list) * type'
+  | TypeAbsExprType of (param_type list) * type'
   | TypeTuple       of type' list
   | TypeRecord      of attr_type NameMap.t
   | TypeInter       of type' * type'
   | TypeUnion       of type' * type'
-  | TypeAbs         of (type_param list) * type'
+  | TypeAbs         of (param_type list) * type'
   | TypeApp         of type' * (type' list)
 
 and attr_type = {
+  attr_type_pos: pos;
   attr_type_name: string;
   attr_type: type';
 }
 
-and type_param = {
-  type_param_name: string;
-  type_param_type: type';
+and param_type = {
+  param_type_name: string;
+  param_type: type';
 }
 
-type expr = loc * expr_data
+type expr = pos * expr_data
 
 and expr_data =
   | ExprVoid
@@ -47,7 +48,7 @@ and expr_data =
   | ExprIf      of expr * expr * expr
   | ExprAbs     of (param_expr list) * (type' option) * expr
   | ExprApp     of expr * (expr list)
-  | ExprTypeAbs of (type_param list) * expr
+  | ExprTypeAbs of (param_type list) * expr
   | ExprTypeApp of expr * (type' list)
 
 and expr_block = {
@@ -66,6 +67,7 @@ and def_expr = {
 }
 
 and param_expr = {
+  param_expr_pos: pos;
   param_expr_id: int;
   param_expr_name: string;
   param_expr_type: type' option;
@@ -88,8 +90,9 @@ let make_def_expr id name type' expr =
     def_expr = expr;
   }
 
-let make_param_expr id name type' =
+let make_param_expr pos id name type' =
   {
+    param_expr_pos = pos;
     param_expr_id = id;
     param_expr_name = name;
     param_expr_type = type';
@@ -101,8 +104,9 @@ let make_attr_expr name expr =
     attr_expr = expr;
   }
 
-let make_attr_type name type' =
+let make_attr_type pos name type' =
   {
+    attr_type_pos = pos;
     attr_type_name = name;
     attr_type = type';
   }

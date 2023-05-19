@@ -46,4 +46,4 @@ let () =
   | Some main -> main
   | None -> Error.raise_main ()
   ) in
-  print_endline ("\n" ^ RuntimeDisplay.display (RuntimeEval.eval_def main))
+  print_endline (RuntimeDisplay.display (RuntimeEval.eval_def main))

@@ -1,18 +1,19 @@
 open Collection
+open Model
 open TypingCheck
 open TypingSub
 
 module DefKey = struct
-  type t = Model.def_expr
-  let compare x y = Stdlib.compare x.Model.def_expr_id y.Model.def_expr_id
+  type t = def_expr
+  let compare x y = Stdlib.compare x.def_expr_id y.def_expr_id
 end
 
 module DefSet = Set.Make(DefKey)
 
 module BindKey = struct
-  type t = Model.bind_expr
+  type t = bind_expr
 
-  let compare x y  = Stdlib.compare (Model.bind_expr_id x) (Model.bind_expr_id y)
+  let compare x y  = Stdlib.compare (bind_expr_id x) (bind_expr_id y)
 end
 
 module BindMap = Map.Make(BindKey)
@@ -20,7 +21,7 @@ module BindMap = Map.Make(BindKey)
 type state = {
   remains: DefSet.t;
   currents: DefSet.t;
-  dones: Model.type' BindMap.t;
+  dones: type' BindMap.t;
 }
 
 module State = struct
@@ -29,43 +30,43 @@ end
 
 open Monad.Monad(Monad.StateMonad(State))
 
-let make_state (defs: Model.def_expr list) =
+let make_state defs =
   let remains = List.fold_left (fun set def -> DefSet.add def set) DefSet.empty defs in
   { remains; currents = DefSet.empty; dones = BindMap.empty }
 
-let rec check_expr_with_constraint (expr: Model.expr) (constraint': Model.type') =
+let rec check_expr_with_constraint expr constraint' =
   let* type' = check_expr_without_constraint expr in
   if Bool.not (is_subtype_of type' constraint')
     then TypingErrors.raise_expr_constraint expr type' constraint'
     else return ()
 
-and check_expr_without_constraint (expr: Model.expr) =
+and check_expr_without_constraint expr =
   match snd expr with
   | ExprVoid ->
-    return Model.TypeVoid
+    return TypeVoid
   | ExprBool _ ->
-    return Model.TypeBool
+    return TypeBool
   | ExprInt _ ->
-    return Model.TypeInt
+    return TypeInt
   | ExprChar _ ->
-    return Model.TypeChar
+    return TypeChar
   | ExprString _ ->
-    return Model.TypeString
+    return TypeString
   | ExprBind bind ->
-    check_bind_without_constraint (Option.get bind.Model.bind_expr)
+    check_bind_without_constraint (Option.get bind.bind_expr)
   | ExprTuple types ->
     let* types = list_map check_expr_without_constraint types in
-    return (Model.TypeTuple types)
+    return (TypeTuple types)
   | ExprRecord attrs ->
     let* attrs = check_attrs_without_constraint attrs in
-    return (Model.TypeRecord attrs)
+    return (TypeRecord attrs)
   | ExprPreop (_, expr) ->
-    let* _ = check_expr_with_constraint expr Model.TypeInt in
-    return Model.TypeInt
+    let* _ = check_expr_with_constraint expr TypeInt in
+    return TypeInt
   | ExprBinop (left, _, right) ->
-    let* _ = check_expr_with_constraint left Model.TypeInt in
-    let* _ = check_expr_with_constraint right Model.TypeInt in
-    return Model.TypeInt
+    let* _ = check_expr_with_constraint left TypeInt in
+    let* _ = check_expr_with_constraint right TypeInt in
+    return TypeInt
   | ExprAscr (expr, type') ->
     let* _ = check_expr_with_constraint expr type' in
     return type'
@@ -73,19 +74,19 @@ and check_expr_without_constraint (expr: Model.expr) =
     let* _ = check_expr_with_constraint if' TypeBool in
     let* then' = check_expr_without_constraint then' in
     let* else' = check_expr_without_constraint else' in
-    return (Model.TypeUnion (then', else'))
+    return (TypeUnion (then', else'))
   | ExprBlock { block_expr } ->
     check_expr_without_constraint block_expr
   | ExprAbs (params, type', expr) ->
     let* params = check_abs_params params in
     let* type' = check_abs_return type' expr in
-    return (Model.TypeAbsExpr (params, type'))
+    return (TypeAbsExpr (params, type'))
   | ExprApp (expr, args) ->
     check_expr_app expr args
   | ExprTypeAbs (params, expr) ->
-    let _ = List.iter (fun param -> check param.Model.type_param_type) params in
+    let _ = List.iter (fun param -> check param.param_type) params in
     let* type' = check_expr_without_constraint expr in
-    return (Model.TypeAbsExprType (params, type'))
+    return (TypeAbsExprType (params, type'))
   | ExprTypeApp (expr, args) ->
     check_type_app expr args
 
@@ -104,31 +105,31 @@ and check_def def state =
   match def.def_expr_type with
   | Some type' ->
     let currents = DefSet.remove def state.currents in
-    let dones = BindMap.add (Model.BindExprDef def) type' state.dones in
+    let dones = BindMap.add (BindExprDef def) type' state.dones in
     let state = { state with currents; dones } in
-    let (_, state) = check_expr_with_constraint def.Model.def_expr type' state in
+    let (_, state) = check_expr_with_constraint def.def_expr type' state in
     (type', state)
   | None ->
-    let (type', state) = check_expr_without_constraint def.Model.def_expr state in
+    let (type', state) = check_expr_without_constraint def.def_expr state in
     let currents = DefSet.remove def state.currents in
-    let dones = BindMap.add (Model.BindExprDef def) type' state.dones in
+    let dones = BindMap.add (BindExprDef def) type' state.dones in
     let state = { state with currents; dones } in
     (type', state)
 
 and check_attrs_without_constraint attrs =
-  let attrs = List.fold_left (fun map attr -> NameMap.add attr.Model.attr_expr_name attr map) NameMap.empty attrs in
+  let attrs = List.fold_left (fun map attr -> NameMap.add attr.attr_expr_name attr map) NameMap.empty attrs in
   let mapper = (fun attr ->
-    let* type' = check_expr_without_constraint attr.Model.attr_expr in
-    return (Model.make_attr_type attr.Model.attr_expr_name type')
+    let* type' = check_expr_without_constraint attr.attr_expr in
+    return (make_attr_type (fst attr.attr_expr) attr.attr_expr_name type')
   ) in
   map_map mapper attrs
 
 and check_abs_params params state =
-  let types = List.map (fun param -> match param.Model.param_expr_type with
+  let types = List.map (fun param -> match param.param_expr_type with
   | Some type' -> type'
   | None -> TypingErrors.raise_param param
   ) params in
-  let params = List.map (fun param -> Model.BindExprParam param) params in
+  let params = List.map (fun param -> BindExprParam param) params in
   let pairs = List.combine params types in
   let dones = List.fold_left (fun dones pair -> BindMap.add (fst pair) (snd pair) dones) state.dones pairs in
   let state = { state with dones } in
@@ -144,7 +145,7 @@ and check_abs_return type' expr =
 and check_expr_app expr args =
   let* type' = check_expr_without_constraint expr in
   match type' with
-  | Model.TypeAbsExpr (params, type') ->
+  | TypeAbsExpr (params, type') ->
     check_expr_app_abs expr type' params args
   | type' -> TypingErrors.raise_expr_app_kind expr type'
 
@@ -159,7 +160,7 @@ and check_expr_app_abs expr type' params args =
 and check_type_app expr args =
   let* type' = check_expr_without_constraint expr in
   match type' with
-  | Model.TypeAbsExprType (params, type') ->
+  | TypeAbsExprType (params, type') ->
     check_type_app_abs expr type' params args
   | type' -> TypingErrors.raise_expr_type_app_kind expr type'
 
@@ -167,7 +168,7 @@ and check_type_app_abs expr type' params args =
   if List.compare_lengths params args != 0 then
     TypingErrors.raise_expr_type_app_arity expr params args
   else
-  let params = List.map (fun param -> param.Model.type_param_type) params in
+  let params = List.map (fun param -> param.param_type) params in
   let pairs = List.combine params args in
   let mapper = (fun (param, arg) ->
     let _ = check arg in

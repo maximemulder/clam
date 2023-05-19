@@ -1,7 +1,8 @@
 open Collection
+open Model
 open TypingApp
 
-let rec is_subtype_of (type': Model.type') (other: Model.type') =
+let rec is_subtype_of type' other =
   let type' = apply type' in
   let other = apply other in
   match (type', other) with
@@ -16,7 +17,7 @@ let rec is_subtype_of (type': Model.type') (other: Model.type') =
   | (TypeChar, TypeChar) -> true
   | (TypeString, TypeString) -> true
   | (TypeVar param, other) ->
-    other == (TypeVar param) || is_subtype_of param.Model.type_param_type other
+    other == (TypeVar param) || is_subtype_of param.param_type other
   | (TypeAbsExpr (params, expr), TypeAbsExpr (other_params, other_expr)) ->
     compare_lists is_subtype_of other_params params && is_subtype_of expr other_expr
   | (TypeAbsExprType (params, expr), TypeAbsExprType (other_params, other_expr)) ->
@@ -25,7 +26,7 @@ let rec is_subtype_of (type': Model.type') (other: Model.type') =
     compare_lists is_subtype_of types other_types
   | (TypeRecord (attrs), TypeRecord (other_attrs)) ->
     NameMap.for_all (fun name other -> match NameMap.find_opt name attrs with
-    | Some attr -> is_subtype_of attr.Model.attr_type other.Model.attr_type
+    | Some attr -> is_subtype_of attr.attr_type other.attr_type
     | None -> false
     ) other_attrs
   | (TypeInter (left, right), other) ->

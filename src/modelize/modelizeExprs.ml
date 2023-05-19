@@ -173,12 +173,12 @@ and modelize_expr (expr: Ast.expr): state -> Model.expr * state =
 
 and modelize_param (param: Ast.param) state =
   let (type', state) = option_map modelize_type param.param_type state in
-  (Model.make_param_expr state.id param.param_name type', { state with id = state.id + 1 })
+  (Model.make_param_expr param.param_pos state.id param.param_name type', { state with id = state.id + 1 })
 
 and modelize_type_param (param: Ast.param) =
   let* type' = option_map modelize_type param.param_type in
   let type' = Option.value type' ~default:Model.TypeAny in
-  return { Model.type_param_name = param.param_name; Model.type_param_type = type' }
+  return { Model.param_type_name = param.param_name; Model.param_type = type' }
 
 and modelize_attr (attr: Ast.attr_expr) =
   let* expr = modelize_expr attr.attr_expr in

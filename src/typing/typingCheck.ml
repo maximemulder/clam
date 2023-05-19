@@ -48,11 +48,11 @@ and check_attr attr =
   check attr.attr_type
 
 and check_param param =
-  check param.type_param_type
+  check param.param_type
 
 and check_app type' args =
   match type' with
-  | Model.TypeAbs (params, type') ->
+  | TypeAbs (params, type') ->
     check_app_abs type' params args
   | _ -> TypingErrors.raise_type_app_kind type'
 
@@ -63,5 +63,5 @@ and check_app_abs type' params args =
     TypingErrors.raise_type_app_arity length_params length_args
   else
   let binds = List.combine params args in
-  let _ = List.iter (fun (param, arg) -> check_subtype arg param.type_param_type) binds in
+  let _ = List.iter (fun (param, arg) -> check_subtype arg param.param_type) binds in
   check type'
