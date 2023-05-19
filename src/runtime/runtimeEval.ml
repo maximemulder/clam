@@ -26,7 +26,7 @@ end
 open Monad.Monad(Monad.ReaderMonad(Reader))
 
 let rec eval (expr: Model.expr) =
-  match expr with
+  match snd expr with
   | ExprVoid ->
     return VVoid
   | ExprBool bool ->

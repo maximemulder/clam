@@ -73,41 +73,41 @@ let type_ :=
 
 let expr :=
   | name = IDENT;
-    { ExprIdent name }
+    { $startpos, ExprIdent name }
   | VOID;
-    { ExprVoid }
+    { $startpos, ExprVoid }
   | TRUE;
-    { ExprTrue }
+    { $startpos, ExprTrue }
   | FALSE;
-    { ExprFalse }
+    { $startpos, ExprFalse }
   | int = INT;
-    { ExprInt int }
+    { $startpos, ExprInt int }
   | char = CHAR;
-    { ExprChar char }
+    { $startpos, ExprChar char }
   | string = STRING;
-    { ExprString string }
+    { $startpos, ExprString string }
   | AT; PARENTHESIS_LEFT; exprs = list_comma(expr); PARENTHESIS_RIGHT;
-    { ExprTuple exprs }
+    { $startpos, ExprTuple exprs }
   | AT; BRACE_LEFT; attrs = list_comma(attr_expr); BRACE_RIGHT;
-    { ExprRecord (attrs) }
+    { $startpos, ExprRecord (attrs) }
   | op = pre_op; expr = expr;
-    { ExprPreop (op, expr) }
+    { $startpos, ExprPreop (op, expr) }
   | left = expr; op = bin_op; right = expr;
-    { ExprBinop (left, op, right) }
+    { $startpos, ExprBinop (left, op, right) }
   | expr = expr; COLON; type_ = type_;
-    { ExprAscr (expr, type_) }
+    { $startpos, ExprAscr (expr, type_) }
   | block = block;
-    { ExprBlock block }
+    { $startpos, ExprBlock block }
   | IF; cond = expr; THEN; then_ = expr; ELSE; else_ = expr;
-    { ExprIf (cond, then_, else_) }
+    { $startpos, ExprIf (cond, then_, else_) }
   | PARENTHESIS_LEFT; params = list_comma(param); PARENTHESIS_RIGHT; return = option(typing); ARROW; expr = expr;
-    { ExprAbs (params, return, expr) }
+    { $startpos, ExprAbs (params, return, expr) }
   | expr = expr; PARENTHESIS_LEFT; args = list_comma(expr); PARENTHESIS_RIGHT;
-    { ExprApp (expr, args)}
+    { $startpos, ExprApp (expr, args)}
   | CROTCHET_LEFT; params = list_comma(param); CROTCHET_RIGHT; ARROW; expr = expr;
-    { ExprTypeAbs (params, expr) }
+    { $startpos, ExprTypeAbs (params, expr) }
   | expr = expr; CROTCHET_LEFT; args = list_comma(type_); CROTCHET_RIGHT;
-    { ExprTypeApp (expr, args) }
+    { $startpos, ExprTypeApp (expr, args) }
 
 let param :=
   | name = IDENT; type_ = option(typing);

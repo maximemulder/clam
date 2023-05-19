@@ -32,7 +32,7 @@ let node_name node =
     | TypeUnion       _ -> "union"
     | TypeAbs         _ -> "abs"
     | TypeApp         _ -> "app")
-  | Expr expr -> "expr." ^ (match expr with
+  | Expr expr -> "expr." ^ (match snd expr with
     | ExprIdent   _ -> "name"
     | ExprVoid      -> "void"
     | ExprTrue      -> "true"
@@ -83,7 +83,7 @@ let node_attrs node =
       [("params", AList (List.map (fun param -> Param param) params)); ("type", ANode (Type return))]
     | TypeApp (type', args) ->
       [("type", ANode (Type type')); ("args", AList (List.map (fun arg -> Type arg) args))])
-  | Expr expr -> (match expr with
+  | Expr expr -> (match snd expr with
     | ExprIdent name ->
       [("name", AString name)]
     | ExprVoid -> []

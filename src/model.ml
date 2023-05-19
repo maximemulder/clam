@@ -1,5 +1,7 @@
 open Collection
 
+type loc = Lexing.position
+
 type type' =
   | TypeAny
   | TypeVoid
@@ -27,7 +29,9 @@ and type_param = {
   type_param_type: type';
 }
 
-type expr =
+type expr = loc * expr_data
+
+and expr_data =
   | ExprVoid
   | ExprBool    of bool
   | ExprInt     of int

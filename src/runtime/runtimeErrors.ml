@@ -1,9 +1,9 @@
 let raise message =
-  let _ = print_endline ("\nRUNTIME ERROR: " ^ message) in
+  print_endline ("RUNTIME ERROR: " ^ message);
   exit (-1)
 
 let raise_operator op =
-  raise ("Unexpected operator `" ^ op ^ "`")
+  raise ("unexpected operator `" ^ op ^ "`")
 
 let raise_value _ =
-  raise ("Unexpected value type")
+  raise ("unexpected value type")

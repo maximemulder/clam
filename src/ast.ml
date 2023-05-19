@@ -1,3 +1,5 @@
+type loc = Lexing.position
+
 type program = {
   program_defs: def list
 }
@@ -28,7 +30,9 @@ and type' =
   | TypeAbs         of (param list) * type'
   | TypeApp         of type' * (type' list)
 
-and expr =
+and expr = loc * expr_data
+
+and expr_data =
   | ExprIdent   of string
   | ExprVoid
   | ExprTrue

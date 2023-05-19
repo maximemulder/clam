@@ -1,5 +1,6 @@
 open Collection
 open TypingCheck
+open TypingSub
 
 module DefKey = struct
   type t = Model.def_expr
@@ -34,11 +35,12 @@ let make_state (defs: Model.def_expr list) =
 
 let rec check_expr_with_constraint (expr: Model.expr) (constraint': Model.type') =
   let* type' = check_expr_without_constraint expr in
-  let _ = check constraint' in
-  return (check_subtype type' constraint')
+  if Bool.not (is_subtype_of type' constraint')
+    then TypingErrors.raise_expr_constraint expr type' constraint'
+    else return ()
 
 and check_expr_without_constraint (expr: Model.expr) =
-  match expr with
+  match snd expr with
   | ExprVoid ->
     return Model.TypeVoid
   | ExprBool _ ->
@@ -79,7 +81,7 @@ and check_expr_without_constraint (expr: Model.expr) =
     let* type' = check_abs_return type' expr in
     return (Model.TypeAbsExpr (params, type'))
   | ExprApp (expr, args) ->
-    check_app expr args
+    check_expr_app expr args
   | ExprTypeAbs (params, expr) ->
     let _ = List.iter (fun param -> check param.Model.type_param_type) params in
     let* type' = check_expr_without_constraint expr in
@@ -139,41 +141,41 @@ and check_abs_return type' expr =
     return type'
   | None -> check_expr_without_constraint expr
 
-and check_app expr args =
+and check_expr_app expr args =
   let* type' = check_expr_without_constraint expr in
   match type' with
   | Model.TypeAbsExpr (params, type') ->
-    let length_params = List.length params in
-    let length_args = List.length args in
-    if length_params == length_args
-      then let pairs = List.combine params args in
-      let mapper = (fun (param, arg) ->
-        let* _ = check_expr_with_constraint arg param in
-        return ()
-      ) in
-      let* _ = list_map mapper pairs in
-      return type'
-      else TypingErrors.raise_expr_app_arity length_params length_args
-  | type' -> TypingErrors.raise_expr_app_kind type'
+    check_expr_app_abs expr type' params args
+  | type' -> TypingErrors.raise_expr_app_kind expr type'
+
+and check_expr_app_abs expr type' params args =
+  if List.compare_lengths params args != 0 then
+    TypingErrors.raise_expr_app_arity expr params args
+  else
+  let pairs = List.combine params args in
+  let* _ = list_map (fun (param, arg) -> check_expr_with_constraint arg param) pairs in
+  return type'
 
 and check_type_app expr args =
   let* type' = check_expr_without_constraint expr in
   match type' with
   | Model.TypeAbsExprType (params, type') ->
-    let length_params = List.length params in
-    let length_args = List.length args in
-    if length_params == length_args then
-      let params = List.map (fun param -> param.Model.type_param_type) params in
-      let pairs = List.combine params args in
-      let mapper = (fun (param, arg) ->
-        let _ = check arg in
-        let _ = check_subtype arg param in
-        return ()
-      ) in
-      let* _ = list_map mapper pairs in
-      return type'
-    else TypingErrors.raise_type_app_arity length_params length_args
-  | type' -> TypingErrors.raise_type_app_kind type'
+    check_type_app_abs expr type' params args
+  | type' -> TypingErrors.raise_expr_type_app_kind expr type'
+
+and check_type_app_abs expr type' params args =
+  if List.compare_lengths params args != 0 then
+    TypingErrors.raise_expr_type_app_arity expr params args
+  else
+  let params = List.map (fun param -> param.Model.type_param_type) params in
+  let pairs = List.combine params args in
+  let mapper = (fun (param, arg) ->
+    let _ = check arg in
+    let _ = check_subtype arg param in
+    return ()
+  ) in
+  let* _ = list_map mapper pairs in
+  return type'
 
 let check_expr expr constraint' =
   match constraint' with

@@ -29,7 +29,7 @@ let find_done name state =
 let check_duplicates names set =
   List.fold_left (fun set name ->
     if NameSet.mem name set
-      then ModelizeErrors.raise ("duplicate expr `" ^ name ^ "`")
+      then ModelizeErrors.raise_expr_duplicate name
       else NameSet.add name set
     ) set names
 
@@ -47,10 +47,10 @@ let make_state parent types (remains: Ast.def_expr list) dones id =
   let dones = List.fold_left fold_done NameMap.empty dones in
   { parent; remains; types; currents = NameMap.empty; dones; all_exprs = []; all_types = []; id }
 
-let parse_int (value: string) =
+let parse_int expr (value: string) =
   match int_of_string_opt value with
   | Some int -> int
-  | None     -> ModelizeErrors.raise ("invalid integer `" ^ value ^ "`")
+  | None     -> ModelizeErrors.raise_expr_integer expr value
 
 let parse_char (value: string) =
   value.[0]
@@ -76,25 +76,31 @@ let rec translate_state state =
     ModelizeTypes.all = [];
   }
 
+let return_expr expr expr_data =
+  return ((fst expr), expr_data)
+
+let return_expr_state expr expr_data state =
+  ((fst expr, expr_data), state)
+
 (* TODO: Can I remove state from the return ? *)
 let modelize_type (type': Ast.type') state =
   (ModelizeTypes.modelize_type_expr type' (translate_state state), state)
 
-let rec modelize_name name state =
+let rec modelize_name expr name state =
   match find_remain name state with
   | Some _ -> modelize_def name state
   | None      ->
   match find_current name state with
-  | Some bind -> (Model.ExprBind bind, state)
+  | Some bind -> return_expr_state expr (Model.ExprBind bind) state
   | None      ->
   match find_done name state with
-  | Some bind -> (Model.ExprBind bind, state)
+  | Some bind -> return_expr_state expr (Model.ExprBind bind) state
   | None      ->
   match state.parent with
   | Some parent ->
-    let (type', parent) = modelize_name name parent in
+    let (type', parent) = modelize_name expr name parent in
     (type', { state with parent = Some parent })
-  | None -> ModelizeErrors.raise ("unbound expr `" ^ name ^ "`")
+  | None -> ModelizeErrors.raise_expr_bound expr name
 
 and modelize_def name state =
   let (remain, remains) = Collection.extract name state.remains in
@@ -109,53 +115,61 @@ and modelize_def name state =
   (expr, { state with currents; dones; all_exprs = def :: state.all_exprs; id = state.id + 1 })
 
 and modelize_expr (expr: Ast.expr): state -> Model.expr * state =
-  match expr with
-  | ExprIdent name   -> modelize_name name
-  | ExprVoid         -> return Model.ExprVoid
-  | ExprTrue         -> return (Model.ExprBool true)
-  | ExprFalse        -> return (Model.ExprBool false)
-  | ExprInt    value -> return (Model.ExprInt (parse_int value))
-  | ExprChar   value -> return (Model.ExprChar (parse_char value))
-  | ExprString value -> return (Model.ExprString (parse_string value))
+  match snd expr with
+  | ExprIdent name ->
+    modelize_name expr name
+  | ExprVoid ->
+    return_expr expr (Model.ExprVoid)
+  | ExprTrue ->
+    return_expr expr (Model.ExprBool true)
+  | ExprFalse ->
+    return_expr expr (Model.ExprBool false)
+  | ExprInt value ->
+    return_expr expr (Model.ExprInt (parse_int expr value))
+  | ExprChar value ->
+    return_expr expr (Model.ExprChar (parse_char value))
+  | ExprString value ->
+    return_expr expr (Model.ExprString (parse_string value))
   | ExprTuple exprs ->
     let* exprs = list_map modelize_expr exprs in
-    return (Model.ExprTuple exprs)
+    return_expr expr (Model.ExprTuple exprs)
   | ExprRecord attrs ->
     let* attrs = list_map modelize_attr attrs in
-    return (Model.ExprRecord attrs)
+    return_expr expr (Model.ExprRecord attrs)
   | ExprPreop (op, expr) ->
     let* expr = modelize_expr expr in
-    return (Model.ExprPreop (op, expr))
+    return_expr expr (Model.ExprPreop (op, expr))
   | ExprBinop  (left, op, right) ->
     let* left = modelize_expr left in
     let* right = modelize_expr right in
-    return (Model.ExprBinop (left, op, right))
+    return_expr expr (Model.ExprBinop (left, op, right))
   | ExprAscr (expr, type') ->
     let* expr = modelize_expr expr in
     let* type' = modelize_type type' in
-    return (Model.ExprAscr (expr, type'))
-  | ExprBlock block -> modelize_block block
+    return_expr expr (Model.ExprAscr (expr, type'))
+  | ExprBlock block ->
+    modelize_block block
   | ExprIf (cond, then', else') ->
     let* cond = modelize_expr cond in
     let* then' = modelize_expr then' in
     let* else' = modelize_expr else' in
-    return (Model.ExprIf (cond, then', else'))
+    return_expr expr (Model.ExprIf (cond, then', else'))
   | ExprAbs (params, type', expr) ->
     let* params = list_map modelize_param params in
     let* type' = option_map modelize_type type' in
     let* expr = modelize_abs_expr params expr in
-    return (Model.ExprAbs (params, type', expr))
+    return_expr expr (Model.ExprAbs (params, type', expr))
   | ExprApp (expr, args) ->
     let* expr = modelize_expr expr in
     let* args = list_map modelize_expr args in
-    return (Model.ExprApp (expr, args))
+    return_expr expr (Model.ExprApp (expr, args))
   | ExprTypeAbs (params, expr) ->
     let* params = list_map modelize_type_param params in
     modelize_type_abs_expr params expr
   | ExprTypeApp (expr, args) ->
     let* expr = modelize_expr expr in
     let* args = list_map modelize_type args in
-    return (Model.ExprTypeApp (expr, args))
+    return_expr expr (Model.ExprTypeApp (expr, args))
 
 and modelize_param (param: Ast.param) state =
   let (type', state) = option_map modelize_type param.param_type state in
@@ -176,7 +190,7 @@ and modelize_block (block: Ast.block) state =
   with_scope (fun state ->
     let state = modelize_defs state in
     let (expr, state) = modelize_expr block.block_expr state in
-    (Model.ExprBlock { Model.block_expr = expr }, state)
+    return_expr_state expr (Model.ExprBlock { Model.block_expr = expr }) state
   ) types defs [] { state with all_types = List.append state.all_types all }
 
 and modelize_abs_expr params expr state =
@@ -186,7 +200,7 @@ and modelize_abs_expr params expr state =
 and modelize_type_abs_expr params expr state =
   let types = ModelizeTypes.modelize_abs params (translate_state state) in
   let (expr, state) = with_scope (modelize_expr expr) types [] [] state in
-  (Model.ExprTypeAbs (params, expr), state)
+  return_expr_state expr (Model.ExprTypeAbs (params, expr)) state
 
 and modelize_defs state =
   match NameMap.choose_opt state.remains with
