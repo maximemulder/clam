@@ -17,3 +17,12 @@ let compare_lists compare list other =
   let pairs = List.combine list other in
   let compare_pair = fun (a, b) -> compare a b in
   List.for_all compare_pair pairs
+
+let compare_maps compare map other =
+  let list = List.of_seq (NameMap.to_seq map) in
+  let other = List.of_seq (NameMap.to_seq other) in
+  if List.compare_lengths list other != 0 then false else
+  let pairs = List.combine list other in
+  List.for_all (fun (entry, other_entry) ->
+    (fst entry) = (fst other_entry) && compare (snd entry) (snd other_entry)
+  ) pairs

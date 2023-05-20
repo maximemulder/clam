@@ -60,6 +60,10 @@ and check_expr_without_constraint2 expr =
   | ExprRecord attrs ->
     let* attrs = check_attrs_without_constraint attrs in
     return (TypeRecord attrs)
+  | ExprVariant (expr, index) ->
+    check_expr_variant expr index
+  | ExprAttr (expr, attr) ->
+    check_expr_attr expr attr
   | ExprPreop (_, expr) ->
     let* _ = check_expr_with_constraint expr (fst expr, TypeInt) in
     return TypeInt
@@ -93,6 +97,24 @@ and check_expr_without_constraint2 expr =
 and check_expr_without_constraint expr =
   let* type_data = check_expr_without_constraint2 expr in
   return (fst expr, type_data)
+
+and check_expr_variant expr index =
+  let* type' = check_expr_without_constraint expr in
+  match snd type' with
+  | TypeTuple types ->
+    (match List.nth_opt types index with
+    | Some type' -> return (snd type')
+    | None -> TypingErrors.raise_expr_tuple_index expr type' index)
+  | _ -> TypingErrors.raise_expr_tuple_kind expr type'
+
+and check_expr_attr expr attr =
+  let* type' = check_expr_without_constraint expr in
+  match snd type' with
+  | TypeRecord attrs ->
+    (match NameMap.find_opt attr attrs with
+    | Some attr -> return (snd attr.attr_type)
+    | None -> TypingErrors.raise_expr_record_attr expr type' attr)
+  | _ -> TypingErrors.raise_expr_record_kind expr type'
 
 and check_bind_without_constraint bind state =
   match bind with

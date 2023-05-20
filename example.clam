@@ -52,8 +52,9 @@ def aaa = {
     0
 };
 
+def abc: String = @(1, 2, "Hello", 4).2;
 
-
+def cba: String = @{a = 1, b = "Hello", c = 2}.b;
 
 
 

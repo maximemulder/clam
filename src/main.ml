@@ -1,6 +1,4 @@
-open Ast
 open Display_ast
-open Error
 
 let read_file_name _ =
   if Array.length Sys.argv != 2

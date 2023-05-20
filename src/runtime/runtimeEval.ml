@@ -48,6 +48,12 @@ let rec eval (expr: Model.expr) =
       return (NameMap.add attr.Model.attr_expr_name value map)
     ) NameMap.empty attrs in
     return (VRecord attrs)
+  | ExprVariant (expr, index) ->
+    let* values = eval_tuple expr in
+    return (List.nth values index)
+  | ExprAttr (expr, attr) ->
+    let* attrs = eval_record expr in
+    return (NameMap.find attr attrs)
   | ExprPreop (op, expr) ->
     eval_preop op expr
   | ExprBinop (left, op, right) ->
@@ -137,6 +143,18 @@ and eval_string (expr: Model.expr) =
   let* value = eval expr in
   match value with
   | VString string -> return string
+  | _ -> RuntimeErrors.raise_value ()
+
+and eval_tuple (expr: Model.expr) =
+  let* value = eval expr in
+  match value with
+  | VTuple values -> return values
+  | _ -> RuntimeErrors.raise_value ()
+
+and eval_record (expr: Model.expr) =
+  let* value = eval expr in
+  match value with
+  | VRecord attrs -> return attrs
   | _ -> RuntimeErrors.raise_value ()
 
 and eval_abs (expr: Model.expr) =

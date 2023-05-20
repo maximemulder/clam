@@ -47,6 +47,7 @@ expr =
     | expr binop_3 expr
     | expr binop_4 expr
     | expr binop_5 expr
+    | expr ':' type
     | 'if' expr 'then' expr 'else' expr
     | '(' list_comma(param_expr) ')' option(':' type) '->' expr
     | '[' list_comma(param_type) ']' '->' expr
