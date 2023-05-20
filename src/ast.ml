@@ -46,6 +46,8 @@ and expr_data =
   | ExprString  of string
   | ExprTuple   of expr list
   | ExprRecord  of attr_expr list
+  | ExprVariant of expr * string
+  | ExprAttr    of expr * string
   | ExprPreop   of string * expr
   | ExprBinop   of expr * string * expr
   | ExprAscr    of expr * type'

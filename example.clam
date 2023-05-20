@@ -28,11 +28,11 @@ def binop = 0 + 1;
 def ascr = name : String;
 def block = { type AAAA = Int; def a = b; def b = c; def c = name; 0 : AAAA };
 def if_ = if true then name else name;
-def abs = (a: String, b: String): Tuple -> @(void, void);
+def abs = (a: String, b: String) -> Tuple => @(void, void);
 def app = abs(name, name);
-def type_abs: [AA: Tuple, C: Tuple] -> Tuple = [AA: Tuple, C: Tuple] -> { @(void, void): AA };
+def type_abs: [AA: Tuple, C: Tuple] -> Tuple = [AA: Tuple, C: Tuple] => { @(void, void): AA };
 def type_app = type_abs[Tuple, Tuple];
-def a: (Int) -> Int = (b: Int) -> b + a(b);
+def a: (Int) -> Int = (b: Int) => b + a(b);
 
 type AB = [T] T;
 
@@ -75,6 +75,6 @@ def aaa = {
 
 
 
-def increment = (i: Int) -> i + 123;
+def increment = (i: Int) => i + 123;
 
 def main = increment(5);

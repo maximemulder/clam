@@ -2,6 +2,8 @@ open Collection
 open Model
 open TypingApp
 
+
+
 let rec is_subtype_of type' other =
   let type' = apply type' in
   let other = apply other in
@@ -21,7 +23,7 @@ let rec is_subtype_of type' other =
   | (TypeAbsExpr (params, expr), TypeAbsExpr (other_params, other_expr)) ->
     compare_lists is_subtype_of other_params params && is_subtype_of expr other_expr
   | (TypeAbsExprType (params, expr), TypeAbsExprType (other_params, other_expr)) ->
-    compare_lists (=) other_params params && is_subtype_of expr other_expr
+    compare_lists compare_param other_params params && is_subtype_of expr other_expr
   | (TypeTuple (types), TypeTuple (other_types)) ->
     compare_lists is_subtype_of types other_types
   | (TypeRecord (attrs), TypeRecord (other_attrs)) ->
@@ -34,8 +36,11 @@ let rec is_subtype_of type' other =
   | (TypeUnion (left, right), _) ->
     is_subtype_of left other && is_subtype_of right other
   | (TypeAbs (params, type'), TypeAbs (other_params, other_type)) ->
-    compare_lists (=) other_params params && is_subtype_of type' other_type
+    compare_lists compare_param other_params params && is_subtype_of type' other_type
   | _ -> false
+
+and compare_param param other =
+  param.param_type = other.param_type
 
 let merge_union left right =
   if is_subtype_of left right then right else

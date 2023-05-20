@@ -31,20 +31,33 @@ rule read =
   | "type"   { TYPE }
   | "void"   { VOID }
   | ident    { IDENT (Lexing.lexeme lexbuf) }
-  | '&'      { AMPERSAND }
   | "->"     { ARROW }
+  | "++"     { CONCAT }
+  | "=>"     { DOUBLE_ARROW }
+  | "=="     { EQ }
+  | ">="     { GE }
+  | "<="     { LE }
+  | "!="     { NE }
+  | '&'      { AND }
   | '@'      { AT }
   | '{'      { BRACE_LEFT }
   | '}'      { BRACE_RIGHT }
-  | '['      { CROTCHET_LEFT }
-  | ']'      { CROTCHET_RIGHT }
   | ':'      { COLON }
   | ','      { COMMA }
-  | "="      { EQUAL }
-  | "-"      { MINUS }
+  | '['      { CROTCHET_LEFT }
+  | ']'      { CROTCHET_RIGHT }
+  | '/'      { DIV }
+  | '.'      { DOT }
+  | '>'      { GT }
+  | '='      { ASSIGN }
+  | '<'      { LT }
+  | '-'      { MINUS }
+  | '%'      { MOD }
+  | '*'      { MUL }
+  | '!'      { NOT }
+  | '|'      { OR }
   | '('      { PARENTHESIS_LEFT }
   | ')'      { PARENTHESIS_RIGHT }
-  | '|'      { PIPE }
   | "+"      { PLUS }
   | ';'      { SEMICOLON }
   | '\''     { read_char (Buffer.create 2) lexbuf }

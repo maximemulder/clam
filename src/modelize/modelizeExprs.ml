@@ -131,6 +131,13 @@ and modelize_expr_data (expr: Ast.expr): state -> Model.expr_data * state =
   | ExprRecord attrs ->
     let* attrs = list_map modelize_attr attrs in
     return (Model.ExprRecord attrs)
+  | ExprVariant (expr, index) ->
+    let* expr = modelize_expr expr in
+    let index = parse_int expr index in
+    return (Model.ExprVariant (expr, index))
+  | ExprAttr (expr, attr) ->
+    let* expr = modelize_expr expr in
+    return (Model.ExprAttr (expr, attr))
   | ExprPreop (op, expr) ->
     let* expr = modelize_expr expr in
     return (Model.ExprPreop (op, expr))

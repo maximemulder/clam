@@ -43,6 +43,8 @@ and expr_data =
   | ExprBind    of expr_bind
   | ExprTuple   of expr list
   | ExprRecord  of attr_expr list
+  | ExprVariant of expr * int
+  | ExprAttr    of expr * string
   | ExprPreop   of string * expr
   | ExprBinop   of expr * string * expr
   | ExprAscr    of expr * type'

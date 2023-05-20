@@ -99,7 +99,7 @@ and check_bind_without_constraint bind state =
   | BindExprDef def when DefSet.mem def state.remains ->
     check_def def state
   | BindExprDef def when DefSet.mem def state.currents ->
-    TypingErrors.raise_recursive def
+    TypingErrors.raise_expr_recursive def
   | _ -> (snd (BindMap.find bind state.dones), state)
 
 and check_def def state =
