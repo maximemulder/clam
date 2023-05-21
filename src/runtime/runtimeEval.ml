@@ -19,6 +19,11 @@ let rec get_param param stack =
   | Some value -> value
   | None -> get_param param (Option.get stack.parent)
 
+let rec get_var var stack =
+  match BindMap.find_opt (Model.BindExprVar var) stack.params with
+  | Some value -> value
+  | None -> get_var var (Option.get stack.parent)
+
 module Reader = struct
   type r = stack
 end
@@ -61,7 +66,7 @@ let rec eval (expr: Model.expr) =
   | ExprAscr (expr, _) ->
     eval expr
   | ExprBlock block ->
-    eval block.Model.block_expr
+    eval_expr_block block
   | ExprIf (cond, then', else') ->
     let* cond = eval_bool cond in
     if cond then eval then' else eval else'
@@ -75,9 +80,10 @@ let rec eval (expr: Model.expr) =
 
 and eval_bind bind stack =
   match bind with
-  | Model.BindExprPrint -> VPrint
   | Model.BindExprDef def -> eval def.Model.def_expr { parent = None; params = BindMap.empty }
   | Model.BindExprParam param -> get_param param stack
+  | Model.BindExprPrint -> VPrint
+  | Model.BindExprVar var -> get_var var stack
 
 and eval_preop op expr =
   match op with
@@ -170,6 +176,26 @@ and eval_expr_app_abs params args body stack =
   let params = List.fold_left (fun map (param, value) -> BindMap.add (Model.BindExprParam param) value map) BindMap.empty pairs in
   let stack = { parent = Some stack; params } in
   eval body stack
+
+and eval_expr_block block =
+  eval_expr_stmt block.block_stmts block.block_expr
+
+and eval_expr_stmt stmts expr stack =
+  match stmts with
+  | [] ->
+    (match expr with
+    | Some expr -> eval expr stack
+    | None -> VVoid)
+  | stmt :: stmts ->
+    let stack = (match stmt with
+    | StmtVar (var, expr) ->
+      let value = eval expr stack in
+      { parent = Some stack; params = BindMap.singleton (BindExprVar var) value }
+    | StmtExpr expr ->
+      let _ = eval expr stack in
+      stack
+      ) in
+    eval_expr_stmt stmts expr stack
 
 and eval_bool (expr: Model.expr) =
   let* value = eval expr in

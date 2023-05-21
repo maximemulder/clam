@@ -76,9 +76,13 @@ and attr_expr = {
 }
 
 and block = {
-  block_defs: def list;
-  block_expr: expr;
+  block_stmts: stmt list;
+  block_expr: expr option;
 }
+
+and stmt =
+  | StmtVar  of string * expr
+  | StmtExpr of expr
 
 let get_program_types program =
   List.filter_map (fun(def) -> match def with
@@ -91,15 +95,3 @@ let get_program_exprs program =
     | DefType _        -> None
     | DefExpr def_expr -> Some def_expr
   ) program.program_defs
-
-let get_block_types block =
-  List.filter_map (fun(def) -> match def with
-    | DefType def_type -> Some def_type
-    | DefExpr _        -> None
-  ) block.block_defs
-
-let get_block_exprs block =
-  List.filter_map (fun(def) -> match def with
-    | DefType _        -> None
-    | DefExpr def_expr -> Some def_expr
-  ) block.block_defs

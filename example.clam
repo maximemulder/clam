@@ -26,11 +26,11 @@ def string = "Hello world !";
 def preop = +2;
 def binop = 0 + 1;
 def ascr = name : String;
-def block = { type AAAA = Int; def a = b; def b = c; def c = name; 0 : AAAA };
+def block = { ret 0 };
 def if_ = if true then name else name;
 def abs = (a: String, b: String) -> Tuple => @(void, void);
 def app = abs(name, name);
-def type_abs: [AA: Tuple, C: Tuple] -> Tuple = [AA: Tuple, C: Tuple] => { @(void, void): AA };
+def type_abs: [AA: Tuple, C: Tuple] -> Tuple = [AA: Tuple, C: Tuple] => { ret @(void, void): Tuple };
 def type_app = type_abs[Tuple, Tuple];
 def a: (Int) -> Int = (b: Int) => b + a(b);
 
@@ -45,12 +45,6 @@ def pair: Pair[Bool] = @(true, false);
 type Record = [T] { a: T, b: T };
 
 def record: Record[Bool | Int] = @{ a = true, b = 0 };
-
-def aaa = {
-    type AI = [T: Bool] T;
-    type BI = AI[Bool];
-    0
-};
 
 def abc: String = @(1, 2, "Hello", 4).2;
 
@@ -76,6 +70,11 @@ def cba: String = @{a = 1, b = "Hello", c = 2}.b;
 
 
 
-def increment = (i: Int) => i + 123;
+def increment = (i: Int) => i + 1;
 
-def main = print(999);
+def main = {
+    var a = increment(999);
+    print(a);
+    print(888);
+    print(111);
+};

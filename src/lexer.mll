@@ -26,9 +26,11 @@ rule read =
   | "else"   { ELSE }
   | "false"  { FALSE }
   | "if"     { IF }
+  | "ret"    { RET }
   | "then"   { THEN }
   | "true"   { TRUE }
   | "type"   { TYPE }
+  | "var"    { VAR }
   | "void"   { VOID }
   | ident    { IDENT (Lexing.lexeme lexbuf) }
   | "->"     { ARROW }

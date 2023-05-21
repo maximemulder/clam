@@ -150,7 +150,8 @@ and modelize_expr_data (expr: Ast.expr): state -> Model.expr_data * state =
     let* type' = modelize_type type' in
     return (Model.ExprAscr (expr, type'))
   | ExprBlock block ->
-    modelize_block block
+    let* block = modelize_block block in
+    return (Model.ExprBlock block)
   | ExprIf (cond, then', else') ->
     let* cond = modelize_expr cond in
     let* then' = modelize_expr then' in
@@ -190,14 +191,22 @@ and modelize_attr (attr: Ast.attr_expr) =
   let* expr = modelize_expr attr.attr_expr in
   return { Model.attr_expr_name = attr.attr_expr_name; Model.attr_expr = expr }
 
-and modelize_block (block: Ast.block) state =
-  let (types, all) = ModelizeTypes.modelize_block block (translate_state state) in
-  let defs = Ast.get_block_exprs block in
-  with_scope (fun state ->
-    let state = modelize_defs state in
-    let (expr, state) = modelize_expr block.block_expr state in
-    ((Model.ExprBlock { Model.block_expr = expr }), state)
-  ) types defs [] { state with all_types = List.append state.all_types all }
+and modelize_block (block: Ast.block) =
+  let* stmts = list_map modelize_stmt block.block_stmts in
+  let* expr = option_map modelize_expr block.block_expr in
+  return { Model.block_stmts = stmts; Model.block_expr = expr }
+
+and modelize_stmt (stmt: Ast.stmt) state =
+  match stmt with
+  | StmtVar (name, expr) ->
+    let (expr, state) = modelize_expr expr state in
+    let var = { Model.var_expr_id = state.id; Model.var_expr_name = name } in
+    let bind = { Model.bind_expr = Some (Model.BindExprVar var) } in
+    let state = { state with dones = NameMap.add name bind state.dones; id = state.id + 1 } in
+    (Model.StmtVar (var, expr), state)
+  | StmtExpr (expr) ->
+    let (expr, state) = modelize_expr expr state in
+    ((Model.StmtExpr expr), state)
 
 and modelize_abs_expr params expr state =
   let params = List.map (fun param -> (param.Model.param_expr_name, Model.BindExprParam param)) params in

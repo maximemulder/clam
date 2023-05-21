@@ -9,6 +9,7 @@ type node =
   | AttrType of Ast.attr_type
   | AttrExpr of Ast.attr_expr
   | Block    of Ast.block
+  | Stmt     of Ast.stmt
 
 type attr =
   | ANode   of node
@@ -56,7 +57,10 @@ let node_name node =
   | Param _ -> "param"
   | AttrType _ -> "attr_type"
   | AttrExpr _ -> "attr_expr"
-  | Block _-> "block"
+  | Block _ -> "block"
+  | Stmt stmt -> "stmt" ^ (match stmt with
+    | StmtVar  _ -> "var"
+    | StmtExpr _ -> "expr")
 
 let node_attrs node =
   match node with
@@ -130,7 +134,12 @@ let node_attrs node =
   | AttrExpr { attr_expr_name; attr_expr } ->
     [("name", AString attr_expr_name); ("expr", ANode (Expr attr_expr))]
   | Block block ->
-    [("defs", AList (List.map (fun def -> Def def) block.block_defs)); ("expr", ANode (Expr block.block_expr))]
+    [("stmts", AList (List.map (fun stmt -> Stmt stmt) block.block_stmts)); ("expr", AOption (Option.map (fun expr -> Expr expr) block.block_expr))]
+  | Stmt stmt -> (match stmt with
+    | StmtVar (name, expr) ->
+      [("name", AString name); ("expr", ANode (Expr expr))]
+    | StmtExpr expr ->
+      [("expr", ANode (Expr expr))])
 
 let rec indent tab =
   if tab == 0

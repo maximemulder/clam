@@ -179,12 +179,6 @@ let modelize_program (program: Ast.program) =
   let state = modelize_defs state in
   (state.dones, state.all)
 
-let modelize_block (block: Ast.block) parent =
-  let defs = Ast.get_block_types block in
-  let state = make_state (Some parent) defs [] in
-  let state = modelize_defs state in
-  (state.dones, state.all)
-
 let modelize_abs params parent =
   let types = List.map (fun param -> (param.Model.param_type_name, param.Model.param_type)) params in
   let state = make_state (Some parent) [] types in

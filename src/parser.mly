@@ -43,8 +43,10 @@
 %token DEF
 %token ELSE
 %token IF
+%token RET
 %token THEN
 %token TYPE
+%token VAR
 
 %token EOF
 
@@ -185,8 +187,14 @@ let attr_expr :=
     { { attr_expr_name = name; attr_expr = expr } }
 
 let block :=
-  | BRACE_LEFT; defs = list(def); expr = expr; BRACE_RIGHT;
-    { { block_defs = defs; block_expr = expr } }
+  | BRACE_LEFT; stmts = list(stmt); expr = option(RET; expr); BRACE_RIGHT;
+    { { block_stmts = stmts; block_expr = expr } }
+
+let stmt :=
+  | VAR; name = IDENT; ASSIGN; expr = expr; SEMICOLON;
+  { StmtVar (name, expr) }
+  | expr = expr; SEMICOLON;
+  { StmtExpr (expr) }
 
 // Operators
 

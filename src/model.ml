@@ -55,13 +55,18 @@ and expr_data =
   | ExprTypeAbs of (param_type list) * expr
   | ExprTypeApp of expr * (type' list)
 
-and expr_block = {
-  block_expr: expr;
-}
-
 and expr_bind = {
   mutable bind_expr: bind_expr option;
 }
+
+and expr_block = {
+  block_stmts: stmt list;
+  block_expr: expr option;
+}
+
+and stmt =
+  | StmtVar  of var_expr * expr
+  | StmtExpr of expr
 
 and def_expr = {
   def_expr_pos: pos;
@@ -71,6 +76,12 @@ and def_expr = {
   def_expr: expr;
 }
 
+and bind_expr =
+  | BindExprDef   of def_expr
+  | BindExprParam of param_expr
+  | BindExprPrint
+  | BindExprVar   of var_expr
+
 and param_expr = {
   param_expr_pos: pos;
   param_expr_id: int;
@@ -78,14 +89,14 @@ and param_expr = {
   param_expr_type: type' option;
 }
 
-and bind_expr =
-  | BindExprPrint
-  | BindExprDef   of def_expr
-  | BindExprParam of param_expr
-
 and attr_expr = {
   attr_expr_name: string;
   attr_expr: expr;
+}
+
+and var_expr = {
+  var_expr_id: int;
+  var_expr_name: string;
 }
 
 let make_def_expr pos id name type' expr =
@@ -120,6 +131,7 @@ let make_attr_type pos name type' =
 
 let bind_expr_id bind =
   match bind with
-  | BindExprPrint       -> -1
   | BindExprDef   def   -> def.def_expr_id
   | BindExprParam param -> param.param_expr_id
+  | BindExprPrint       -> -1
+  | BindExprVar   var   -> var.var_expr_id

@@ -36,7 +36,7 @@ expr =
     | string
     | '(' list_comma(expr) ')'
     | '{' list_comma(attr_expr) '}'
-    | '{' list(def) expr '}'
+    | '{' list(stmt) option(expr) '}'
     | expr '.' int
     | expr '.' ident
     | expr '(' list_comma(expr) ')'
@@ -62,6 +62,10 @@ binop_2 = '+' '-'
 binop_3 = '++'
 binop_4 = '==' '!=' '<' '>' '<=' '>='
 binop_5 = '|' '&'
+
+stmt =
+    | 'var' ident option(':' type) '=' expr ';'
+    | expr ';'
 ```
 
 ## Notable conflicts
@@ -80,7 +84,11 @@ It is not possible to know whether what is left of the arrow is a tuple with a t
 
 Records and blocks
 Example: `{ ident = expr }`
-It is not possible to know whether a production is a block or a record before advancing to the equal symbol. Which is problematic to reduce an empty definition list in LR(1).
+It is not possible to know whether a production is a block or a record before advancing to the equal symbol, which is problematic to reduce an empty statement list in LR(1).
+
+Blocks and statements
+Example: `{ expr; expr }`
+It is not possible to know whether the next expression is a final expression or a statement before advancing to the end of the block, which is problematic to reduce the statement list in LR(1).
 
 ## Future ideas
 
