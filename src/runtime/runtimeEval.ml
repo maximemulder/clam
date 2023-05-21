@@ -117,6 +117,38 @@ and eval_binop left op right =
     let* left = eval_string left in
     let* right = eval_string right in
     return (VString (left ^ right))
+  | "==" ->
+    let* left = eval_int left in
+    let* right = eval_int right in
+    return (VBool (left = right))
+  | "!=" ->
+    let* left = eval_int left in
+    let* right = eval_int right in
+    return (VBool (left = right))
+  | "<" ->
+    let* left = eval_int left in
+    let* right = eval_int right in
+    return (VBool (left < right))
+  | ">" ->
+    let* left = eval_int left in
+    let* right = eval_int right in
+    return (VBool (left > right))
+  | "<=" ->
+    let* left = eval_int left in
+    let* right = eval_int right in
+    return (VBool (left <= right))
+  | ">=" ->
+    let* left = eval_int left in
+    let* right = eval_int right in
+    return (VBool (left >= right))
+  | "|" ->
+    let* left = eval_bool left in
+    let* right = eval_bool right in
+    return (VBool (left || right))
+  | "&" ->
+    let* left = eval_bool left in
+    let* right = eval_bool right in
+    return (VBool (left && right))
   | _ -> RuntimeErrors.raise_operator op
 
 and eval_expr_app expr args stack =

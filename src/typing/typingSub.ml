@@ -41,11 +41,11 @@ let rec is_subtype_of type' other =
   let type' = apply type' in
   let other = apply other in
   match (snd type', snd other) with
-  | (_, TypeAny) -> true
   | (_, TypeInter (left, right)) ->
     is_subtype_of type' left && is_subtype_of type' right
   | (_, TypeUnion (left, right)) ->
     is_subtype_of type' left || is_subtype_of type' right
+  | (_, TypeAny) -> true
   | (TypeVoid, TypeVoid) -> true
   | (TypeBool, TypeBool) -> true
   | (TypeInt, TypeInt) -> true

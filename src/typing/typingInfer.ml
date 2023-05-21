@@ -64,13 +64,10 @@ and check_expr_without_constraint2 expr =
     check_expr_variant expr index
   | ExprAttr (expr, attr) ->
     check_expr_attr expr attr
-  | ExprPreop (_, expr) ->
-    let* _ = check_expr_with_constraint expr (fst expr, TypeInt) in
-    return TypeInt
-  | ExprBinop (left, _, right) ->
-    let* _ = check_expr_with_constraint left (fst expr, TypeInt) in
-    let* _ = check_expr_with_constraint right (fst expr, TypeInt) in
-    return TypeInt
+  | ExprPreop (op, expr) ->
+    check_expr_preop op expr
+  | ExprBinop (left, op, right) ->
+    check_expr_binop left op right
   | ExprAscr (expr, type') ->
     let* _ = check_expr_with_constraint expr type' in
     return (snd type')
@@ -115,6 +112,79 @@ and check_expr_attr expr attr =
     | Some attr -> return (snd attr.attr_type)
     | None -> TypingErrors.raise_expr_record_attr expr type' attr)
   | _ -> TypingErrors.raise_expr_record_kind expr type'
+
+and check_expr_preop op expr =
+  match op with
+  | "+" ->
+    let* _ = check_expr_with_constraint expr (fst expr, TypeInt) in
+    return TypeInt
+  | "-" ->
+    let* _ = check_expr_with_constraint expr (fst expr, TypeInt) in
+    return TypeInt
+  | "!" ->
+    let* _ = check_expr_with_constraint expr (fst expr, TypeBool) in
+    return TypeBool
+  | _ -> TypingErrors.raise_unexpected
+
+and check_expr_binop left op right =
+  match op with
+  | "+" ->
+    let* _ = check_expr_with_constraint left (fst left, TypeInt) in
+    let* _ = check_expr_with_constraint right (fst right, TypeInt) in
+    return TypeInt
+  | "-" ->
+    let* _ = check_expr_with_constraint left (fst left, TypeInt) in
+    let* _ = check_expr_with_constraint right (fst right, TypeInt) in
+    return TypeInt
+  | "*" ->
+    let* _ = check_expr_with_constraint left (fst left, TypeInt) in
+    let* _ = check_expr_with_constraint right (fst right, TypeInt) in
+    return TypeInt
+  | "/" ->
+    let* _ = check_expr_with_constraint left (fst left, TypeInt) in
+    let* _ = check_expr_with_constraint right (fst right, TypeInt) in
+    return TypeInt
+  | "%" ->
+    let* _ = check_expr_with_constraint left (fst left, TypeInt) in
+    let* _ = check_expr_with_constraint right (fst right, TypeInt) in
+    return TypeInt
+  | "++" ->
+    let* _ = check_expr_with_constraint left (fst left, TypeString) in
+    let* _ = check_expr_with_constraint right (fst right, TypeString) in
+    return TypeString
+  | "==" ->
+    let* _ = check_expr_with_constraint left (fst left, TypeAny) in
+    let* _ = check_expr_with_constraint right (fst right, TypeAny) in
+    return TypeBool
+  | "!=" ->
+    let* _ = check_expr_with_constraint left (fst left, TypeAny) in
+    let* _ = check_expr_with_constraint right (fst right, TypeAny) in
+    return TypeBool
+  | "<" ->
+    let* _ = check_expr_with_constraint left (fst left, TypeInt) in
+    let* _ = check_expr_with_constraint right (fst right, TypeInt) in
+    return TypeBool
+  | ">" ->
+    let* _ = check_expr_with_constraint left (fst left, TypeInt) in
+    let* _ = check_expr_with_constraint right (fst right, TypeInt) in
+    return TypeBool
+  | "<=" ->
+    let* _ = check_expr_with_constraint left (fst left, TypeInt) in
+    let* _ = check_expr_with_constraint right (fst right, TypeInt) in
+    return TypeBool
+  | ">=" ->
+    let* _ = check_expr_with_constraint left (fst left, TypeInt) in
+    let* _ = check_expr_with_constraint right (fst right, TypeInt) in
+    return TypeBool
+  | "|" ->
+    let* _ = check_expr_with_constraint left (fst left, TypeBool) in
+    let* _ = check_expr_with_constraint right (fst right, TypeBool) in
+    return TypeBool
+  | "&" ->
+    let* _ = check_expr_with_constraint left (fst left, TypeBool) in
+    let* _ = check_expr_with_constraint right (fst right, TypeBool) in
+    return TypeBool
+  | _ -> TypingErrors.raise_unexpected
 
 and check_bind_without_constraint bind state =
   match bind with
