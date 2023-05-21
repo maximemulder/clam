@@ -79,6 +79,7 @@ and param_expr = {
 }
 
 and bind_expr =
+  | BindExprPrint
   | BindExprDef   of def_expr
   | BindExprParam of param_expr
 
@@ -119,5 +120,6 @@ let make_attr_type pos name type' =
 
 let bind_expr_id bind =
   match bind with
+  | BindExprPrint       -> -1
   | BindExprDef   def   -> def.def_expr_id
   | BindExprParam param -> param.param_expr_id

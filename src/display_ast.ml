@@ -42,6 +42,8 @@ let node_name node =
     | ExprString  _ -> "string"
     | ExprTuple   _ -> "tuple"
     | ExprRecord  _ -> "record"
+    | ExprVariant _ -> "variant"
+    | ExprAttr    _ -> "attr"
     | ExprPreop   _ -> "preop"
     | ExprBinop   _ -> "binop"
     | ExprAscr    _ -> "ascr"
@@ -62,7 +64,7 @@ let node_attrs node =
   | Def def -> (match def with
     | Ast.DefType type' ->
       [("name", AString type'.type_name); ("type", ANode (Type type'.type'))]
-    | Ast.DefExpr { expr_name; expr_type; expr } ->
+    | Ast.DefExpr { expr_name; expr_type; expr; _ } ->
       [("name", AString expr_name); ("type", AOption (Option.map (fun type' -> Type type') expr_type)); ("expr", ANode (Expr expr))])
   | Type type' -> (match snd type' with
     | TypeIdent name ->
@@ -99,6 +101,10 @@ let node_attrs node =
       [("exprs", AList (List.map (fun expr -> Expr expr) exprs))]
     | ExprRecord attrs ->
       [("attrs", AList (List.map (fun attr -> AttrExpr attr) attrs))]
+    | ExprVariant (expr, index) ->
+      [("expr", ANode (Expr expr)); ("index", AString index)]
+    | ExprAttr (expr, attr) ->
+      [("expr", ANode (Expr expr)); ("attr", AString attr)]
     | ExprPreop (op, expr) ->
       [("op", AString op); ("expr", ANode (Expr expr))]
     | ExprBinop (left, op, right) ->
@@ -117,9 +123,9 @@ let node_attrs node =
       [("params", AList (List.map (fun param -> Param param) params)); ("expr", ANode (Expr expr))]
     | ExprTypeApp (expr, args) ->
       [("expr", ANode (Expr expr)); ("args", AList (List.map (fun arg -> Type arg) args))])
-  | Param { param_name; param_type } ->
+  | Param { param_name; param_type; _ } ->
     [("name", AString param_name); ("type", AOption (Option.map (fun type' -> Type type') param_type))]
-  | AttrType { attr_type_name; attr_type } ->
+  | AttrType { attr_type_name; attr_type; _ } ->
     [("name", AString attr_type_name); ("type", ANode (Type attr_type))]
   | AttrExpr { attr_expr_name; attr_expr } ->
     [("name", AString attr_expr_name); ("expr", ANode (Expr attr_expr))]

@@ -53,7 +53,7 @@ and check_expr_without_constraint2 expr =
   | ExprString _ ->
     return TypeString
   | ExprBind bind ->
-    check_bind_without_constraint (Option.get bind.bind_expr)
+    check_bind_without_constraint expr (Option.get bind.bind_expr)
   | ExprTuple types ->
     let* types = list_map check_expr_without_constraint types in
     return (TypeTuple types)
@@ -186,8 +186,10 @@ and check_expr_binop left op right =
     return TypeBool
   | _ -> TypingErrors.raise_unexpected
 
-and check_bind_without_constraint bind state =
+and check_bind_without_constraint expr bind state =
   match bind with
+  | BindExprPrint ->
+    (TypeAbsExpr ([(fst expr, TypeAny)], (fst expr, TypeVoid)), state)
   | BindExprDef def when DefSet.mem def state.remains ->
     check_def def state
   | BindExprDef def when DefSet.mem def state.currents ->

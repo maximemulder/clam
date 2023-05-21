@@ -75,6 +75,7 @@ let rec eval (expr: Model.expr) =
 
 and eval_bind bind stack =
   match bind with
+  | Model.BindExprPrint -> VPrint
   | Model.BindExprDef def -> eval def.Model.def_expr { parent = None; params = BindMap.empty }
   | Model.BindExprParam param -> get_param param stack
 
@@ -152,12 +153,23 @@ and eval_binop left op right =
   | _ -> RuntimeErrors.raise_operator op
 
 and eval_expr_app expr args stack =
-  let (params, expr) = eval_abs expr stack in
+  let value = eval expr stack in
+  match value with
+  | VPrint -> eval_expr_app_print args stack
+  | VExprAbs (params, body) -> eval_expr_app_abs params args body stack
+  | _ -> RuntimeErrors.raise_value ()
+
+and eval_expr_app_print args =
+  let* value = eval (List.nth args 0) in
+  print_endline (RuntimeDisplay.display value);
+  return VVoid
+
+and eval_expr_app_abs params args body stack =
   let args = list_map eval args stack in
   let pairs = List.combine params args in
   let params = List.fold_left (fun map (param, value) -> BindMap.add (Model.BindExprParam param) value map) BindMap.empty pairs in
   let stack = { parent = Some stack; params } in
-  eval expr stack
+  eval body stack
 
 and eval_bool (expr: Model.expr) =
   let* value = eval expr in
@@ -187,12 +199,6 @@ and eval_record (expr: Model.expr) =
   let* value = eval expr in
   match value with
   | VRecord attrs -> return attrs
-  | _ -> RuntimeErrors.raise_value ()
-
-and eval_abs (expr: Model.expr) =
-  let* value = eval expr in
-  match value with
-  | VExprAbs (params, expr) -> return (params, expr)
   | _ -> RuntimeErrors.raise_value ()
 
 let eval_def def =

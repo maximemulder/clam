@@ -217,7 +217,7 @@ and modelize_defs state =
 
 let modelize_program (program: Ast.program) (types: Model.type' NameMap.t) (all_types: Model.type' list)=
   let defs = Ast.get_program_exprs program in
-  let state = make_state None types defs [] 0 in
+  let state = make_state None types defs [("print", Model.BindExprPrint)] 0 in
   let state = { state with all_types = all_types } in
   let state = modelize_defs state in
   (state.all_exprs, state.all_types)

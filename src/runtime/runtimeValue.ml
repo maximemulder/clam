@@ -2,6 +2,7 @@ open Collection
 open Model
 
 type value =
+| VPrint
 | VVoid
 | VBool    of bool
 | VInt     of int
