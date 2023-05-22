@@ -1,4 +1,4 @@
-open Collection
+open Utils
 
 type state = {
   parent: state option;
@@ -54,7 +54,7 @@ let make_attrs attrs =
   ) NameMap.empty attrs
 
 let with_name name call state =
-  let (type', remains) = Collection.extract name state.remains in
+  let (type', remains) = extract name state.remains in
   let currents = NameMap.add name type' state.currents in
   let state = { state with remains; currents } in
   let (type', state) = call type' state in

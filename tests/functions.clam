@@ -1,0 +1,18 @@
+def increment = (i: Int) => i + 1;
+
+def fibonacci: (Int) -> Int = (n: Int) =>
+    if n == 0 | n == 1 then
+        n
+    else
+        fibonacci(n - 2) + fibonacci(n - 1);
+
+def main = {
+    print(increment(1));
+
+    print(fibonacci(0));
+    print(fibonacci(1));
+    print(fibonacci(2));
+    print(fibonacci(3));
+    print(fibonacci(4));
+    print(fibonacci(5));
+};

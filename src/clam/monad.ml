@@ -1,4 +1,4 @@
-open Collection
+open Utils
 
 module type MONAD = sig
   type 'a t

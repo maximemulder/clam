@@ -1,4 +1,4 @@
-open Collection
+open Utils
 
 type pos = Lexing.position
 

@@ -1,5 +1,3 @@
-open Lexing
-
 let raise message pos =
   Error.raise "MODEL ERROR" (message ^ "\n" ^ (Error.display_pos pos))
 

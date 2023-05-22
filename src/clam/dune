@@ -1,6 +1,5 @@
-(executable
-  (public_name clam)
-  (name main))
+(library
+  (name clam))
 
 (include_subdirs unqualified)
 

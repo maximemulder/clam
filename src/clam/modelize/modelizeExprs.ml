@@ -1,4 +1,4 @@
-open Collection
+open Utils
 
 type state = {
   parent: state option;
@@ -98,12 +98,12 @@ let rec modelize_name expr name state =
 
 and modelize_def def state =
   let name = def.Ast.expr_name in
-  let (remain, remains) = Collection.extract name state.remains in
+  let (remain, remains) = extract name state.remains in
   let currents = NameMap.add name { Model.bind_expr = None } state.currents in
   let state = { state with remains; currents } in
   let type' = Option.map (fun type' -> fst (modelize_type type' state)) remain.Ast.expr_type in
   let (expr, state) = modelize_expr remain.Ast.expr state in
-  let (current, currents) = Collection.extract name state.currents in
+  let (current, currents) = extract name state.currents in
   let def = Model.make_def_expr def.Ast.expr_pos state.id name type' expr in
   let _ = current.bind_expr <- Some (Model.BindExprDef def) in
   let dones = NameMap.add name current state.dones in

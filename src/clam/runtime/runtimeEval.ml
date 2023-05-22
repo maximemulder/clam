@@ -1,4 +1,4 @@
-open Collection
+open Utils
 open RuntimeValue
 
 module BindKey = struct
@@ -11,21 +11,34 @@ module BindMap = Map.Make(BindKey)
 
 type stack = {
   parent: stack option;
-  params: value BindMap.t;
+  binds: value BindMap.t;
 }
 
+type writer = string -> unit
+
+type context = {
+  writer: writer;
+  stack: stack;
+}
+
+let new_empty writer =
+  { writer; stack = { parent = None; binds = BindMap.empty } }
+
+let new_frame context binds =
+  { context with stack = { parent = Some context.stack; binds } }
+
 let rec get_param param stack =
-  match BindMap.find_opt (Model.BindExprParam param) stack.params with
+  match BindMap.find_opt (Model.BindExprParam param) stack.binds with
   | Some value -> value
   | None -> get_param param (Option.get stack.parent)
 
 let rec get_var var stack =
-  match BindMap.find_opt (Model.BindExprVar var) stack.params with
+  match BindMap.find_opt (Model.BindExprVar var) stack.binds with
   | Some value -> value
   | None -> get_var var (Option.get stack.parent)
 
 module Reader = struct
-  type r = stack
+  type r = context
 end
 
 open Monad.Monad(Monad.ReaderMonad(Reader))
@@ -78,12 +91,12 @@ let rec eval (expr: Model.expr) =
   | ExprTypeApp (expr, _) ->
     eval expr
 
-and eval_bind bind stack =
+and eval_bind bind context =
   match bind with
-  | Model.BindExprDef def -> eval def.Model.def_expr { parent = None; params = BindMap.empty }
-  | Model.BindExprParam param -> get_param param stack
+  | Model.BindExprDef def -> eval def.Model.def_expr (new_empty context.writer)
+  | Model.BindExprParam param -> get_param param context.stack
   | Model.BindExprPrint -> VPrint
-  | Model.BindExprVar var -> get_var var stack
+  | Model.BindExprVar var -> get_var var context.stack
 
 and eval_preop op expr =
   match op with
@@ -92,7 +105,7 @@ and eval_preop op expr =
     return (VInt value)
   | "-" ->
     let* value = eval_int expr in
-    return (VInt ~-value)
+    return (VInt ~- value)
   | "!" ->
     let* value = eval_bool expr in
     return (VBool (not value))
@@ -131,7 +144,7 @@ and eval_binop left op right =
   | "!=" ->
     let* left = eval_int left in
     let* right = eval_int right in
-    return (VBool (left = right))
+    return (VBool (left != right))
   | "<" ->
     let* left = eval_int left in
     let* right = eval_int right in
@@ -158,44 +171,45 @@ and eval_binop left op right =
     return (VBool (left && right))
   | _ -> RuntimeErrors.raise_operator op
 
-and eval_expr_app expr args stack =
-  let value = eval expr stack in
+and eval_expr_app expr args context =
+  let value = eval expr context in
   match value with
-  | VPrint -> eval_expr_app_print args stack
-  | VExprAbs (params, body) -> eval_expr_app_abs params args body stack
+  | VPrint -> eval_expr_app_print args context
+  | VExprAbs (params, body) -> eval_expr_app_abs params args body context
   | _ -> RuntimeErrors.raise_value ()
 
-and eval_expr_app_print args =
-  let* value = eval (List.nth args 0) in
-  print_endline (RuntimeDisplay.display value);
-  return VVoid
+and eval_expr_app_print args context =
+  let value = eval (List.nth args 0) context in
+  let string = RuntimeDisplay.display value in
+  let _ = context.writer string in
+  VVoid
 
-and eval_expr_app_abs params args body stack =
-  let args = list_map eval args stack in
+and eval_expr_app_abs params args body context =
+  let args = list_map eval args context in
   let pairs = List.combine params args in
-  let params = List.fold_left (fun map (param, value) -> BindMap.add (Model.BindExprParam param) value map) BindMap.empty pairs in
-  let stack = { parent = Some stack; params } in
-  eval body stack
+  let binds = List.fold_left (fun map (param, value) -> BindMap.add (Model.BindExprParam param) value map) BindMap.empty pairs in
+  let context = new_frame context binds in
+  eval body context
 
 and eval_expr_block block =
   eval_expr_stmt block.block_stmts block.block_expr
 
-and eval_expr_stmt stmts expr stack =
+and eval_expr_stmt stmts expr context =
   match stmts with
   | [] ->
     (match expr with
-    | Some expr -> eval expr stack
+    | Some expr -> eval expr context
     | None -> VVoid)
   | stmt :: stmts ->
-    let stack = (match stmt with
+    let context = (match stmt with
     | StmtVar (var, expr) ->
-      let value = eval expr stack in
-      { parent = Some stack; params = BindMap.singleton (BindExprVar var) value }
+      let value = eval expr context in
+      new_frame context (BindMap.singleton (BindExprVar var) value)
     | StmtExpr expr ->
-      let _ = eval expr stack in
-      stack
+      let _ = eval expr context in
+      context
       ) in
-    eval_expr_stmt stmts expr stack
+    eval_expr_stmt stmts expr context
 
 and eval_bool (expr: Model.expr) =
   let* value = eval expr in
@@ -227,5 +241,6 @@ and eval_record (expr: Model.expr) =
   | VRecord attrs -> return attrs
   | _ -> RuntimeErrors.raise_value ()
 
-let eval_def def =
-  eval def.Model.def_expr { parent = None; params = BindMap.empty }
+let eval_def def stdout =
+  eval def.Model.def_expr (new_empty stdout)
+
