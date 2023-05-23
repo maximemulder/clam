@@ -1,0 +1,7 @@
+type AB = {a: Int} & {b: String};
+
+def main = {
+    var ab: AB = @{a = 1, b = "Hello"};
+
+    print(ab);
+};

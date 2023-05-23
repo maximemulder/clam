@@ -1,0 +1,9 @@
+type AB =  Int | String;
+
+def main = {
+    var a: AB = 1;
+    var b: AB = "Hello";
+
+    print(a);
+    print(b);
+};
