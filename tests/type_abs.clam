@@ -1,11 +1,10 @@
 type Tuple = [T] (Int, T);
 type Make = [T] -> (T) -> (Int, T);
 
-def make_zero: Make = [T] => (p: T) -> Tuple[T] =>
-    @(1, p);
+def make_one: Make = [T] => (p: T) => @(1, p);
 
 def main = {
-    var a: Tuple[String] = make_zero[String]("Hello");
+    var a: Tuple[String] = make_one[String]("Hello");
     var b: Int = a.0;
     var c: String = a.1;
 
