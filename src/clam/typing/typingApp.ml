@@ -1,9 +1,5 @@
 open Model
-
-type context = {
-  parent: context option;
-  binds: (param_type * type') list;
-}
+open TypingContext
 
 module Reader = struct
   type r = context
@@ -11,7 +7,11 @@ end
 
 open Monad.Monad(Monad.ReaderMonad(Reader))
 
-let rec apply_type_data type' =
+let rec apply_type type' =
+  let* type_data = apply_type_data type' in
+  return (fst type', type_data)
+
+and apply_type_data type' =
   match snd type' with
   | TypeAny ->
     return TypeAny
@@ -20,7 +20,7 @@ let rec apply_type_data type' =
   | TypeBool ->
     return TypeBool
   | TypeInt ->
-    return TypeBool
+    return TypeInt
   | TypeChar ->
     return TypeChar
   | TypeString ->
@@ -53,11 +53,7 @@ let rec apply_type_data type' =
     let* params = list_map apply_param params in
     let* type' = apply_type type' in
     return (TypeAbs (params, type'))
-  | TypeApp (type', args) -> apply_app_type type' args
-
-and apply_type type' =
-  let* type_data = apply_type_data type' in
-  return (fst type', type_data)
+  | TypeApp (type', args) -> apply_app type' args
 
 and apply_attr attr =
   let* type' = apply_type attr.attr_type in
@@ -67,23 +63,24 @@ and apply_param param =
   let* type' = apply_type param.param_type in
   return { param with param_type = type' }
 
-and apply_app_type type' args =
+and apply_app type' args =
   match snd type' with
   | TypeAbs (params, type') -> apply_app_abs type' params args
+  | TypeAbsExprType (params, type') -> apply_app_abs type' params args
   | _ -> TypingErrors.raise_unexpected ()
 
 and apply_app_abs type' params args context =
-  let binds = List.combine params args in
-  let context = { parent = Some context; binds } in
+  let params = List.combine params args in
+  let context = { parent = Some context; params } in
   snd (apply_type type' context)
 
 and apply_var param context =
-  match List.find_opt (fun other -> (fst other) == param) context.binds with
-  | Some pair -> snd (snd pair)
+  match List.find_opt (fun other -> (fst other) = param) context.params with
+  | Some pair -> snd (apply_type (snd pair) context)
   | None ->
   match context.parent with
   | Some parent -> apply_var param parent
   | None -> TypeVar param
 
-let apply type' =
-  apply_type type' { parent = None; binds = [] }
+let apply type' context =
+  apply_type type' context

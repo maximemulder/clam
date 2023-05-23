@@ -5,7 +5,7 @@ def make_zero: Make = [T] => (p: T) -> Tuple[T] =>
     @(0, p);
 
 def main = {
-    var a: Make[String] = make_zero[String]("Hello");
+    var a: Tuple[String] = make_zero[String]("Hello");
 
     print(a);
 

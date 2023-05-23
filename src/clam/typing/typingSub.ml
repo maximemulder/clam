@@ -1,11 +1,12 @@
 open Utils
 open Model
 open TypingApp
+open TypingContext
 
 (* TODO: This function is not exact, notably with unions and intersections *)
 let rec is_type type' other =
-  let type' = apply type' in
-  let other = apply other in
+  let type' = apply type' empty_context in
+  let other = apply other empty_context in
   match (snd type', snd other) with
   | (TypeAny, TypeAny) -> true
   | (TypeVoid, TypeVoid) -> true
@@ -14,7 +15,7 @@ let rec is_type type' other =
   | (TypeChar, TypeChar) -> true
   | (TypeString, TypeString) -> true
   | (TypeVar param, TypeVar other_param) ->
-    param == other_param
+    param = other_param
   | (TypeTuple types, TypeTuple other_types) ->
     compare_lists is_type types other_types
   | (TypeRecord attrs, TypeRecord other_attrs) ->
@@ -22,7 +23,7 @@ let rec is_type type' other =
   | (TypeInter (left, right), TypeInter (other_left, other_right)) ->
     is_type left other_left && is_type right other_right
   | (TypeUnion (left, right), TypeUnion (other_left, other_right)) ->
-  is_type left other_left || is_type right other_right
+    is_type left other_left || is_type right other_right
   | (TypeAbsExpr (params, type'), TypeAbsExpr (other_params, other_type)) ->
     compare_lists is_type other_params params && is_type type' other_type
   | (TypeAbsExprType (params, type'), TypeAbsExprType (other_params, other_type)) ->
@@ -38,8 +39,8 @@ and is_type_attr attr other =
   is_type attr.attr_type other.attr_type
 
 let rec is_subtype type' other =
-  let type' = apply type' in
-  let other = apply other in
+  let type' = apply type' empty_context in
+  let other = apply other empty_context in
   match (snd type', snd other) with
   | (_, TypeInter (left, right)) ->
     is_subtype type' left && is_subtype type' right
@@ -52,7 +53,7 @@ let rec is_subtype type' other =
   | (TypeChar, TypeChar) -> true
   | (TypeString, TypeString) -> true
   | (TypeVar param, _) ->
-    (TypeVar param) == (snd other) || is_subtype param.param_type other
+    is_subtype_var param other
   | (TypeAbsExpr (params, expr), TypeAbsExpr (other_params, other_expr)) ->
     compare_lists is_subtype other_params params && is_subtype expr other_expr
   | (TypeAbsExprType (params, expr), TypeAbsExprType (other_params, other_expr)) ->
@@ -71,6 +72,13 @@ let rec is_subtype type' other =
   | (TypeAbs (params, type'), TypeAbs (other_params, other_type)) ->
     compare_lists is_type_param other_params params && is_subtype type' other_type
   | _ -> false
+
+and is_subtype_var param other =
+  match snd other with
+  | TypeVar other_param ->
+    param = other_param || is_subtype param.param_type other_param.param_type
+  | _ ->
+    is_subtype param.param_type other
 
 let merge_union left right =
   if is_subtype left right then right else

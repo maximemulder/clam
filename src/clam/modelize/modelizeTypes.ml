@@ -90,11 +90,9 @@ let rec modelize_name type' name state =
 and modelize_def name _type' =
   with_name name modelize_type
 
-and modelize_params params type' =
-  let* params = list_map modelize_param params in
-  let types = List.map (fun param -> (param.Model.param_type_name, (fst param.param_type, Model.TypeVar param))) params in
-  let* type' = with_scope (modelize_type type') types in
-  return (params, type')
+and modelize_type type' =
+  let* type_data = modelize_type_data type' in
+  return (fst type', type_data)
 
 and modelize_type_data (type': Ast.type') =
   match snd type' with
@@ -129,9 +127,12 @@ and modelize_type_data (type': Ast.type') =
     let* args = list_map modelize_type args in
     return (Model.TypeApp (type', args))
 
-and modelize_type type' =
-  let* type_data = modelize_type_data type' in
-  return (fst type', type_data)
+
+and modelize_params params type' =
+  let* params = list_map modelize_param params in
+  let types = List.map (fun param -> (param.Model.param_type_name, (fst param.param_type, Model.TypeVar param))) params in
+  let* type' = with_scope (modelize_type type') types in
+  return (params, type')
 
 and modelize_param param =
   let* type' = option_map modelize_type param.param_type in
@@ -180,6 +181,6 @@ let modelize_program (program: Ast.program) =
   (state.dones, state.all)
 
 let modelize_abs params parent =
-  let types = List.map (fun param -> (param.Model.param_type_name, param.Model.param_type)) params in
+  let types = List.map (fun param -> (param.Model.param_type_name, (fst param.param_type, Model.TypeVar param))) params in
   let state = make_state (Some parent) [] types in
   state.dones

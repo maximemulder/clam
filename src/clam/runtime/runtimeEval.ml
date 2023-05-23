@@ -89,7 +89,7 @@ let rec eval (expr: Model.expr) =
   | ExprTypeAbs (params, expr) ->
     return (VTypeAbs (params, expr))
   | ExprTypeApp (expr, _) ->
-    eval expr
+    eval_type_app expr
 
 and eval_bind bind context =
   match bind with
@@ -190,6 +190,12 @@ and eval_expr_app_abs params args body context =
   let binds = List.fold_left (fun map (param, value) -> BindMap.add (Model.BindExprParam param) value map) BindMap.empty pairs in
   let context = new_frame context binds in
   eval body context
+
+and eval_type_app expr =
+  let* value = eval expr in
+  match value with
+  | VTypeAbs (_, expr) -> eval expr
+  | _ -> RuntimeErrors.raise_value ()
 
 and eval_expr_block block =
   eval_expr_stmt block.block_stmts block.block_expr
