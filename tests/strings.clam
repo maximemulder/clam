@@ -1,0 +1,7 @@
+def main = {
+    print("Hello");
+    print("Hello" ++ " " ++ "world" ++ " !");
+
+    print("Hello" == "Hello");
+    print("Hello" == "Hello world !");
+};

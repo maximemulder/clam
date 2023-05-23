@@ -136,8 +136,8 @@ let node_attrs node =
   | Block block ->
     [("stmts", AList (List.map (fun stmt -> Stmt stmt) block.block_stmts)); ("expr", AOption (Option.map (fun expr -> Expr expr) block.block_expr))]
   | Stmt stmt -> (match stmt with
-    | StmtVar (name, expr) ->
-      [("name", AString name); ("expr", ANode (Expr expr))]
+    | StmtVar (name, type', expr) ->
+      [("name", AString name); ("type", AOption (Option.map (fun type' -> Type type') type')); ("expr", ANode (Expr expr))]
     | StmtExpr expr ->
       [("expr", ANode (Expr expr))])
 

@@ -1,0 +1,11 @@
+def main = {
+    print(true);
+    print(false);
+
+    print(!true);
+    print(!false);
+
+    print(true == true);
+    print(false == false);
+    print(true == false);
+};

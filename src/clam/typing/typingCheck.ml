@@ -3,7 +3,7 @@ open Model
 open TypingSub
 
 let check_subtype type' constraint' =
-  if Bool.not (is_subtype_of type' constraint') then
+  if Bool.not (is_subtype type' constraint') then
     TypingErrors.raise_type_constraint type' constraint'
   else
     ()

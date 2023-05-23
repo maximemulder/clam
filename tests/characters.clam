@@ -1,0 +1,6 @@
+def main = {
+    print('A');
+
+    print('A' == 'A');
+    print('A' == 'B');
+};

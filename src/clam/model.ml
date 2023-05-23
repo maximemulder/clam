@@ -65,7 +65,7 @@ and expr_block = {
 }
 
 and stmt =
-  | StmtVar  of var_expr * expr
+  | StmtVar  of var_expr * (type' option) * expr
   | StmtExpr of expr
 
 and def_expr = {

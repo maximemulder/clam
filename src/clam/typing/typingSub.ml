@@ -31,20 +31,20 @@ let rec is_type type' other =
     compare_lists is_type_param other_params params && is_type type' other_type
   | _ -> false
 
-and is_type_attr attr other =
-  is_type attr.attr_type other.attr_type
-
 and is_type_param param other =
   is_type param.param_type other.param_type
 
-let rec is_subtype_of type' other =
+and is_type_attr attr other =
+  is_type attr.attr_type other.attr_type
+
+let rec is_subtype type' other =
   let type' = apply type' in
   let other = apply other in
   match (snd type', snd other) with
   | (_, TypeInter (left, right)) ->
-    is_subtype_of type' left && is_subtype_of type' right
+    is_subtype type' left && is_subtype type' right
   | (_, TypeUnion (left, right)) ->
-    is_subtype_of type' left || is_subtype_of type' right
+    is_subtype type' left || is_subtype type' right
   | (_, TypeAny) -> true
   | (TypeVoid, TypeVoid) -> true
   | (TypeBool, TypeBool) -> true
@@ -52,32 +52,32 @@ let rec is_subtype_of type' other =
   | (TypeChar, TypeChar) -> true
   | (TypeString, TypeString) -> true
   | (TypeVar param, _) ->
-    (snd other) == (TypeVar param) || is_subtype_of param.param_type other
+    (TypeVar param) == (snd other) || is_subtype param.param_type other
   | (TypeAbsExpr (params, expr), TypeAbsExpr (other_params, other_expr)) ->
-    compare_lists is_subtype_of other_params params && is_subtype_of expr other_expr
+    compare_lists is_subtype other_params params && is_subtype expr other_expr
   | (TypeAbsExprType (params, expr), TypeAbsExprType (other_params, other_expr)) ->
-    compare_lists is_type_param other_params params && is_subtype_of expr other_expr
+    compare_lists is_type_param other_params params && is_subtype expr other_expr
   | (TypeTuple (types), TypeTuple (other_types)) ->
-    compare_lists is_subtype_of types other_types
+    compare_lists is_subtype types other_types
   | (TypeRecord (attrs), TypeRecord (other_attrs)) ->
     NameMap.for_all (fun name other -> match NameMap.find_opt name attrs with
-    | Some attr -> is_subtype_of attr.attr_type other.attr_type
+    | Some attr -> is_subtype attr.attr_type other.attr_type
     | None -> false
     ) other_attrs
   | (TypeInter (left, right), _) ->
-    is_subtype_of left other || is_subtype_of right other
+    is_subtype left other || is_subtype right other
   | (TypeUnion (left, right), _) ->
-    is_subtype_of left other && is_subtype_of right other
+    is_subtype left other && is_subtype right other
   | (TypeAbs (params, type'), TypeAbs (other_params, other_type)) ->
-    compare_lists is_type_param other_params params && is_subtype_of type' other_type
+    compare_lists is_type_param other_params params && is_subtype type' other_type
   | _ -> false
 
 let merge_union left right =
-  if is_subtype_of left right then right else
-  if is_subtype_of right left then left else
+  if is_subtype left right then right else
+  if is_subtype right left then left else
   (fst left, TypeUnion (left, right))
 
 let merge_inter left right =
-  if is_subtype_of left right then left else
-  if is_subtype_of right left then right else
+  if is_subtype left right then left else
+  if is_subtype right left then right else
   (fst left, TypeInter (left, right))

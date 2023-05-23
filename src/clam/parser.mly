@@ -61,7 +61,7 @@ let program :=
 let def :=
   | TYPE; name = IDENT; ASSIGN; type_ = type_; SEMICOLON;
     { DefType { type_pos = $startpos; type_name = name; type' = type_ } }
-  | DEF; name = IDENT; type_ = option(typing); ASSIGN; expr = expr; SEMICOLON;
+  | DEF; name = IDENT; type_ = option(COLON; type_); ASSIGN; expr = expr; SEMICOLON;
     { DefExpr { expr_pos = $startpos; expr_name = name; expr_type = type_; expr = expr } }
 
 let type_ :=
@@ -94,7 +94,7 @@ let type_1 :=
 
 let expr :=
   | expr_7
-  | PARENTHESIS_LEFT; params = list_comma(param); PARENTHESIS_RIGHT; return = option(return_typing); DOUBLE_ARROW; expr = expr;
+  | PARENTHESIS_LEFT; params = list_comma(param); PARENTHESIS_RIGHT; return = option(ARROW; type_); DOUBLE_ARROW; expr = expr;
     { $startpos, ExprAbs (params, return, expr) }
   | CROTCHET_LEFT; params = list_comma(param); CROTCHET_RIGHT; DOUBLE_ARROW; expr = expr;
     { $startpos, ExprTypeAbs (params, expr) }
@@ -167,16 +167,8 @@ let expr_1 :=
     { $startpos, ExprTypeApp (expr, args) }
 
 let param :=
-  | name = IDENT; type_ = option(typing);
+  | name = IDENT; type_ = option(COLON; type_);
     { { param_pos = $startpos; param_name = name; param_type = type_ } }
-
-let typing :=
-  | COLON; type_ = type_;
-    { type_ }
-
-let return_typing :=
-  | ARROW; type_ = type_;
-    { type_ }
 
 let attr_type :=
   | name = IDENT; COLON; type_ = type_;
@@ -191,8 +183,8 @@ let block :=
     { { block_stmts = stmts; block_expr = expr } }
 
 let stmt :=
-  | VAR; name = IDENT; ASSIGN; expr = expr; SEMICOLON;
-  { StmtVar (name, expr) }
+  | VAR; name = IDENT; type_ = option(COLON; type_); ASSIGN; expr = expr; SEMICOLON;
+  { StmtVar (name, type_, expr) }
   | expr = expr; SEMICOLON;
   { StmtExpr (expr) }
 

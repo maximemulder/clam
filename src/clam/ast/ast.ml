@@ -81,7 +81,7 @@ and block = {
 }
 
 and stmt =
-  | StmtVar  of string * expr
+  | StmtVar  of string * (type' option) * expr
   | StmtExpr of expr
 
 let get_program_types program =

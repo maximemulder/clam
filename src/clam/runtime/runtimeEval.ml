@@ -17,12 +17,12 @@ type stack = {
 type writer = string -> unit
 
 type context = {
-  writer: writer;
+  out_handler: writer;
   stack: stack;
 }
 
-let new_empty writer =
-  { writer; stack = { parent = None; binds = BindMap.empty } }
+let new_empty out_handler =
+  { out_handler; stack = { parent = None; binds = BindMap.empty } }
 
 let new_frame context binds =
   { context with stack = { parent = Some context.stack; binds } }
@@ -93,7 +93,7 @@ let rec eval (expr: Model.expr) =
 
 and eval_bind bind context =
   match bind with
-  | Model.BindExprDef def -> eval def.Model.def_expr (new_empty context.writer)
+  | Model.BindExprDef def -> eval def.Model.def_expr (new_empty context.out_handler)
   | Model.BindExprParam param -> get_param param context.stack
   | Model.BindExprPrint -> VPrint
   | Model.BindExprVar var -> get_var var context.stack
@@ -138,13 +138,13 @@ and eval_binop left op right =
     let* right = eval_string right in
     return (VString (left ^ right))
   | "==" ->
-    let* left = eval_int left in
-    let* right = eval_int right in
-    return (VBool (left = right))
+    let* left = eval left in
+    let* right = eval right in
+    return (VBool (RuntimeValue.compare left right))
   | "!=" ->
-    let* left = eval_int left in
-    let* right = eval_int right in
-    return (VBool (left != right))
+    let* left = eval left in
+    let* right = eval right in
+    return (VBool (Bool.not (RuntimeValue.compare left right)))
   | "<" ->
     let* left = eval_int left in
     let* right = eval_int right in
@@ -181,7 +181,7 @@ and eval_expr_app expr args context =
 and eval_expr_app_print args context =
   let value = eval (List.nth args 0) context in
   let string = RuntimeDisplay.display value in
-  let _ = context.writer string in
+  let _ = context.out_handler string in
   VVoid
 
 and eval_expr_app_abs params args body context =
@@ -202,7 +202,7 @@ and eval_expr_stmt stmts expr context =
     | None -> VVoid)
   | stmt :: stmts ->
     let context = (match stmt with
-    | StmtVar (var, expr) ->
+    | StmtVar (var, _, expr) ->
       let value = eval expr context in
       new_frame context (BindMap.singleton (BindExprVar var) value)
     | StmtExpr expr ->

@@ -198,12 +198,13 @@ and modelize_block (block: Ast.block) =
 
 and modelize_stmt (stmt: Ast.stmt) state =
   match stmt with
-  | StmtVar (name, expr) ->
+  | StmtVar (name, type', expr) ->
     let (expr, state) = modelize_expr expr state in
     let var = { Model.var_expr_id = state.id; Model.var_expr_name = name } in
+    let (type', state) = option_map modelize_type type' state in
     let bind = { Model.bind_expr = Some (Model.BindExprVar var) } in
     let state = { state with dones = NameMap.add name bind state.dones; id = state.id + 1 } in
-    (Model.StmtVar (var, expr), state)
+    (Model.StmtVar (var, type', expr), state)
   | StmtExpr (expr) ->
     let (expr, state) = modelize_expr expr state in
     ((Model.StmtExpr expr), state)

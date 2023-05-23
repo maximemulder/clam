@@ -36,7 +36,7 @@ let make_state defs =
 
 let rec check_expr_with_constraint expr constraint' =
   let* type' = check_expr expr in
-  if Bool.not (is_subtype_of type' constraint')
+  if Bool.not (is_subtype type' constraint')
     then TypingErrors.raise_expr_constraint expr type' constraint'
     else return ()
 
@@ -204,8 +204,14 @@ and check_expr_block block =
 
 and check_stmt stmt state =
   match stmt with
-  | StmtVar (var, expr) ->
-    let (type', state) = check_expr expr state in
+  | StmtVar (var, type', expr) ->
+    let (type', state) = match type' with
+    | Some type' ->
+      let (_, state) = check_expr_with_constraint expr type' state in
+      (type', state)
+    | None ->
+      check_expr expr state
+    in
     let dones = BindMap.add (BindExprVar var) type' state.dones in
     ((), { state with dones })
   | StmtExpr expr ->

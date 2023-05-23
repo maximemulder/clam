@@ -1,13 +1,8 @@
-type Fun = (Void, Void) -> Void;
-type Tuple = (Void, Void);
 type Recorda = {a: Void, b: Void};
 type Union = Void | Void;
 type Inter = Void & Void;
 type Abs = [T, U] Void;
 type App = Abs[Void, Void];
-
-type Self = [T: Any] T;
-type Universal = [T: Any] -> T;
 
 type PairO = (IntOrString, IntOrString);
 type IntOrString = Int | String;
@@ -17,22 +12,10 @@ type B = Int;
 type C = B;
 
 def name = string;
-def void_ = void;
-def true_ = true;
-def false_ = false;
-def int = 0;
-def char = 'a';
 def string = "Hello world !";
-def preop = +2;
-def binop = 0 + 1;
 def ascr = name : String;
 def block = { ret 0 };
 def if_ = if true then name else name;
-def abs = (a: String, b: String) -> Tuple => @(void, void);
-def app = abs(name, name);
-def type_abs: [AA: Tuple, C: Tuple] -> Tuple = [AA: Tuple, C: Tuple] => { ret @(void, void): Tuple };
-def type_app = type_abs[Tuple, Tuple];
-def a: (Int) -> Int = (b: Int) => b + a(b);
 
 type AB = [T] T;
 
@@ -46,9 +29,6 @@ type Record = [T] { a: T, b: T };
 
 def record: Record[Bool | Int] = @{ a = true, b = 0 };
 
-def abc: String = @(1, 2, "Hello", 4).2;
-
-def cba: String = @{a = 1, b = "Hello", c = 2}.b;
 
 
 
@@ -58,23 +38,12 @@ def cba: String = @{a = 1, b = "Hello", c = 2}.b;
 
 
 
+type Tuple = [T] T;
+type Make = [T] -> (T) -> T;
 
-
-
-
-
-
-
-
-
-
-
-
-def increment = (i: Int) => i + 1;
+def make_zero: Make = [T] => (p: T) -> Tuple[T] =>
+    p;
 
 def main = {
-    var a = increment(999);
-    print(a);
-    print(888);
-    print(111);
+    void;
 };

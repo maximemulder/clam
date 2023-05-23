@@ -37,7 +37,14 @@ let test file_name =
   Clam.Main.run file_name file_text (write_buffer output_buffer);
   let output = output_buffer.string in
   let expected_output = read_file (file_name ^ ".out") in
-  assert (output = expected_output)
+  if output <> expected_output then (
+    print_endline "TEST ERROR:";
+    print_endline ("Expected output \"" ^ (String.escaped expected_output) ^ "\"");
+    print_endline ("Found output:   \"" ^ (String.escaped output) ^ "\"");
+    exit(-1)
+    )
+  else
+    ()
 
 let () =
   let tests = list_tests () in
