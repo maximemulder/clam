@@ -98,6 +98,57 @@ and eval_bind bind context =
   | Model.BindExprPrint -> VPrint
   | Model.BindExprVar var -> get_var var context.stack
 
+and eval_expr_app expr args context =
+  let value = eval expr context in
+  match value with
+  | VPrint -> eval_expr_app_print args context
+  | VExprAbs (params, body) -> eval_expr_app_abs params args body context
+  | _ -> RuntimeErrors.raise_value ()
+
+and eval_expr_app_print args context =
+  let value = eval (List.nth args 0) context in
+  let string = RuntimeDisplay.display value in
+  let _ = context.out_handler string in
+  VVoid
+
+and eval_expr_app_abs params args body context =
+  let args = list_map eval args context in
+  let pairs = List.combine params args in
+  let binds = List.fold_left (fun map (param, value) -> BindMap.add (Model.BindExprParam param) value map) BindMap.empty pairs in
+  let context = new_frame context binds in
+  eval body context
+
+and eval_type_app expr =
+  let* value = eval expr in
+  match value with
+  | VTypeAbs (_, expr) -> eval expr
+  | _ -> RuntimeErrors.raise_value ()
+
+and eval_expr_block block =
+  eval_block_stmts block.block_stmts block.block_expr
+
+and eval_block_stmts stmts expr context =
+  match stmts with
+  | [] ->
+    eval_block_expr expr context
+  | stmt :: stmts ->
+    let context = eval_block_stmt stmt context in
+    eval_block_stmts stmts expr context
+
+and eval_block_stmt stmt context =
+  match stmt with
+  | StmtVar (var, _, expr) ->
+    let value = eval expr context in
+    new_frame context (BindMap.singleton (BindExprVar var) value)
+  | StmtExpr expr ->
+    let _ = eval expr context in
+    context
+
+and eval_block_expr expr =
+  match expr with
+  | Some expr -> eval expr
+  | None -> return VVoid
+
 and eval_preop op expr =
   match op with
   | "+" ->
@@ -170,52 +221,6 @@ and eval_binop left op right =
     let* right = eval_bool right in
     return (VBool (left && right))
   | _ -> RuntimeErrors.raise_operator op
-
-and eval_expr_app expr args context =
-  let value = eval expr context in
-  match value with
-  | VPrint -> eval_expr_app_print args context
-  | VExprAbs (params, body) -> eval_expr_app_abs params args body context
-  | _ -> RuntimeErrors.raise_value ()
-
-and eval_expr_app_print args context =
-  let value = eval (List.nth args 0) context in
-  let string = RuntimeDisplay.display value in
-  let _ = context.out_handler string in
-  VVoid
-
-and eval_expr_app_abs params args body context =
-  let args = list_map eval args context in
-  let pairs = List.combine params args in
-  let binds = List.fold_left (fun map (param, value) -> BindMap.add (Model.BindExprParam param) value map) BindMap.empty pairs in
-  let context = new_frame context binds in
-  eval body context
-
-and eval_type_app expr =
-  let* value = eval expr in
-  match value with
-  | VTypeAbs (_, expr) -> eval expr
-  | _ -> RuntimeErrors.raise_value ()
-
-and eval_expr_block block =
-  eval_expr_stmt block.block_stmts block.block_expr
-
-and eval_expr_stmt stmts expr context =
-  match stmts with
-  | [] ->
-    (match expr with
-    | Some expr -> eval expr context
-    | None -> VVoid)
-  | stmt :: stmts ->
-    let context = (match stmt with
-    | StmtVar (var, _, expr) ->
-      let value = eval expr context in
-      new_frame context (BindMap.singleton (BindExprVar var) value)
-    | StmtExpr expr ->
-      let _ = eval expr context in
-      context
-      ) in
-    eval_expr_stmt stmts expr context
 
 and eval_bool (expr: Model.expr) =
   let* value = eval expr in

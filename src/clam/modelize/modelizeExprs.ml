@@ -192,22 +192,32 @@ and modelize_attr (attr: Ast.attr_expr) =
   return { Model.attr_expr_name = attr.attr_expr_name; Model.attr_expr = expr }
 
 and modelize_block (block: Ast.block) =
-  let* stmts = list_map modelize_stmt block.block_stmts in
-  let* expr = option_map modelize_expr block.block_expr in
+  let* (stmts, expr) = modelize_block_stmts block.Ast.block_stmts block.Ast.block_expr in
   return { Model.block_stmts = stmts; Model.block_expr = expr }
 
-and modelize_stmt (stmt: Ast.stmt) state =
-  match stmt with
-  | StmtVar (name, type', expr) ->
-    let (expr, state) = modelize_expr expr state in
-    let var = { Model.var_expr_id = state.id; Model.var_expr_name = name } in
-    let (type', state) = option_map modelize_type type' state in
-    let bind = { Model.bind_expr = Some (Model.BindExprVar var) } in
-    let state = { state with dones = NameMap.add name bind state.dones; id = state.id + 1 } in
-    (Model.StmtVar (var, type', expr), state)
-  | StmtExpr (expr) ->
-    let (expr, state) = modelize_expr expr state in
-    ((Model.StmtExpr expr), state)
+and modelize_block_stmts stmts ret state =
+  match stmts with
+  | [] ->
+    let (ret, state) = option_map modelize_expr ret state in
+    (([], ret), state)
+  | stmt :: stmts -> (
+    match stmt with
+    | StmtVar (name, type', expr) ->
+      let (expr, state) = modelize_expr expr state in
+      let (type', state) = option_map modelize_type type' state in
+      let var = { Model.var_expr_id = state.id; Model.var_expr_name = name } in
+      let state = { state with id = state.id + 1 } in
+      let stmt = Model.StmtVar (var, type', expr) in
+      let ((stmts, ret), state) = with_scope (modelize_block_stmts stmts ret) NameMap.empty [] [(name, Model.BindExprVar var)] state in
+      let stmts = stmt :: stmts in
+      ((stmts, ret), state)
+    | StmtExpr expr ->
+      let (expr, state) = modelize_expr expr state in
+      let stmt = Model.StmtExpr expr in
+      let ((stmts, ret), state) = modelize_block_stmts stmts ret state in
+      let stmts = stmt :: stmts in
+      ((stmts, ret), state)
+    )
 
 and modelize_abs_expr params expr state =
   let params = List.map (fun param -> (param.Model.param_expr_name, Model.BindExprParam param)) params in
