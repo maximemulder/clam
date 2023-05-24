@@ -1,10 +1,14 @@
 open Utils
 
-type state = {
-  parent: state option;
+type scope = {
+  parent: scope option;
   remains: Ast.type' NameMap.t;
   currents: Ast.type' NameMap.t;
   dones: Model.type' NameMap.t;
+}
+
+type state = {
+  scope: scope;
   all: Model.type' list
 }
 
@@ -14,36 +18,33 @@ end
 
 open Monad.Monad(Monad.StateMonad(State))
 
-let find_remain name state =
-  NameMap.find_opt name state.remains
-
-let find_current name state =
-  NameMap.find_opt name state.currents
-
-let find_done name state =
-  NameMap.find_opt name state.dones
-
-let check_duplicates names set =
-  List.fold_left (fun set name ->
-    if NameSet.mem name set
-      then ModelizeErrors.raise_type_duplicate name
-      else NameSet.add name set
-    ) set names
-
 let fold_remain map remain =
   NameMap.add remain.Ast.type_name remain.Ast.type' map
 
 let fold_done map done' =
   NameMap.add (fst done') (snd done') map
 
-let make_state parent remains dones =
-  let names = NameSet.empty in
-  let names = check_duplicates (List.map (fun remain -> remain.Ast.type_name) remains) names in
-  let _ = check_duplicates (List.map (fun done' -> fst done') dones) names in
+let make_state remains dones =
+  let all = List.map snd dones in
   let remains = List.fold_left fold_remain NameMap.empty remains in
+  let dones = List.fold_left fold_done NameMap.empty dones in
+  let scope = { parent = None; remains; currents = NameMap.empty; dones } in
+  { scope; all }
+
+let make_child dones state =
   let all = List.map snd dones in
   let dones = List.fold_left fold_done NameMap.empty dones in
-  { parent; remains; currents = NameMap.empty; dones; all }
+  let scope = { parent = Some state.scope; remains = NameMap.empty; currents = NameMap.empty; dones } in
+  ((), { scope; all })
+
+let find_remain name state =
+  NameMap.find_opt name state.scope.remains
+
+let find_current name state =
+  NameMap.find_opt name state.scope.currents
+
+let find_done name state =
+  NameMap.find_opt name state.scope.dones
 
 let make_attrs attrs =
   List.fold_left (fun map attr ->
@@ -54,22 +55,20 @@ let make_attrs attrs =
   ) NameMap.empty attrs
 
 let with_name name call state =
-  let (type', remains) = extract name state.remains in
-  let currents = NameMap.add name type' state.currents in
-  let state = { state with remains; currents } in
+  let (type', remains) = extract name state.scope.remains in
+  let currents = NameMap.add name type' state.scope.currents in
+  let state = { state with scope = { state.scope with remains; currents} } in
   let (type', state) = call type' state in
-  let currents = NameMap.remove name state.currents in
-  let dones = NameMap.add name type' state.dones in
-  let all = type' :: state.all in
-  (snd type', { state with currents; dones; all })
+  let currents = NameMap.remove name state.scope.currents in
+  let dones = NameMap.add name type' state.scope.dones in
+  let state = { state with scope = { state.scope with currents; dones} } in
+  (snd type', state)
 
 let with_scope call types state =
-  let parent = state in
-  let state = make_state (Some parent) [] types in
+  let (_, state) = make_child types state in
   let (result, state) = call state in
-  let all = state.all in
-  let state = Option.get state.parent in
-  (result, { state with all = List.append state.all all })
+  let scope = Option.get state.scope.parent in
+  (result, { state with scope })
 
 let rec modelize_name type' name state =
   match find_remain name state with
@@ -81,10 +80,11 @@ let rec modelize_name type' name state =
   match find_done name state with
   | Some type' -> (snd type', state)
   | None       ->
-  match state.parent with
-  | Some parent ->
+  match state.scope.parent with
+  | Some scope ->
+    let parent = { state with scope } in
     let (type', parent) = modelize_name type' name parent in
-    (type', { state with parent = Some parent })
+    (type', { parent with scope = { state.scope with parent = Some parent.scope } })
   | None -> ModelizeErrors.raise_type_bound type' name
 
 and modelize_def name _type' =
@@ -152,7 +152,7 @@ let modelize_type_expr type' state =
   type'
 
 let rec modelize_defs state =
-  match NameMap.choose_opt state.remains with
+  match NameMap.choose_opt state.scope.remains with
   | None -> state
   | Some (name, remain) ->
     let (_, state) = modelize_def name remain state in
@@ -176,11 +176,11 @@ let primitives = [
 
 let modelize_program (program: Ast.program) =
   let defs = Ast.get_program_types program in
-  let state = make_state None defs primitives in
+  let state = make_state defs primitives in
   let state = modelize_defs state in
-  (state.dones, state.all)
+  (state.scope.dones, state.all)
 
-let modelize_abs params parent =
+let modelize_abs params state =
   let types = List.map (fun param -> (param.Model.param_type_name, (fst param.param_type, Model.TypeVar param))) params in
-  let state = make_state (Some parent) [] types in
-  state.dones
+  let (_, state) = make_child types state in
+  state.scope.dones

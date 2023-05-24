@@ -26,6 +26,9 @@ let find_current name state =
 let find_done name state =
   NameMap.find_opt name state.dones
 
+let next_id state =
+  (state.id, { state with id = state.id + 1 })
+
 let check_duplicates names set =
   List.fold_left (fun set name ->
     if NameSet.mem name set
@@ -67,12 +70,17 @@ let with_scope call types defs dones state =
   let state = Option.get state.parent in
   (result, { state with all_exprs = List.append state.all_exprs all_exprs; all_types = List.append state.all_types all_types; id = state.id })
 
-let rec translate_state state =
+let rec translate_scope state =
   {
-    ModelizeTypes.parent = Option.map translate_state state.parent;
+    ModelizeTypes.parent = Option.map translate_scope state.parent;
     ModelizeTypes.remains = NameMap.empty;
     ModelizeTypes.currents =  NameMap.empty;
     ModelizeTypes.dones = state.types;
+  }
+
+let translate_state state =
+  {
+    ModelizeTypes.scope = translate_scope state;
     ModelizeTypes.all = [];
   }
 
@@ -104,10 +112,11 @@ and modelize_def def state =
   let type' = Option.map (fun type' -> fst (modelize_type type' state)) remain.Ast.expr_type in
   let (expr, state) = modelize_expr remain.Ast.expr state in
   let (current, currents) = extract name state.currents in
-  let def = Model.make_def_expr def.Ast.expr_pos state.id name type' expr in
+  let (id, state) = next_id state in
+  let def = Model.make_def_expr def.Ast.expr_pos id name type' expr in
   let _ = current.bind_expr <- Some (Model.BindExprDef def) in
   let dones = NameMap.add name current state.dones in
-  (snd expr, { state with currents; dones; all_exprs = def :: state.all_exprs; id = state.id + 1 })
+  (snd expr, { state with currents; dones; all_exprs = def :: state.all_exprs })
 
 and modelize_expr_data (expr: Ast.expr): state -> Model.expr_data * state =
   match snd expr with
@@ -178,9 +187,10 @@ and modelize_expr (expr: Ast.expr): state -> Model.expr * state =
   let* expr_data = modelize_expr_data expr in
   return (fst expr, expr_data)
 
-and modelize_param (param: Ast.param) state =
-  let (type', state) = option_map modelize_type param.param_type state in
-  (Model.make_param_expr param.param_pos state.id param.param_name type', { state with id = state.id + 1 })
+and modelize_param (param: Ast.param) =
+  let* type' = option_map modelize_type param.param_type in
+  let* id = next_id in
+  return (Model.make_param_expr param.param_pos id param.param_name type')
 
 and modelize_type_param (param: Ast.param) =
   let* type' = option_map modelize_type param.param_type in
@@ -205,8 +215,8 @@ and modelize_block_stmts stmts ret state =
     | StmtVar (name, type', expr) ->
       let (expr, state) = modelize_expr expr state in
       let (type', state) = option_map modelize_type type' state in
-      let var = { Model.var_expr_id = state.id; Model.var_expr_name = name } in
-      let state = { state with id = state.id + 1 } in
+      let (id, state) = next_id state in
+      let var = { Model.var_expr_id = id; Model.var_expr_name = name } in
       let stmt = Model.StmtVar (var, type', expr) in
       let ((stmts, ret), state) = with_scope (modelize_block_stmts stmts ret) NameMap.empty [] [(name, Model.BindExprVar var)] state in
       let stmts = stmt :: stmts in
