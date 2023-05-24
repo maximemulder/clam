@@ -1,11 +1,15 @@
 open Utils
 
-type state = {
-  parent: state option;
+type scope = {
+  parent: scope option;
   types: Model.type' NameMap.t;
   remains: Ast.def_expr NameMap.t;
   currents: Model.expr_bind NameMap.t;
   dones: Model.expr_bind NameMap.t;
+}
+
+type state = {
+  scope: scope;
   all_types: Model.type' list;
   all_exprs: Model.def_expr list;
   id: int;
@@ -18,23 +22,16 @@ end
 open Monad.Monad(Monad.StateMonad(State))
 
 let find_remain name state =
-  NameMap.find_opt name state.remains
+  NameMap.find_opt name state.scope.remains
 
 let find_current name state =
-  NameMap.find_opt name state.currents
+  NameMap.find_opt name state.scope.currents
 
 let find_done name state =
-  NameMap.find_opt name state.dones
+  NameMap.find_opt name state.scope.dones
 
 let next_id state =
   (state.id, { state with id = state.id + 1 })
-
-let check_duplicates names set =
-  List.fold_left (fun set name ->
-    if NameSet.mem name set
-      then ModelizeErrors.raise_expr_duplicate name
-      else NameSet.add name set
-    ) set names
 
 let fold_remain map remain =
   NameMap.add remain.Ast.expr_name remain map
@@ -42,13 +39,17 @@ let fold_remain map remain =
 let fold_done map done' =
   NameMap.add (fst done') { Model.bind_expr = Some (snd done') } map
 
-let make_state parent types (remains: Ast.def_expr list) dones id =
-  let names = NameSet.empty in
-  let names = check_duplicates (List.map (fun remain -> remain.Ast.expr_name) remains) names in
-  let _ = check_duplicates (List.map (fun done' -> fst done') dones) names in
+let make_state types remains dones =
   let remains = List.fold_left fold_remain NameMap.empty remains in
   let dones = List.fold_left fold_done NameMap.empty dones in
-  { parent; remains; types; currents = NameMap.empty; dones; all_exprs = []; all_types = []; id }
+  let scope = { parent = None; types; remains; currents = NameMap.empty; dones } in
+  { scope; all_exprs = []; all_types = []; id = 0 }
+
+let make_child types remains dones state =
+  let remains = List.fold_left fold_remain NameMap.empty remains in
+  let dones = List.fold_left fold_done NameMap.empty dones in
+  let scope = { parent = Some state.scope; types; remains; currents = NameMap.empty; dones } in
+  ((), { state with scope })
 
 let parse_int expr (value: string) =
   match int_of_string_opt value with
@@ -62,13 +63,9 @@ let parse_string (value: string) =
   value
 
 let with_scope call types defs dones state =
-  let parent = state in
-  let state = make_state (Some parent) types defs dones state.id in
+  let (_, state) = make_child types defs dones state in
   let (result, state) = call state in
-  let all_types = state.all_types in
-  let all_exprs = state.all_exprs in
-  let state = Option.get state.parent in
-  (result, { state with all_exprs = List.append state.all_exprs all_exprs; all_types = List.append state.all_types all_types; id = state.id })
+  (result, { state with scope = Option.get state.scope.parent })
 
 let rec translate_scope state =
   {
@@ -80,7 +77,7 @@ let rec translate_scope state =
 
 let translate_state state =
   {
-    ModelizeTypes.scope = translate_scope state;
+    ModelizeTypes.scope = translate_scope state.scope;
     ModelizeTypes.all = [];
   }
 
@@ -98,25 +95,27 @@ let rec modelize_name expr name state =
   match find_done name state with
   | Some bind -> ((Model.ExprBind bind), state)
   | None      ->
-  match state.parent with
-  | Some parent ->
-    let (type', parent) = modelize_name expr name parent in
-    (type', { state with parent = Some parent })
+  match state.scope.parent with
+  | Some scope ->
+    let parent = { state with scope } in
+    let (expr, parent) = modelize_name expr name parent in
+    (expr, { parent with scope = { state.scope with parent = Some parent.scope } })
   | None -> ModelizeErrors.raise_expr_bound expr name
 
 and modelize_def def state =
   let name = def.Ast.expr_name in
-  let (remain, remains) = extract name state.remains in
-  let currents = NameMap.add name { Model.bind_expr = None } state.currents in
-  let state = { state with remains; currents } in
+  let (remain, remains) = extract name state.scope.remains in
+  let currents = NameMap.add name { Model.bind_expr = None } state.scope.currents in
+  let state = { state with scope = { state.scope with remains; currents } } in
   let type' = Option.map (fun type' -> fst (modelize_type type' state)) remain.Ast.expr_type in
   let (expr, state) = modelize_expr remain.Ast.expr state in
-  let (current, currents) = extract name state.currents in
+  let (current, currents) = extract name state.scope.currents in
   let (id, state) = next_id state in
   let def = Model.make_def_expr def.Ast.expr_pos id name type' expr in
   let _ = current.bind_expr <- Some (Model.BindExprDef def) in
-  let dones = NameMap.add name current state.dones in
-  (snd expr, { state with currents; dones; all_exprs = def :: state.all_exprs })
+  let dones = NameMap.add name current state.scope.dones in
+  let state = { state with scope = { state.scope with currents; dones}; all_exprs = def :: state.all_exprs } in
+  (snd expr, state)
 
 and modelize_expr_data (expr: Ast.expr): state -> Model.expr_data * state =
   match snd expr with
@@ -239,7 +238,7 @@ and modelize_type_abs_expr params expr state =
   ((Model.ExprTypeAbs (params, expr)), state)
 
 and modelize_defs state =
-  match NameMap.choose_opt state.remains with
+  match NameMap.choose_opt state.scope.remains with
   | None -> state
   | Some (_, def) ->
     let (_, state) = modelize_def def state in
@@ -247,7 +246,7 @@ and modelize_defs state =
 
 let modelize_program (program: Ast.program) (types: Model.type' NameMap.t) (all_types: Model.type' list)=
   let defs = Ast.get_program_exprs program in
-  let state = make_state None types defs [("print", Model.BindExprPrint)] 0 in
+  let state = make_state types defs [("print", Model.BindExprPrint)] in
   let state = { state with all_types = all_types } in
   let state = modelize_defs state in
   (state.all_exprs, state.all_types)
