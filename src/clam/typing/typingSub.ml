@@ -79,13 +79,3 @@ and is_subtype_var param other =
     param = other_param || is_subtype param.param_type other_param.param_type
   | _ ->
     is_subtype param.param_type other
-
-let merge_union left right =
-  if is_subtype left right then right else
-  if is_subtype right left then left else
-  (fst left, TypeUnion (left, right))
-
-let merge_inter left right =
-  if is_subtype left right then left else
-  if is_subtype right left then right else
-  (fst left, TypeInter (left, right))

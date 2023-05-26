@@ -3,6 +3,7 @@ open Model
 open TypingApp
 open TypingCheck
 open TypingContext
+open TypingMerge
 open TypingSub
 
 module DefKey = struct
@@ -105,7 +106,7 @@ and infer_data expr =
     let* _ = check_expr if' (fst expr, TypeBool) in
     let* then' = infer then' in
     let* else' = infer else' in
-    return (TypeUnion (then', else'))
+    return (merge_inter then' else')
   | ExprBlock block ->
     infer_block block
   | ExprAbs (params, type', expr) ->
