@@ -2,7 +2,9 @@ open Model
 
 let rec merge_union left right =
   match (snd left, snd right) with
-  | (TypeAny, TypeAny) ->
+  | (TypeAny, _) ->
+    TypeAny
+  | (_, TypeAny) ->
     TypeAny
   | (TypeVoid, TypeVoid) ->
     TypeVoid
@@ -19,13 +21,18 @@ let rec merge_union left right =
   | (TypeUnion (other_left, other_right), _) ->
     let union = (fst left, (merge_union other_left other_right)) in
     merge_union union right
+  | (_, TypeUnion (other_left, other_right)) ->
+    let union = (fst left, (merge_union other_left other_right)) in
+    merge_union union right
   | (_, _) ->
     TypeUnion (left, right)
 
-let merge_inter left right =
+let rec merge_inter left right =
   match (snd left, snd right) with
-  | (TypeAny, TypeAny) ->
-    TypeAny
+  | (TypeAny, right) ->
+    right
+  | (left, TypeAny) ->
+    left
   | (TypeVoid, TypeVoid) ->
     TypeVoid
   | (TypeBool, TypeBool) ->
@@ -38,5 +45,11 @@ let merge_inter left right =
     TypeString
   | (TypeVar param, TypeVar other_param) when param = other_param ->
     TypeVar param
+  | (TypeInter (other_left, other_right), _) ->
+    let inter = (fst left, (merge_inter other_left other_right)) in
+    merge_inter inter right
+  | (_, TypeInter (other_left, other_right)) ->
+    let inter = (fst left, (merge_inter other_left other_right)) in
+    merge_inter inter right
   | (_, _) ->
     TypeInter (left, right)

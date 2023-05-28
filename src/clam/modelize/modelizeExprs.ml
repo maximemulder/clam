@@ -137,39 +137,24 @@ and modelize_expr_data (expr: Ast.expr): state -> Model.expr_data * state =
     let* exprs = list_map modelize_expr exprs in
     return (Model.ExprTuple exprs)
   | ExprRecord attrs ->
-    let* attrs = list_map modelize_attr attrs in
+    let* attrs = list_map modelize_attr2 attrs in
     return (Model.ExprRecord attrs)
   | ExprVariant (expr, index) ->
-    let* expr = modelize_expr expr in
-    let index = parse_int expr index in
-    return (Model.ExprVariant (expr, index))
-  | ExprAttr (expr, attr) ->
-    let* expr = modelize_expr expr in
-    return (Model.ExprAttr (expr, attr))
+    modelize_elem expr index
+  | ExprAttr (expr, name) ->
+    modelize_attr expr name
   | ExprPreop (op, expr) ->
-    let* expr = modelize_expr expr in
-    return (Model.ExprPreop (op, expr))
+    modelize_preop op expr
   | ExprBinop  (left, op, right) ->
-    let* left = modelize_expr left in
-    let* right = modelize_expr right in
-    return (Model.ExprBinop (left, op, right))
+    modelize_binop left op right
   | ExprAscr (expr, type') ->
-    let* expr = modelize_expr expr in
-    let* type' = modelize_type type' in
-    return (Model.ExprAscr (expr, type'))
+    modelize_ascr expr type'
   | ExprBlock block ->
-    let* block = modelize_block block in
-    return (Model.ExprBlock block)
+    modelize_block block
   | ExprIf (cond, then', else') ->
-    let* cond = modelize_expr cond in
-    let* then' = modelize_expr then' in
-    let* else' = modelize_expr else' in
-    return (Model.ExprIf (cond, then', else'))
-  | ExprAbs (params, type', expr) ->
-    let* params = list_map modelize_param params in
-    let* type' = option_map modelize_type type' in
-    let* expr = modelize_abs_expr params expr in
-    return (Model.ExprAbs (params, type', expr))
+    modelize_if cond then' else'
+  | ExprAbs (params, ret, body) ->
+    modelize_abs params ret body
   | ExprApp (expr, args) ->
     let* expr = modelize_expr expr in
     let* args = list_map modelize_expr args in
@@ -196,13 +181,16 @@ and modelize_type_param (param: Ast.param) =
   let type' = Option.value type' ~default:(param.param_pos, Model.TypeAny) in
   return { Model.param_type_name = param.param_name; Model.param_type = type' }
 
-and modelize_attr (attr: Ast.attr_expr) =
+and modelize_attr2 (attr: Ast.attr_expr) =
   let* expr = modelize_expr attr.attr_expr in
   return { Model.attr_expr_name = attr.attr_expr_name; Model.attr_expr = expr }
 
 and modelize_block (block: Ast.block) =
   let* (stmts, expr) = modelize_block_stmts block.Ast.block_stmts block.Ast.block_expr in
-  return { Model.block_stmts = stmts; Model.block_expr = expr }
+  return (Model.ExprBlock {
+    expr_block_stmts = stmts;
+    expr_block_expr = expr
+  })
 
 and modelize_block_stmts stmts ret state =
   match stmts with
@@ -225,12 +213,68 @@ and modelize_block_stmts stmts ret state =
       let stmt = Model.StmtExpr expr in
       let ((stmts, ret), state) = modelize_block_stmts stmts ret state in
       let stmts = stmt :: stmts in
-      ((stmts, ret), state)
+    ((stmts, ret), state)
     )
 
-and modelize_abs_expr params expr state =
-  let params = List.map (fun param -> (param.Model.param_expr_name, Model.BindExprParam param)) params in
-  with_scope (modelize_expr expr) NameMap.empty [] params state
+and modelize_elem expr index =
+  let* expr = modelize_expr expr in
+  let index = parse_int expr index in
+  return (Model.ExprElem {
+    expr_elem_expr = expr;
+    expr_elem_index = index;
+  })
+
+and modelize_attr expr name =
+  let* expr = modelize_expr expr in
+  return (Model.ExprAttr {
+    expr_attr_expr = expr;
+    expr_attr_name = name;
+  })
+
+and modelize_preop op expr =
+  let* expr = modelize_expr expr in
+  return (Model.ExprPreop {
+    expr_preop_op = op;
+    expr_preop_expr = expr;
+  })
+
+and modelize_binop left op right =
+  let* left = modelize_expr left in
+  let* right = modelize_expr right in
+  return (Model.ExprBinop {
+    expr_binop_left = left;
+    expr_binop_op = op;
+    expr_binop_right = right;
+  })
+
+and modelize_ascr expr type' =
+  let* expr = modelize_expr expr in
+  let* type' = modelize_type type' in
+  return (Model.ExprAscr {
+    expr_ascr_expr = expr;
+    expr_ascr_type = type';
+  })
+
+and modelize_if cond then' else' =
+  let* cond = modelize_expr cond in
+  let* then' = modelize_expr then' in
+  let* else' = modelize_expr else' in
+  return (Model.ExprIf {
+    expr_if_cond = cond;
+    expr_if_then = then';
+    expr_if_else = else';
+  })
+
+and modelize_abs params ret body =
+  let* params = list_map modelize_param params in
+  let* ret = option_map modelize_type ret in
+  let pairs = List.map (fun param -> (param.Model.param_expr_name, Model.BindExprParam param)) params in
+  let* body = with_scope (modelize_expr body) NameMap.empty [] pairs in
+  return (Model.ExprAbs {
+    expr_abs_params = params;
+    expr_abs_ret = ret;
+    expr_abs_body = body;
+  })
 
 and modelize_type_abs_expr params expr state =
   let types = ModelizeTypes.modelize_abs params (translate_state state) in

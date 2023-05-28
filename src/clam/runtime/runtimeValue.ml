@@ -1,5 +1,4 @@
 open Utils
-open Model
 
 type value =
 | VPrint
@@ -10,8 +9,8 @@ type value =
 | VString  of string
 | VTuple   of value list
 | VRecord  of value NameMap.t
-| VExprAbs of (param_expr list) * expr
-| VTypeAbs of (param_type list) * expr
+| VExprAbs of Model.expr_abs
+| VTypeAbs of (Model.param_type list) * Model.expr
 
 let rec compare value other =
   match (value, other) with
@@ -31,8 +30,8 @@ let rec compare value other =
     compare_lists compare values others
   | (VRecord attrs, VRecord others) ->
     compare_maps compare attrs others
-  | (VExprAbs (a, b), VExprAbs (c, d)) ->
-    (a, b) = (c, d)
+  | (VExprAbs abs, VExprAbs other) ->
+    abs = other
   | (VTypeAbs (a, b), VTypeAbs (c, d)) ->
     (a, b) = (c, d)
   | _ -> false

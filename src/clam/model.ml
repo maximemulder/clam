@@ -43,14 +43,14 @@ and expr_data =
   | ExprBind    of expr_bind
   | ExprTuple   of expr list
   | ExprRecord  of attr_expr list
-  | ExprVariant of expr * int
-  | ExprAttr    of expr * string
-  | ExprPreop   of string * expr
-  | ExprBinop   of expr * string * expr
-  | ExprAscr    of expr * type'
+  | ExprElem    of expr_elem
+  | ExprAttr    of expr_attr
+  | ExprPreop   of expr_preop
+  | ExprBinop   of expr_binop
+  | ExprAscr    of expr_ascr
   | ExprBlock   of expr_block
-  | ExprIf      of expr * expr * expr
-  | ExprAbs     of (param_expr list) * (type' option) * expr
+  | ExprIf      of expr_if
+  | ExprAbs     of expr_abs
   | ExprApp     of expr * (expr list)
   | ExprTypeAbs of (param_type list) * expr
   | ExprTypeApp of expr * (type' list)
@@ -59,9 +59,47 @@ and expr_bind = {
   mutable bind_expr: bind_expr option;
 }
 
+and expr_elem = {
+  expr_elem_expr: expr;
+  expr_elem_index: int;
+}
+
+and expr_attr = {
+  expr_attr_expr: expr;
+  expr_attr_name: string;
+}
+
+and expr_preop = {
+  expr_preop_op: string;
+  expr_preop_expr: expr;
+}
+
+and expr_binop = {
+  expr_binop_left: expr;
+  expr_binop_op: string;
+  expr_binop_right: expr;
+}
+
+and expr_ascr = {
+  expr_ascr_expr: expr;
+  expr_ascr_type: type';
+}
+
 and expr_block = {
-  block_stmts: stmt list;
-  block_expr: expr option;
+  expr_block_stmts: stmt list;
+  expr_block_expr: expr option;
+}
+
+and expr_if = {
+  expr_if_cond: expr;
+  expr_if_then: expr;
+  expr_if_else: expr;
+}
+
+and expr_abs = {
+  expr_abs_params: param_expr list;
+  expr_abs_ret: type' option;
+  expr_abs_body: expr;
 }
 
 and stmt =
