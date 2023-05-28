@@ -54,8 +54,7 @@ module StateMonad (S: STATE) = struct
   let bind m f =
     fun s ->
       let (a, s1) = m s in
-      let (b, s2) = f a s1 in
-      (b, s2)
+      f a s1
 end
 
 module type READER = sig
@@ -72,3 +71,11 @@ module ReaderMonad (R: READER) = struct
   let bind r f =
     fun c -> f (r c) c
 end
+
+(* state let map:
+
+  let (let+) m f =
+  fun s ->
+    let (a, s1) = m s in
+    (f a, s1)
+*)

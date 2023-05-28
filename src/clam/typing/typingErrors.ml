@@ -4,7 +4,6 @@ open Model
 let raise message pos =
   Error.raise "TYPE ERROR" (message ^ "\n" ^ Error.display_pos pos)
 
-
 let raise_expr_recursive def =
   raise ("recursive definition `" ^ def.def_expr_name ^ "`, type annotation needed") def.def_expr_pos
 
@@ -66,6 +65,11 @@ let raise_type_app_arity type' params args =
   let length_params = string_of_int (List.length params) in
   let length_args = string_of_int (List.length args) in
   raise ("expected " ^ length_params ^ " arguments but found " ^ length_args ^ " arguments") (fst type')
+
+let raise_type_proper type' =
+  let pos = fst type' in
+  let type' = display type' in
+  raise ("expected proper type but found type `" ^ type' ^ "`") pos
 
 let raise_unexpected _ =
   Error.raise "TYPE ERROR" "unexpected error"

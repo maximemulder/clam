@@ -1,6 +1,6 @@
 def increment = (i: Int) => i + 1;
 
-def fibonacci: (Int) -> Int = (n: Int) =>
+def fibonacci = (n: Int) -> Int =>
     if n == 0 | n == 1 then
         n
     else

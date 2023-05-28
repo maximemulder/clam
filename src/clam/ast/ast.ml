@@ -37,13 +37,13 @@ and type_data =
 and expr = pos * expr_data
 
 and expr_data =
-  | ExprIdent   of string
   | ExprVoid
   | ExprTrue
   | ExprFalse
   | ExprInt     of string
   | ExprChar    of string
   | ExprString  of string
+  | ExprIdent   of string
   | ExprTuple   of expr list
   | ExprRecord  of attr_expr list
   | ExprVariant of expr * string
