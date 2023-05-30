@@ -43,10 +43,10 @@ and expr_data =
   | ExprInt     of string
   | ExprChar    of string
   | ExprString  of string
-  | ExprIdent   of string
+  | ExprBind    of string
   | ExprTuple   of expr list
   | ExprRecord  of attr_expr list
-  | ExprVariant of expr * string
+  | ExprElem    of expr * string
   | ExprAttr    of expr * string
   | ExprPreop   of string * expr
   | ExprBinop   of expr * string * expr

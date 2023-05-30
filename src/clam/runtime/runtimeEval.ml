@@ -57,7 +57,7 @@ let rec eval (expr: Model.expr) =
   | ExprString string ->
     return (VString string)
   | ExprBind bind ->
-    eval_bind (Option.get bind.Model.bind_expr)
+    eval_bind bind
   | ExprTuple tuple ->
     let* values = map_list eval tuple.expr_tuple_exprs in
     return (VTuple values)
@@ -94,11 +94,11 @@ let rec eval (expr: Model.expr) =
     eval_type_app app.expr_type_app_expr
 
 and eval_bind bind context =
-  match bind with
-  | Model.BindExprDef def -> eval def.Model.def_expr (new_empty context.out_handler)
-  | Model.BindExprParam param -> get_param param context.stack
-  | Model.BindExprPrint -> VPrint
-  | Model.BindExprVar var -> get_var var context.stack
+  match (Option.get !(bind.expr_bind)) with
+  | BindExprDef def -> eval def.def_expr (new_empty context.out_handler)
+  | BindExprParam param -> get_param param context.stack
+  | BindExprPrint -> VPrint
+  | BindExprVar var -> get_var var context.stack
 
 and eval_expr_app app context =
   let value = eval app.expr_app_expr context in

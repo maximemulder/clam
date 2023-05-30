@@ -56,7 +56,7 @@ and expr_data =
   | ExprTypeApp of expr_type_app
 
 and expr_bind = {
-  mutable bind_expr: bind_expr option;
+  expr_bind: bind_expr option ref;
 }
 
 and expr_tuple = {

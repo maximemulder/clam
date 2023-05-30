@@ -4,8 +4,8 @@ type scope = {
   parent: scope option;
   types: Model.type' NameMap.t;
   remains: Ast.def_expr NameMap.t;
-  currents: Model.expr_bind NameMap.t;
-  dones: Model.expr_bind NameMap.t;
+  currents: Model.bind_expr option ref NameMap.t;
+  dones: Model.bind_expr option ref NameMap.t;
 }
 
 type state = {
@@ -37,7 +37,7 @@ let fold_remain map remain =
   NameMap.add remain.Ast.expr_name remain map
 
 let fold_done map done' =
-  NameMap.add (fst done') { Model.bind_expr = Some (snd done') } map
+  NameMap.add (fst done') { contents = Some (snd done') } map
 
 let make_state types remains dones =
   let remains = List.fold_left fold_remain NameMap.empty remains in
@@ -90,10 +90,10 @@ let rec modelize_name expr name state =
   | Some def -> modelize_def def state
   | None     ->
   match find_current name state with
-  | Some bind -> ((Model.ExprBind bind), state)
+  | Some bind -> (bind, state)
   | None      ->
   match find_done name state with
-  | Some bind -> ((Model.ExprBind bind), state)
+  | Some bind -> (bind, state)
   | None      ->
   match state.scope.parent with
   | Some scope ->
@@ -105,22 +105,20 @@ let rec modelize_name expr name state =
 and modelize_def def state =
   let name = def.Ast.expr_name in
   let (remain, remains) = extract name state.scope.remains in
-  let currents = NameMap.add name { Model.bind_expr = None } state.scope.currents in
+  let currents = NameMap.add name { contents = None } state.scope.currents in
   let state = { state with scope = { state.scope with remains; currents } } in
   let type' = Option.map (fun type' -> fst (modelize_type type' state)) remain.Ast.expr_type in
   let (expr, state) = modelize_expr remain.Ast.expr state in
   let (current, currents) = extract name state.scope.currents in
   let (id, state) = next_id state in
   let def = Model.make_def_expr def.Ast.expr_pos id name type' expr in
-  let _ = current.bind_expr <- Some (Model.BindExprDef def) in
+  let _ = current := Some (Model.BindExprDef def) in
   let dones = NameMap.add name current state.scope.dones in
   let state = { state with scope = { state.scope with currents; dones}; all_exprs = def :: state.all_exprs } in
-  (Model.ExprBind current, state)
+  (current, state)
 
 and modelize_expr_data (expr: Ast.expr): state -> Model.expr_data * state =
   match snd expr with
-  | ExprIdent name ->
-    modelize_name expr name
   | ExprVoid ->
     return Model.ExprVoid
   | ExprTrue ->
@@ -133,11 +131,13 @@ and modelize_expr_data (expr: Ast.expr): state -> Model.expr_data * state =
     return (Model.ExprChar (parse_char value))
   | ExprString value ->
     return (Model.ExprString (parse_string value))
+  | ExprBind name ->
+    modelize_bind expr name
   | ExprTuple exprs ->
     modelize_tuple exprs
   | ExprRecord attrs ->
     modelize_record attrs
-  | ExprVariant (expr, index) ->
+  | ExprElem (expr, index) ->
     modelize_elem expr index
   | ExprAttr (expr, name) ->
     modelize_attr expr name
@@ -164,6 +164,12 @@ and modelize_expr_data (expr: Ast.expr): state -> Model.expr_data * state =
 and modelize_expr (expr: Ast.expr): state -> Model.expr * state =
   let* expr_data = modelize_expr_data expr in
   return (fst expr, expr_data)
+
+and modelize_bind expr name =
+  let* bind = modelize_name expr name in
+  return (Model.ExprBind {
+    expr_bind = bind
+  })
 
 and modelize_tuple exprs =
   let* exprs = map_list modelize_expr exprs in

@@ -3,7 +3,6 @@ open Model
 open TypingApp
 open TypingContext
 open TypingMerge
-open TypingSub
 
 module DefKey = struct
   type t = def_expr
@@ -133,7 +132,7 @@ let rec check expr constr =
 
 and check_infer expr constr =
   let* type' = infer_none expr in
-  if Bool.not (is_subtype type' constr) then
+  if Bool.not (TypingSub.is_subtype type' constr) then
     TypingErrors.raise_expr_constraint expr type' constr
   else
     return ()
@@ -247,7 +246,7 @@ and infer expr returner =
   | ExprString _ ->
     returner (make_type expr TypeString)
   | ExprBind bind ->
-    infer_bind expr (Option.get bind.bind_expr) returner
+    infer_bind expr bind returner
   | ExprTuple tuple ->
     infer_tuple expr tuple returner
   | ExprRecord record ->
@@ -280,6 +279,7 @@ and infer_none expr =
 
 and infer_bind expr bind returner state =
   let pos = fst expr in
+  let bind = Option.get !(bind.expr_bind) in
   match bind with
   | BindExprPrint ->
     returner (pos, TypeAbsExpr ([(pos, TypeAny)], (pos, TypeVoid))) state
@@ -307,22 +307,47 @@ and infer_record_attr attr =
 
 and infer_elem elem returner =
   let* type' = infer_none elem.expr_elem_expr in
+  match infer_elem_type type' elem.expr_elem_index with
+  | Some type' -> returner type'
+  | None -> TypingErrors.raise_expr_elem elem type'
+
+and infer_elem_type type' index =
   match snd type' with
   | TypeTuple types ->
-    (match List.nth_opt types elem.expr_elem_index with
-    | Some type' -> returner type'
-    | None -> TypingErrors.raise_expr_elem_index elem type')
-  | _ ->
-    TypingErrors.raise_expr_elem_tuple elem type'
+    List.nth_opt types index
+  | TypeUnion (left, right) ->
+    let left = infer_elem_type left index in
+    let right = infer_elem_type right index in
+    Utils.map_option2 left right
+      (fun left right -> (fst type', (merge_union left right)))
+  | TypeInter (left, right) ->
+    let left = infer_elem_type left index in
+    let right = infer_elem_type right index in
+    Utils.join_option2 left right
+      (fun left right -> (fst type', (merge_inter left right)))
+  | _ -> None
 
 and infer_attr attr returner =
   let* type' = infer_none attr.expr_attr_expr in
+  match infer_attr_type type' attr.expr_attr_name with
+  | Some type' -> returner type'
+  | None -> TypingErrors.raise_expr_attr attr type'
+
+and infer_attr_type type' name =
   match snd type' with
   | TypeRecord attrs ->
-    (match NameMap.find_opt attr.expr_attr_name attrs with
-    | Some attr -> returner attr.attr_type
-    | None -> TypingErrors.raise_expr_attr_name attr type')
-  | _ -> TypingErrors.raise_expr_attr_record attr type'
+    Option.map (fun attr -> attr.attr_type) (NameMap.find_opt name attrs)
+  | TypeUnion (left, right) ->
+    let left = infer_attr_type left name in
+    let right = infer_attr_type right name in
+    Utils.map_option2 left right
+      (fun left right -> (fst type', (merge_union left right)))
+  | TypeInter (left, right) ->
+    let left = infer_attr_type left name in
+    let right = infer_attr_type right name in
+    Utils.join_option2 left right
+      (fun left right -> (fst type', (merge_inter left right)))
+  | _ -> None
 
 and infer_preop expr preop returner =
   let entry = NameMap.find_opt preop.expr_preop_op preop_types in

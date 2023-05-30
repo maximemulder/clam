@@ -12,23 +12,17 @@ let raise_expr_constraint expr type' constraint' =
   let constraint' = display constraint' in
   raise ("expected expression of type `" ^ constraint' ^ "` but found expression of type `" ^ type' ^ "`") (fst expr)
 
-let raise_expr_elem_tuple elem type' =
+let raise_expr_elem elem type' =
   let type' = display type' in
-  raise ("expected tuple expression but found expression of type `" ^ type' ^ "`") (fst elem.expr_elem_expr)
-
-let raise_expr_elem_index elem type' =
   let index = string_of_int elem.expr_elem_index in
-  let type' = display type' in
-  raise ("index " ^ index ^ " is too high for expression of type `" ^ type' ^ "`") (fst elem.expr_elem_expr)
+  let pos = fst elem.expr_elem_expr in
+  raise ("expected tuple expression with element `" ^ index ^"` but found expression of type `" ^ type' ^ "`") pos
 
-let raise_expr_attr_record attr type' =
-  let type' = display type' in
-  raise ("expected record expression but found expression of type `" ^ type' ^ "`") (fst attr.expr_attr_expr)
-
-let raise_expr_attr_name attr type' =
+let raise_expr_attr attr type' =
   let name = attr.expr_attr_name in
   let type' = display type' in
-  raise ("attribute `" ^ name ^ "` is not in expression of type `" ^ type' ^ "`") (fst attr.expr_attr_expr)
+  let pos = fst attr.expr_attr_expr in
+  raise ("expected record expression with attribute `" ^ name ^ "` but found expression of type `" ^ type' ^ "`") pos
 
 let raise_expr_app_kind app type' =
   let pos = fst app.expr_app_expr in

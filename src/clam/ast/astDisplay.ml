@@ -34,16 +34,16 @@ let node_name node =
     | TypeAbs         _ -> "abs"
     | TypeApp         _ -> "app")
   | Expr expr -> "expr." ^ (match snd expr with
-    | ExprIdent   _ -> "name"
     | ExprVoid      -> "void"
     | ExprTrue      -> "true"
     | ExprFalse     -> "false"
     | ExprInt     _ -> "int"
     | ExprChar    _ -> "char"
     | ExprString  _ -> "string"
+    | ExprBind    _ -> "bind"
     | ExprTuple   _ -> "tuple"
     | ExprRecord  _ -> "record"
-    | ExprVariant _ -> "variant"
+    | ExprElem    _ -> "elem"
     | ExprAttr    _ -> "attr"
     | ExprPreop   _ -> "preop"
     | ExprBinop   _ -> "binop"
@@ -90,8 +90,6 @@ let node_attrs node =
     | TypeApp (type', args) ->
       [("type", ANode (Type type')); ("args", AList (List.map (fun arg -> Type arg) args))])
   | Expr expr -> (match snd expr with
-    | ExprIdent name ->
-      [("name", AString name)]
     | ExprVoid -> []
     | ExprTrue -> []
     | ExprFalse -> []
@@ -101,11 +99,13 @@ let node_attrs node =
       [("value", AString value)]
     | ExprString value ->
       [("value", AString value)]
+    | ExprBind name ->
+      [("name", AString name)]
     | ExprTuple exprs ->
       [("exprs", AList (List.map (fun expr -> Expr expr) exprs))]
     | ExprRecord attrs ->
       [("attrs", AList (List.map (fun attr -> AttrExpr attr) attrs))]
-    | ExprVariant (expr, index) ->
+    | ExprElem (expr, index) ->
       [("expr", ANode (Expr expr)); ("index", AString index)]
     | ExprAttr (expr, attr) ->
       [("expr", ANode (Expr expr)); ("attr", AString attr)]

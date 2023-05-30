@@ -42,10 +42,6 @@ let rec is_subtype type' other =
   let type' = apply type' empty_context in
   let other = apply other empty_context in
   match (snd type', snd other) with
-  | (_, TypeInter (left, right)) ->
-    is_subtype type' left && is_subtype type' right
-  | (_, TypeUnion (left, right)) ->
-    is_subtype type' left || is_subtype type' right
   | (_, TypeAny) -> true
   | (TypeVoid, TypeVoid) -> true
   | (TypeBool, TypeBool) -> true
@@ -65,10 +61,14 @@ let rec is_subtype type' other =
     | Some attr -> is_subtype attr.attr_type other.attr_type
     | None -> false
     ) other_attrs
+  | (_, TypeInter (left, right)) ->
+    is_subtype type' left && is_subtype type' right
   | (TypeInter (left, right), _) ->
     is_subtype left other || is_subtype right other
   | (TypeUnion (left, right), _) ->
     is_subtype left other && is_subtype right other
+  | (_, TypeUnion (left, right)) ->
+    is_subtype type' left || is_subtype type' right
   | (TypeAbs (params, type'), TypeAbs (other_params, other_type)) ->
     compare_lists is_type_param other_params params && is_subtype type' other_type
   | _ -> false

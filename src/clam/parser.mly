@@ -137,8 +137,6 @@ let expr_05 :=
     { $startpos, ExprAscr (expr, type_) }
 
 let expr_1 :=
-  | name = IDENT;
-    { $startpos, ExprIdent name }
   | VOID;
     { $startpos, ExprVoid }
   | TRUE;
@@ -151,12 +149,14 @@ let expr_1 :=
     { $startpos, ExprChar char }
   | string = STRING;
     { $startpos, ExprString string }
+  | name = IDENT;
+    { $startpos, ExprBind name }
   | AT; PARENTHESIS_LEFT; exprs = list_comma(expr); PARENTHESIS_RIGHT;
     { $startpos, ExprTuple exprs }
   | AT; BRACE_LEFT; attrs = list_comma(attr_expr); BRACE_RIGHT;
     { $startpos, ExprRecord (attrs) }
   | expr = expr_1; DOT; index = INT;
-    { $startpos, ExprVariant (expr, index) }
+    { $startpos, ExprElem (expr, index) }
   | expr = expr_1; DOT; name = IDENT;
     { $startpos, ExprAttr (expr, name) }
   | block = block;

@@ -26,3 +26,15 @@ let compare_maps compare map other =
   List.for_all (fun (entry, other_entry) ->
     (fst entry) = (fst other_entry) && compare (snd entry) (snd other_entry)
   ) pairs
+
+let map_option2 x y f =
+  match (x, y) with
+  | (Some x, Some y) -> Some (f x y)
+  | _ -> None
+
+let join_option2 x y f =
+  match (x, y) with
+  | (Some x, Some y) -> Some (f x y)
+  | (Some x, None) -> Some x
+  | (None, Some y) -> Some y
+  | _ -> None

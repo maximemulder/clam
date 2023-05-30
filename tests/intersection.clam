@@ -1,7 +1,12 @@
-type AB = {a: Int} & {b: String};
+type AB = {a: Int, c: String} & {a: Int, b: String};
 
 def main = {
-    var ab: AB = @{a = 1, b = "Hello"};
-
+    var ab: AB = @{a = 1, b = "Hello", c = "World"};
+    var a: Int = ab.a;
+    var b: String = ab.b;
+    var c: String = ab.c;
     print(ab);
+    print(a);
+    print(b);
+    print(c);
 };
