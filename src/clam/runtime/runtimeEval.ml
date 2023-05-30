@@ -58,14 +58,14 @@ let rec eval (expr: Model.expr) =
     return (VString string)
   | ExprBind bind ->
     eval_bind (Option.get bind.Model.bind_expr)
-  | ExprTuple exprs ->
-    let* values = list_map eval exprs in
+  | ExprTuple tuple ->
+    let* values = map_list eval tuple.expr_tuple_exprs in
     return (VTuple values)
-  | ExprRecord attrs ->
-    let* attrs = list_fold (fun map attr ->
+  | ExprRecord record ->
+    let* attrs = fold_list (fun map attr ->
       let* value = (eval attr.Model.attr_expr) in
       return (NameMap.add attr.Model.attr_expr_name value map)
-    ) NameMap.empty attrs in
+    ) NameMap.empty record.expr_record_attrs in
     return (VRecord attrs)
   | ExprElem elem ->
     let* values = eval_tuple elem.expr_elem_expr in
@@ -86,11 +86,12 @@ let rec eval (expr: Model.expr) =
     if cond then eval if'.expr_if_then else eval if'.expr_if_else
   | ExprAbs abs ->
     return (VExprAbs abs)
-  | ExprApp (expr, args) -> eval_expr_app expr args
-  | ExprTypeAbs (params, expr) ->
-    return (VTypeAbs (params, expr))
-  | ExprTypeApp (expr, _) ->
-    eval_type_app expr
+  | ExprApp app ->
+    eval_expr_app app
+  | ExprTypeAbs abs ->
+    return (VTypeAbs abs)
+  | ExprTypeApp app ->
+    eval_type_app app.expr_type_app_expr
 
 and eval_bind bind context =
   match bind with
@@ -99,8 +100,9 @@ and eval_bind bind context =
   | Model.BindExprPrint -> VPrint
   | Model.BindExprVar var -> get_var var context.stack
 
-and eval_expr_app expr args context =
-  let value = eval expr context in
+and eval_expr_app app context =
+  let value = eval app.expr_app_expr context in
+  let args = app.expr_app_args in
   match value with
   | VPrint -> eval_expr_app_print args context
   | VExprAbs abs -> eval_expr_app_abs abs args context
@@ -113,7 +115,7 @@ and eval_expr_app_print args context =
   VVoid
 
 and eval_expr_app_abs abs args context =
-  let args = list_map eval args context in
+  let args = map_list eval args context in
   let pairs = List.combine abs.expr_abs_params args in
   let binds = List.fold_left (fun map (param, value) -> BindMap.add (Model.BindExprParam param) value map) BindMap.empty pairs in
   let context = new_frame context binds in
@@ -122,7 +124,7 @@ and eval_expr_app_abs abs args context =
 and eval_type_app expr =
   let* value = eval expr in
   match value with
-  | VTypeAbs (_, expr) -> eval expr
+  | VTypeAbs app -> eval app.expr_type_abs_body
   | _ -> RuntimeErrors.raise_value ()
 
 and eval_expr_block block =

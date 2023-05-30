@@ -27,7 +27,7 @@ let rec merge_union left right =
   | (_, _) ->
     TypeUnion (left, right)
 
-let rec merge_inter left right =
+and merge_inter left right =
   match (snd left, snd right) with
   | (TypeAny, right) ->
     right

@@ -1,0 +1,35 @@
+type IntInterface = [T] {
+    zero: T,
+    prec: (T) -> T,
+    succ: (T) -> T,
+    is_zero: (T) -> Bool,
+    print: (T) -> Void
+};
+
+type MyInt = Int;
+
+def my_int: IntInterface[MyInt] = @{
+    zero = 0,
+    prec = (i) => i - 1,
+    succ = (i) => i + 1,
+    is_zero = (i) => i == 0,
+    print = print
+};
+
+def apply_n = [T] => (v: T, f: (T) -> T, n: Int) -> T =>
+    if n == 0 then
+        v
+    else
+        apply_n[T](f(v), f, n - 1);
+
+def add_10 = [T] => (t: IntInterface[T], i: T) =>
+    apply_n[T](i, t.succ, 10);
+
+def main = {
+    var zero = my_int.zero;
+    my_int.print(zero);
+    print(my_int.is_zero(zero));
+    var ten = add_10[MyInt](my_int, zero);
+    my_int.print(ten);
+    print(my_int.is_zero(ten));
+};

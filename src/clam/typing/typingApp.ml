@@ -28,15 +28,15 @@ and apply_type_data type' =
   | TypeVar param ->
     apply_var param
   | TypeAbsExpr (params, type') ->
-    let* params = list_map apply_type params in
+    let* params = map_list apply_type params in
     let* type' = apply_type type' in
     return (TypeAbsExpr (params, type'))
   | TypeAbsExprType (params, type') ->
-    let* params = list_map apply_param params in
+    let* params = map_list apply_param params in
     let* type' = apply_type type' in
     return (TypeAbsExprType (params, type'))
   | TypeTuple types ->
-    let* types = list_map apply_type types in
+    let* types = map_list apply_type types in
     return (TypeTuple types)
   | TypeRecord attrs ->
     let* attrs = map_map apply_attr attrs in
@@ -50,7 +50,7 @@ and apply_type_data type' =
     let* right = apply_type right in
     return (TypeUnion (left, right))
   | TypeAbs (params, type') ->
-    let* params = list_map apply_param params in
+    let* params = map_list apply_param params in
     let* type' = apply_type type' in
     return (TypeAbs (params, type'))
   | TypeApp (type', args) -> apply_app type' args

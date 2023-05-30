@@ -30,23 +30,27 @@ let raise_expr_attr_name attr type' =
   let type' = display type' in
   raise ("attribute `" ^ name ^ "` is not in expression of type `" ^ type' ^ "`") (fst attr.expr_attr_expr)
 
-let raise_expr_app_kind expr type' =
+let raise_expr_app_kind app type' =
+  let pos = fst app.expr_app_expr in
   let type' = display type' in
-  raise ("expected expression abstraction but found expression of type `" ^ type' ^ "`") (fst expr)
+  raise ("expected expression abstraction but found expression of type `" ^ type' ^ "`") pos
 
-let raise_expr_app_arity expr params args =
+let raise_expr_app_arity app params =
+  let pos = fst app.expr_app_expr in
   let length_params = string_of_int (List.length params) in
-  let length_args = string_of_int (List.length args) in
-  raise ("expected " ^ length_params ^ " arguments but found " ^ length_args ^ " arguments") (fst expr)
+  let length_args = string_of_int (List.length app.expr_app_args) in
+  raise ("expected " ^ length_params ^ " arguments but found " ^ length_args ^ " arguments") pos
 
-let raise_expr_type_app_kind expr type' =
+let raise_expr_type_app_kind app type' =
+  let pos = fst app.expr_type_app_expr in
   let type' = display type' in
-  raise ("expected type abstraction but found type `" ^ type' ^ "`") (fst expr)
+  raise ("expected type abstraction but found type `" ^ type' ^ "`") pos
 
-let raise_expr_type_app_arity expr params args =
+let raise_expr_type_app_arity app params =
+  let pos = fst app.expr_type_app_expr in
   let length_params = string_of_int (List.length params) in
-  let length_args = string_of_int (List.length args) in
-  raise ("expected " ^ length_params ^ " arguments but found " ^ length_args ^ " arguments") (fst expr)
+  let length_args = string_of_int (List.length app.expr_type_app_args) in
+  raise ("expected " ^ length_params ^ " arguments but found " ^ length_args ^ " arguments") pos
 
 let raise_param param =
   raise ("require type annotation for parameter `" ^ param.param_expr_name ^ "`") param.param_expr_pos

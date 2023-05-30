@@ -85,6 +85,7 @@ It is not possible to know whether what is left of the arrow is a tuple with a t
 Records and blocks
 Example: `{ ident = expr }`
 It is not possible to know whether a production is a block or a record before advancing to the equal symbol, which is problematic to reduce an empty statement list in LR(1).
+Also, it is not possible to know whether `{}` is an empty record or block.
 
 Blocks and statements
 Example: `{ expr; expr }`

@@ -41,8 +41,8 @@ and expr_data =
   | ExprChar    of char
   | ExprString  of string
   | ExprBind    of expr_bind
-  | ExprTuple   of expr list
-  | ExprRecord  of attr_expr list
+  | ExprTuple   of expr_tuple
+  | ExprRecord  of expr_record
   | ExprElem    of expr_elem
   | ExprAttr    of expr_attr
   | ExprPreop   of expr_preop
@@ -51,12 +51,20 @@ and expr_data =
   | ExprBlock   of expr_block
   | ExprIf      of expr_if
   | ExprAbs     of expr_abs
-  | ExprApp     of expr * (expr list)
-  | ExprTypeAbs of (param_type list) * expr
-  | ExprTypeApp of expr * (type' list)
+  | ExprApp     of expr_app
+  | ExprTypeAbs of expr_type_abs
+  | ExprTypeApp of expr_type_app
 
 and expr_bind = {
   mutable bind_expr: bind_expr option;
+}
+
+and expr_tuple = {
+  expr_tuple_exprs: expr list;
+}
+
+and expr_record = {
+  expr_record_attrs: attr_expr list;
 }
 
 and expr_elem = {
@@ -102,6 +110,21 @@ and expr_abs = {
   expr_abs_body: expr;
 }
 
+and expr_app = {
+  expr_app_expr: expr;
+  expr_app_args: expr list;
+}
+
+and expr_type_abs = {
+  expr_type_abs_params: param_type list;
+  expr_type_abs_body: expr;
+}
+
+and expr_type_app = {
+  expr_type_app_expr: expr;
+  expr_type_app_args: type' list;
+}
+
 and stmt =
   | StmtVar  of var_expr * (type' option) * expr
   | StmtExpr of expr
@@ -115,9 +138,9 @@ and def_expr = {
 }
 
 and bind_expr =
+  | BindExprPrint
   | BindExprDef   of def_expr
   | BindExprParam of param_expr
-  | BindExprPrint
   | BindExprVar   of var_expr
 
 and param_expr = {
@@ -169,7 +192,14 @@ let make_attr_type pos name type' =
 
 let bind_expr_id bind =
   match bind with
+  | BindExprPrint       -> -1
   | BindExprDef   def   -> def.def_expr_id
   | BindExprParam param -> param.param_expr_id
-  | BindExprPrint       -> -1
   | BindExprVar   var   -> var.var_expr_id
+
+let bind_expr_name bind =
+  match bind with
+  | BindExprPrint       -> "print"
+  | BindExprDef   def   -> def.def_expr_name
+  | BindExprParam param -> param.param_expr_name
+  | BindExprVar   var   -> var.var_expr_name

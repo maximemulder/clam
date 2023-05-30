@@ -1,13 +1,1 @@
-def main = {
-    print("Hello world !");
-};
-
-type IntVtable = {
-    plus: (Int, Int) -> Int,
-    pos: (Int) -> Int
-};
-
-def int_vtable: IntVtable = @{
-    plus = (a, b) => a + b,
-    pos = (a) => a
-};
+def main = print("Hello world !");

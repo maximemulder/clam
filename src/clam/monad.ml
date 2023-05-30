@@ -11,33 +11,42 @@ module Monad (M: MONAD) = struct
 
   let (let*) = bind
 
-  let rec list_map f xs =
-    match xs with
-    | [] -> return []
-    | x :: xs ->
-      let* x = f x in
-      let* xs = list_map f xs in
-      return (x :: xs)
-
-  let rec list_fold f a xs =
-    match xs with
-    | [] -> return a
-    | x :: xs ->
-      let* b = f a x in
-      list_fold f b xs
-
-  let map_map f xs =
-    let f = (fun (k, v) -> let* v = f v in return (k, v)) in
-    let xs = List.of_seq (NameMap.to_seq xs) in
-    let* xs = list_map f xs in
-    return (NameMap.of_seq (List.to_seq xs))
-
-  let option_map f x =
+  let map_option f x =
     match x with
     | None -> return None
     | Some x ->
       let* x = f x in
       return (Some x)
+
+  let rec map_list f xs =
+    match xs with
+    | [] -> return []
+    | x :: xs ->
+      let* x = f x in
+      let* xs = map_list f xs in
+      return (x :: xs)
+
+  let rec map_list2 f xs ys =
+    match (xs, ys) with
+    | ([], []) -> return []
+    | (x :: xs, y :: ys) ->
+      let* z = f x y in
+      let* zs = map_list2 f xs ys in
+      return (z :: zs)
+    | _ -> invalid_arg "Monad.map_list2"
+
+  let map_map f xs =
+    let f = (fun (k, v) -> let* v = f v in return (k, v)) in
+    let xs = List.of_seq (NameMap.to_seq xs) in
+    let* xs = map_list f xs in
+    return (NameMap.of_seq (List.to_seq xs))
+
+  let rec fold_list f a xs =
+    match xs with
+    | [] -> return a
+    | x :: xs ->
+      let* b = f a x in
+      fold_list f b xs
 end
 
 module type STATE = sig

@@ -10,7 +10,7 @@ type value =
 | VTuple   of value list
 | VRecord  of value NameMap.t
 | VExprAbs of Model.expr_abs
-| VTypeAbs of (Model.param_type list) * Model.expr
+| VTypeAbs of Model.expr_type_abs
 
 let rec compare value other =
   match (value, other) with
@@ -32,6 +32,6 @@ let rec compare value other =
     compare_maps compare attrs others
   | (VExprAbs abs, VExprAbs other) ->
     abs = other
-  | (VTypeAbs (a, b), VTypeAbs (c, d)) ->
-    (a, b) = (c, d)
+  | (VTypeAbs abs, VTypeAbs other) ->
+    abs = other
   | _ -> false
