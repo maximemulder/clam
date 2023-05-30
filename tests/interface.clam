@@ -1,35 +1,75 @@
-type IntInterface = [T] {
-    zero: T,
-    prec: (T) -> T,
-    succ: (T) -> T,
-    is_zero: (T) -> Bool,
-    print: (T) -> Void
+type Object = [K, S] { class: K, state: S };
+
+type CounterState = { value: Int };
+
+type Counter = Object[CounterClass[CounterState], CounterState];
+
+type CounterReset = Object[CounterResetClass[CounterState], CounterState];
+
+type CounterClass = [S] {
+    make: S,
+    next: (S) -> S,
+    value: (S) -> Int
 };
 
-type MyInt = Int;
-
-def my_int: IntInterface[MyInt] = @{
-    zero = 0,
-    prec = (i) => i - 1,
-    succ = (i) => i + 1,
-    is_zero = (i) => i == 0,
-    print = print
+type CounterResetClass = [S] {
+    make: S,
+    next: (S) -> S,
+    value: (S) -> Int,
+    reset: (S) -> S
 };
 
-def apply_n = [T] => (v: T, f: (T) -> T, n: Int) -> T =>
-    if n == 0 then
-        v
-    else
-        apply_n[T](f(v), f, n - 1);
+def counter_class: CounterClass[CounterState] = @{
+    make = @{ value = 0 },
+    next = (c) => @{ value = c.value + 1 },
+    value = (c) => c.value
+};
 
-def add_10 = [T] => (t: IntInterface[T], i: T) =>
-    apply_n[T](i, t.succ, 10);
+def counter_reset_class: CounterResetClass[CounterState] = @{
+    make = @{ value = 0 },
+    next = (c) => @{ value = c.value + 1 },
+    value = (c) => c.value,
+    reset = (c) => @{ value = 0 }
+};
+
+def new_counter: Counter = @{
+    class = counter_class,
+    state = counter_class.make
+};
+
+def new_counter_reset: CounterReset = @{
+    class = counter_reset_class,
+    state = counter_reset_class.make
+};
+
+def call_next = (c: Counter) -> Counter => @{
+    class = c.class,
+    state = c.class.next(c.state)
+};
+
+def call_value = (c: Counter) -> Int =>
+    c.class.value(c.state);
+
+def call_reset_next = (c: CounterReset) -> CounterReset => @{
+    class = c.class,
+    state = c.class.next(c.state)
+};
+
+def call_reset = (c: CounterReset) => @{
+    class = c.class,
+    state = c.class.reset(c.state)
+};
 
 def main = {
-    var zero = my_int.zero;
-    my_int.print(zero);
-    print(my_int.is_zero(zero));
-    var ten = add_10[MyInt](my_int, zero);
-    my_int.print(ten);
-    print(my_int.is_zero(ten));
+    var c1 = new_counter;
+    print(call_value(c1));
+    var c1 = call_next(c1);
+    print(call_value(c1));
+
+    var c2 = new_counter_reset;
+    print(call_value(c2));
+    var c2 = call_reset_next(c2);
+    print(call_value(c2));
+    var c2 = call_reset(c2);
+    print(call_value(c2));
 };

@@ -1,6 +1,6 @@
 open Utils
 open Model
-open TypingApp
+open TypingApply
 open TypingContext
 
 (* TODO: This function is not exact, notably with unions and intersections *)

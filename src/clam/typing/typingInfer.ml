@@ -1,8 +1,6 @@
 open Utils
 open Model
-open TypingApp
 open TypingContext
-open TypingMerge
 
 module DefKey = struct
   type t = def_expr
@@ -103,7 +101,7 @@ let binop_types =
 
 let check_type type' context =
   TypingCheck.check type';
-  apply type' context
+  TypingApply.apply type' context
 
 let check_type_proper type' context =
   let type' = check_type type' context in
@@ -307,46 +305,52 @@ and infer_record_attr attr =
 
 and infer_elem elem returner =
   let* type' = infer_none elem.expr_elem_expr in
-  match infer_elem_type type' elem.expr_elem_index with
+  let* context = get_context in
+  match infer_elem_type type' elem.expr_elem_index context with
   | Some type' -> returner type'
   | None -> TypingErrors.raise_expr_elem elem type'
 
-and infer_elem_type type' index =
+and infer_elem_type type' index context =
+  let type' = TypingPromote.promote type' in
+  let type' = TypingApply.apply type' context in
   match snd type' with
   | TypeTuple types ->
     List.nth_opt types index
   | TypeUnion (left, right) ->
-    let left = infer_elem_type left index in
-    let right = infer_elem_type right index in
+    let left = infer_elem_type left index context in
+    let right = infer_elem_type right index context in
     Utils.map_option2 left right
-      (fun left right -> (fst type', (merge_union left right)))
+      (fun left right -> (fst type', (TypingJoin.join left right)))
   | TypeInter (left, right) ->
-    let left = infer_elem_type left index in
-    let right = infer_elem_type right index in
+    let left = infer_elem_type left index context in
+    let right = infer_elem_type right index context in
     Utils.join_option2 left right
-      (fun left right -> (fst type', (merge_inter left right)))
+      (fun left right -> (fst type', (TypingMeet.meet left right)))
   | _ -> None
 
 and infer_attr attr returner =
   let* type' = infer_none attr.expr_attr_expr in
-  match infer_attr_type type' attr.expr_attr_name with
+  let* context = get_context in
+  match infer_attr_type type' attr.expr_attr_name context with
   | Some type' -> returner type'
   | None -> TypingErrors.raise_expr_attr attr type'
 
-and infer_attr_type type' name =
+and infer_attr_type type' name context =
+  let type' = TypingPromote.promote type' in
+  let type' = TypingApply.apply type' context in
   match snd type' with
   | TypeRecord attrs ->
     Option.map (fun attr -> attr.attr_type) (NameMap.find_opt name attrs)
   | TypeUnion (left, right) ->
-    let left = infer_attr_type left name in
-    let right = infer_attr_type right name in
+    let left = infer_attr_type left name context in
+    let right = infer_attr_type right name context in
     Utils.map_option2 left right
-      (fun left right -> (fst type', (merge_union left right)))
+      (fun left right -> (fst type', (TypingJoin.join left right)))
   | TypeInter (left, right) ->
-    let left = infer_attr_type left name in
-    let right = infer_attr_type right name in
+    let left = infer_attr_type left name context in
+    let right = infer_attr_type right name context in
     Utils.join_option2 left right
-      (fun left right -> (fst type', (merge_inter left right)))
+      (fun left right -> (fst type', (TypingMeet.meet left right)))
   | _ -> None
 
 and infer_preop expr preop returner =
@@ -389,7 +393,7 @@ and infer_if expr if' returner =
   let* _ = check if'.expr_if_cond (fst if'.expr_if_cond, TypeBool) in
   let* then' = infer_none if'.expr_if_then in
   let* else' = infer_none if'.expr_if_else in
-  returner (make_type expr (merge_inter then' else'))
+  returner (make_type expr (TypingJoin.join then' else'))
 
 and infer_block expr block returner =
   let* _ = map_list infer_block_stmt block.expr_block_stmts in
@@ -478,7 +482,7 @@ and infer_type_app_abs params type' app returner state =
   let pairs = List.combine params args in
   List.iter (fun (param, arg) -> let _ = check_type arg state.context in TypingCheck.check_subtype arg param.param_type; ) pairs;
   let context = { parent = Some state.context; params = pairs } in
-  let body = apply type' context in
+  let body = TypingApply.apply type' context in
   returner body state
 
 and check_def def progress =
