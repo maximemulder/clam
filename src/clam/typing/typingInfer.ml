@@ -393,10 +393,22 @@ and infer_attr_type type' name context =
 
 and infer_app app returner =
   let* type' = infer_none app.expr_app_expr in
+  let* context = get_context in
+  match infer_app_type app type' context with
+  | Some abs -> infer_app_abs app abs returner
+  | None -> TypingErrors.raise_expr_app_kind app type'
+
+and infer_app_type app type' context =
   match snd type' with
+  | TypeVar var ->
+    let type' = TypingPromote.promote_var var in
+    infer_app_type app type' context
+  | TypeApp type_app ->
+    let type' = TypingApply.apply_app type_app context in
+    infer_app_type app type' context
   | TypeAbsExpr abs ->
-    infer_app_abs app abs returner
-  | _ -> TypingErrors.raise_expr_app_kind app type'
+    Some abs
+  | _ -> None
 
 and infer_app_abs app abs returner =
   let params = abs.type_abs_expr_params in
