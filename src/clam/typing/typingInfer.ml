@@ -99,6 +99,12 @@ let binop_types =
   |> List.to_seq
   |> NameMap.of_seq
 
+let print_type pos =
+  (pos, TypeAbsExpr {
+    type_abs_expr_params = [(pos, TypeAny)];
+    type_abs_expr_ret = (pos, TypeVoid);
+  })
+
 let check_type type' context =
   TypingCheck.check type';
   TypingApply.apply type' context
@@ -175,9 +181,9 @@ and check_if if' constr =
 and check_abs abs constr =
   let expr = ExprAbs abs in
   match snd constr with
-  | TypeAbsExpr (constr_params, constr_ret) ->
-    let* _ = check_abs_params abs constr constr_params in
-    let* ret = check_abs_ret abs.expr_abs_ret constr_ret in
+  | TypeAbsExpr constr_abs ->
+    let* _ = check_abs_params abs constr constr_abs.type_abs_expr_params in
+    let* ret = check_abs_ret abs.expr_abs_ret constr_abs.type_abs_expr_ret in
     let* _ = check abs.expr_abs_body ret in
     return ()
   | _ ->
@@ -304,7 +310,7 @@ and infer_bind bind returner state =
   let bind = Option.get !(bind.expr_bind) in
   match bind with
   | BindExprPrint ->
-    returner (pos, TypeAbsExpr ([(pos, TypeAny)], (pos, TypeVoid))) state
+    returner (print_type pos) state
   | BindExprDef def when DefSet.mem def state.progress.remains ->
     let (type', progress) = check_def def state.progress in
     returner type' { state with progress }
@@ -335,11 +341,15 @@ and infer_elem elem returner =
   | None -> TypingErrors.raise_expr_elem elem type'
 
 and infer_elem_type type' index context =
-  let type' = TypingPromote.promote type' in
-  let type' = TypingApply.apply type' context in
   match snd type' with
   | TypeTuple types ->
     List.nth_opt types index
+  | TypeVar var ->
+    let type' = TypingPromote.promote_var var in
+    infer_elem_type type' index context
+  | TypeApp app ->
+    let type' = TypingApply.apply_app app context in
+    infer_elem_type type' index context
   | TypeUnion (left, right) ->
     let left = infer_elem_type left index context in
     let right = infer_elem_type right index context in
@@ -360,11 +370,15 @@ and infer_attr attr returner =
   | None -> TypingErrors.raise_expr_attr attr type'
 
 and infer_attr_type type' name context =
-  let type' = TypingPromote.promote type' in
-  let type' = TypingApply.apply type' context in
   match snd type' with
   | TypeRecord attrs ->
     Option.map (fun attr -> attr.attr_type) (NameMap.find_opt name attrs)
+  | TypeVar var ->
+    let type' = TypingPromote.promote_var var in
+    infer_attr_type type' name context
+  | TypeApp app ->
+    let type' = TypingApply.apply_app app context in
+    infer_attr_type type' name context
   | TypeUnion (left, right) ->
     let left = infer_attr_type left name context in
     let right = infer_attr_type right name context in
@@ -376,6 +390,22 @@ and infer_attr_type type' name context =
     Utils.join_option2 left right
       (fun left right -> (fst type', (TypingMeet.meet left right)))
   | _ -> None
+
+and infer_app app returner =
+  let* type' = infer_none app.expr_app_expr in
+  match snd type' with
+  | TypeAbsExpr abs ->
+    infer_app_abs app abs returner
+  | _ -> TypingErrors.raise_expr_app_kind app type'
+
+and infer_app_abs app abs returner =
+  let params = abs.type_abs_expr_params in
+  let args = app.expr_app_args in
+  if List.compare_lengths params args != 0 then
+    TypingErrors.raise_expr_app_arity app params
+  else
+  let* _ = map_list2 check args params in
+  returner abs.type_abs_expr_ret
 
 and infer_preop preop returner =
   let entry = NameMap.find_opt preop.expr_preop_op preop_types in
@@ -446,16 +476,22 @@ and infer_block_stmt stmt =
 and infer_abs abs returner =
   let* params = infer_abs_params abs.expr_abs_params in
   match abs.expr_abs_ret with
-  | Some type' ->
+  | Some ret ->
     let* context = get_context in
-    let type' = check_type_proper type' context in
-    let signature = (abs.expr_abs_pos, TypeAbsExpr (params, type')) in
+    let ret = check_type_proper ret context in
+    let signature = (abs.expr_abs_pos, TypeAbsExpr {
+      type_abs_expr_params = params;
+      type_abs_expr_ret = ret;
+    }) in
     let* _ = returner signature in
-    let* _ = check abs.expr_abs_body type' in
+    let* _ = check abs.expr_abs_body ret in
     return signature
   | None ->
-    let* type' = infer_none abs.expr_abs_body in
-    returner (abs.expr_abs_pos, TypeAbsExpr (params, type'))
+    let* ret = infer_none abs.expr_abs_body in
+    returner (abs.expr_abs_pos, TypeAbsExpr {
+      type_abs_expr_params = params;
+      type_abs_expr_ret = ret;
+    })
 
 and infer_abs_params params =
   let types = List.map (fun param -> match param.param_expr_type with
@@ -467,21 +503,6 @@ and infer_abs_params params =
   let params = List.map (fun param -> BindExprParam param) params in
   let* _ = map_list2 add_bind params types in
   return types
-
-and infer_app app returner =
-  let* type' = infer_none app.expr_app_expr in
-  match snd type' with
-  | TypeAbsExpr (params, type') ->
-    infer_app_abs params type' app returner
-  | _ -> TypingErrors.raise_expr_app_kind app type'
-
-and infer_app_abs params type' app returner =
-  let args = app.expr_app_args in
-  if List.compare_lengths params args != 0 then
-    TypingErrors.raise_expr_app_arity app params
-  else
-  let* _ = map_list2 check args params in
-  returner type'
 
 and infer_type_abs abs returner =
   let params = abs.expr_type_abs_params in

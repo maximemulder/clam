@@ -2,5 +2,8 @@ open Model
 
 let rec promote type' =
   match snd type' with
-  | TypeVar param -> promote param.param_type
+  | TypeVar var -> promote_var var
   | _ -> type'
+
+and promote_var var =
+  promote var.type_var_param.param_type

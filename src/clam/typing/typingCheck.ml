@@ -24,9 +24,9 @@ let rec check type' =
     ()
   | TypeVar _  ->
     ()
-  | TypeAbsExpr (params, type') ->
-    List.iter check params;
-    check type';
+  | TypeAbsExpr abs ->
+    List.iter check abs.type_abs_expr_params;
+    check abs.type_abs_expr_ret;
   | TypeAbsExprType (params, type') ->
     List.iter check_param params;
     check type';
@@ -40,11 +40,11 @@ let rec check type' =
   | TypeUnion (left, right) ->
     check left;
     check right;
-  | TypeAbs (params, type') ->
-    List.iter check_param params;
-    check type';
-  | TypeApp (type', args) ->
-    check_app type' args;
+  | TypeAbs abs ->
+    List.iter check_param abs.type_abs_params;
+    check abs.type_abs_body;
+  | TypeApp app ->
+    check_app app;
 
 and check_attr attr =
   check attr.attr_type
@@ -52,16 +52,18 @@ and check_attr attr =
 and check_param param =
   check param.param_type
 
-and check_app type' args =
-  match snd type' with
-  | TypeAbs (params, type') ->
-    check_app_abs type' params args
-  | _ -> TypingErrors.raise_type_app_kind type'
+and check_app app =
+  match snd app.type_app_type with
+  | TypeAbs abs ->
+    check_app_abs abs app.type_app_args
+  | _ -> TypingErrors.raise_type_app_kind app.type_app_type
 
-and check_app_abs type' params args =
+and check_app_abs abs args =
+  let params = abs.type_abs_params in
+  let body = abs.type_abs_body in
   if List.compare_lengths params args != 0 then
-    TypingErrors.raise_type_app_arity type' params args
+    TypingErrors.raise_type_app_arity body params args
   else
   let binds = List.combine params args in
   List.iter (fun (param, arg) -> check_subtype arg param.param_type) binds;
-  check type'
+  check body;

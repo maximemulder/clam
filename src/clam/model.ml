@@ -11,15 +11,34 @@ and type_data =
   | TypeInt
   | TypeChar
   | TypeString
-  | TypeVar         of param_type
-  | TypeAbsExpr     of (type' list) * type'
+  | TypeVar         of type_var
+  | TypeAbsExpr     of type_abs_expr
   | TypeAbsExprType of (param_type list) * type'
   | TypeTuple       of type' list
   | TypeRecord      of attr_type NameMap.t
   | TypeInter       of type' * type'
   | TypeUnion       of type' * type'
-  | TypeAbs         of (param_type list) * type'
-  | TypeApp         of type' * (type' list)
+  | TypeAbs         of type_abs
+  | TypeApp         of type_app
+
+and type_var = {
+  type_var_param: param_type;
+}
+
+and type_abs_expr = {
+  type_abs_expr_params: type' list;
+  type_abs_expr_ret: type';
+}
+
+and type_abs = {
+  type_abs_params: param_type list;
+  type_abs_body: type';
+}
+
+and type_app = {
+  type_app_type: type';
+  type_app_args: type' list;
+}
 
 and attr_type = {
   attr_type_pos: pos;

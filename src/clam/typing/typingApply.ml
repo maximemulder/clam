@@ -25,12 +25,15 @@ and apply_type_data type' =
     return TypeChar
   | TypeString ->
     return TypeString
-  | TypeVar param ->
-    apply_var param
-  | TypeAbsExpr (params, type') ->
-    let* params = map_list apply_type params in
-    let* type' = apply_type type' in
-    return (TypeAbsExpr (params, type'))
+  | TypeVar var ->
+    apply_var var
+  | TypeAbsExpr abs ->
+    let* params = map_list apply_type abs.type_abs_expr_params in
+    let* ret = apply_type abs.type_abs_expr_ret in
+    return (TypeAbsExpr {
+      type_abs_expr_params = params;
+      type_abs_expr_ret = ret;
+    })
   | TypeAbsExprType (params, type') ->
     let* params = map_list apply_param params in
     let* type' = apply_type type' in
@@ -49,11 +52,14 @@ and apply_type_data type' =
     let* left = apply_type left in
     let* right = apply_type right in
     return (TypeUnion (left, right))
-  | TypeAbs (params, type') ->
-    let* params = map_list apply_param params in
-    let* type' = apply_type type' in
-    return (TypeAbs (params, type'))
-  | TypeApp (type', args) -> apply_app type' args
+  | TypeAbs abs ->
+    let* params = map_list apply_param abs.type_abs_params in
+    let* body = apply_type abs.type_abs_body in
+    return (TypeAbs {
+      type_abs_params = params;
+      type_abs_body = body;
+    })
+  | TypeApp app -> apply_app2 app
 
 and apply_attr attr =
   let* type' = apply_type attr.attr_type in
@@ -63,24 +69,28 @@ and apply_param param =
   let* type' = apply_type param.param_type in
   return { param with param_type = type' }
 
-and apply_app type' args =
-  match snd type' with
-  | TypeAbs (params, type') -> apply_app_abs type' params args
+and apply_app2 app =
+  let args = app.type_app_args in
+  match snd app.type_app_type with
+  | TypeAbs abs -> apply_app_abs abs.type_abs_body abs.type_abs_params args
   | TypeAbsExprType (params, type') -> apply_app_abs type' params args
   | _ -> TypingErrors.raise_unexpected ()
 
-and apply_app_abs type' params args context =
+and apply_app_abs body params args context =
   let params = List.combine params args in
   let context = { parent = Some context; params } in
-  snd (apply_type type' context)
+  snd (apply_type body context)
 
-and apply_var param context =
-  match List.find_opt (fun other -> (fst other) = param) context.params with
+and apply_var var context =
+  match List.find_opt (fun other -> (fst other) = var.type_var_param) context.params with
   | Some pair -> snd (apply_type (snd pair) context)
   | None ->
   match context.parent with
-  | Some parent -> apply_var param parent
-  | None -> TypeVar param
+  | Some parent -> apply_var var parent
+  | None -> TypeVar var
 
 let apply type' context =
   apply_type type' context
+
+let apply_app app context =
+  (fst app.type_app_type, apply_app2 app context)

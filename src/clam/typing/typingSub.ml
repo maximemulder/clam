@@ -24,12 +24,14 @@ let rec is_type type' other =
     is_type left other_left && is_type right other_right
   | (TypeUnion (left, right), TypeUnion (other_left, other_right)) ->
     is_type left other_left || is_type right other_right
-  | (TypeAbsExpr (params, type'), TypeAbsExpr (other_params, other_type)) ->
-    compare_lists is_type other_params params && is_type type' other_type
+  | (TypeAbsExpr abs, TypeAbsExpr other_abs) ->
+    compare_lists is_type abs.type_abs_expr_params other_abs.type_abs_expr_params
+    && is_type abs.type_abs_expr_ret other_abs.type_abs_expr_ret
   | (TypeAbsExprType (params, type'), TypeAbsExprType (other_params, other_type)) ->
     compare_lists is_type_param other_params params && is_type type' other_type
-  | (TypeAbs (params, type'), TypeAbs (other_params, other_type)) ->
-    compare_lists is_type_param other_params params && is_type type' other_type
+  | (TypeAbs abs, TypeAbs other_abs) ->
+    compare_lists is_type_param abs.type_abs_params other_abs.type_abs_params
+    && is_type abs.type_abs_body other_abs.type_abs_body
   | _ -> false
 
 and is_type_param param other =
@@ -50,8 +52,9 @@ let rec is_subtype type' other =
   | (TypeString, TypeString) -> true
   | (TypeVar param, _) ->
     is_subtype_var param other
-  | (TypeAbsExpr (params, expr), TypeAbsExpr (other_params, other_expr)) ->
-    compare_lists is_subtype other_params params && is_subtype expr other_expr
+  | (TypeAbsExpr abs, TypeAbsExpr other_abs) ->
+    compare_lists is_subtype other_abs.type_abs_expr_params abs.type_abs_expr_params
+    && is_subtype abs.type_abs_expr_ret other_abs.type_abs_expr_ret
   | (TypeAbsExprType (params, expr), TypeAbsExprType (other_params, other_expr)) ->
     compare_lists is_type_param other_params params && is_subtype expr other_expr
   | (TypeTuple (types), TypeTuple (other_types)) ->
@@ -69,13 +72,14 @@ let rec is_subtype type' other =
     is_subtype left other && is_subtype right other
   | (_, TypeUnion (left, right)) ->
     is_subtype type' left || is_subtype type' right
-  | (TypeAbs (params, type'), TypeAbs (other_params, other_type)) ->
-    compare_lists is_type_param other_params params && is_subtype type' other_type
+  | (TypeAbs abs, TypeAbs other_abs) ->
+    compare_lists is_type_param abs.type_abs_params other_abs.type_abs_params
+      && is_subtype abs.type_abs_body other_abs.type_abs_body
   | _ -> false
 
-and is_subtype_var param other =
+and is_subtype_var var other =
   match snd other with
-  | TypeVar other_param ->
-    param = other_param || is_subtype param.param_type other_param.param_type
+  | TypeVar other ->
+    var.type_var_param = other.type_var_param || is_subtype var.type_var_param.param_type other.type_var_param.param_type
   | _ ->
-    is_subtype param.param_type other
+    is_subtype var.type_var_param.param_type other

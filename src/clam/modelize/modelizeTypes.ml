@@ -98,10 +98,13 @@ and modelize_type_data (type': Ast.type') =
   match snd type' with
   | TypeIdent name ->
     modelize_name type' name
-  | TypeAbsExpr (params, type') ->
+  | TypeAbsExpr (params, ret) ->
     let* params = map_list modelize_type params in
-    let* type' = modelize_type type' in
-    return (Model.TypeAbsExpr (params, type'))
+    let* ret = modelize_type ret in
+    return (Model.TypeAbsExpr {
+      type_abs_expr_params = params;
+      type_abs_expr_ret = ret;
+    })
   | TypeAbsExprType (params, type') ->
     let* (params, type') = modelize_params params type' in
     return (Model.TypeAbsExprType (params, type'))
@@ -119,18 +122,23 @@ and modelize_type_data (type': Ast.type') =
     let* left = modelize_type left in
     let* right = modelize_type right in
     return (Model.TypeUnion (left, right))
-  | TypeAbs (params, type') ->
-    let* (params, type') = modelize_params params type' in
-    return (Model.TypeAbs (params, type'))
+  | TypeAbs (params, body) ->
+    let* (params, body) = modelize_params params body in
+    return (Model.TypeAbs {
+      type_abs_params = params;
+      type_abs_body = body;
+    })
   | TypeApp (type', args) ->
     let* type' = modelize_type type' in
     let* args = map_list modelize_type args in
-    return (Model.TypeApp (type', args))
-
+    return (Model.TypeApp {
+      type_app_type = type';
+      type_app_args = args;
+    })
 
 and modelize_params params type' =
   let* params = map_list modelize_param params in
-  let types = List.map (fun param -> (param.Model.param_type_name, (fst param.param_type, Model.TypeVar param))) params in
+  let types = List.map (fun param -> (param.Model.param_type_name, (fst param.param_type, Model.TypeVar { Model.type_var_param = param}))) params in
   let* type' = with_scope (modelize_type type') types in
   return (params, type')
 
@@ -181,6 +189,6 @@ let modelize_program (program: Ast.program) =
   (state.scope.dones, state.all)
 
 let modelize_abs params state =
-  let types = List.map (fun param -> (param.Model.param_type_name, (fst param.param_type, Model.TypeVar param))) params in
+  let types = List.map (fun param -> (param.Model.param_type_name, (fst param.param_type, Model.TypeVar { Model.type_var_param = param}))) params in
   let (_, state) = make_child types state in
   state.scope.dones

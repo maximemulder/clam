@@ -3,16 +3,16 @@ open Model
 
 let rec display type' =
   match snd type' with
-  | TypeVar { param_type_name; _ } -> param_type_name
   | TypeAny     -> "Any"
   | TypeVoid    -> "Void"
   | TypeBool    -> "Bool"
   | TypeInt     -> "Int"
   | TypeChar    -> "Char"
   | TypeString  -> "String"
-  | TypeAbsExpr (params, expr) ->
-    let params = List.map display params in
-    "(" ^ (String.concat ", " params) ^ ") -> " ^ (display expr)
+  | TypeVar var -> var.type_var_param.param_type_name
+  | TypeAbsExpr abs ->
+    let params = List.map display abs.type_abs_expr_params in
+    "(" ^ (String.concat ", " params) ^ ") -> " ^ (display abs.type_abs_expr_ret)
   | TypeAbsExprType (params, expr) ->
     let params = List.map (fun param -> param.param_type_name ^ ": " ^ display param.param_type) params in
     "[" ^ (String.concat ", " params) ^ "] -> " ^ (display expr)
@@ -26,9 +26,9 @@ let rec display type' =
     (display left) ^ " & " ^ (display right)
   | TypeUnion (left, right) ->
     (display left) ^ " | " ^ (display right)
-  | TypeAbs (params, type') ->
-    let params = List.map (fun param -> param.param_type_name ^ ": " ^ display param.param_type) params in
-    "[" ^ (String.concat ", " params) ^ "] " ^ (display type')
-  | TypeApp (type', args) ->
-    let args = List.map display args in
-    (display type') ^ " [" ^ (String.concat ", " args) ^ "]"
+  | TypeAbs abs ->
+    let params = List.map (fun param -> param.param_type_name ^ ": " ^ display param.param_type) abs.type_abs_params in
+    "[" ^ (String.concat ", " params) ^ "] " ^ (display abs.type_abs_body)
+  | TypeApp app ->
+    let args = List.map display app.type_app_args in
+    (display app.type_app_type) ^ " [" ^ (String.concat ", " args) ^ "]"
