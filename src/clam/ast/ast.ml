@@ -71,6 +71,7 @@ and attr_type = {
 }
 
 and attr_expr = {
+  attr_expr_pos: pos;
   attr_expr_name: string;
   attr_expr: expr;
 }

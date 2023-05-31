@@ -32,14 +32,12 @@ and param_type = {
   param_type: type';
 }
 
-type expr = pos * expr_data
-
-and expr_data =
-  | ExprVoid
-  | ExprBool    of bool
-  | ExprInt     of int
-  | ExprChar    of char
-  | ExprString  of string
+and expr =
+  | ExprVoid    of expr_void
+  | ExprBool    of expr_bool
+  | ExprInt     of expr_int
+  | ExprChar    of expr_char
+  | ExprString  of expr_string
   | ExprBind    of expr_bind
   | ExprTuple   of expr_tuple
   | ExprRecord  of expr_record
@@ -55,72 +53,110 @@ and expr_data =
   | ExprTypeAbs of expr_type_abs
   | ExprTypeApp of expr_type_app
 
+and expr_void = {
+  expr_void_pos: pos;
+}
+
+and expr_bool = {
+  expr_bool_pos: pos;
+  expr_bool: bool;
+}
+
+and expr_int = {
+  expr_int_pos: pos;
+  expr_int: int;
+}
+
+and expr_char = {
+  expr_char_pos: pos;
+  expr_char: char;
+}
+
+and expr_string = {
+  expr_string_pos: pos;
+  expr_string: string;
+}
+
 and expr_bind = {
+  expr_bind_pos: pos;
   expr_bind: bind_expr option ref;
 }
 
 and expr_tuple = {
+  expr_tuple_pos: pos;
   expr_tuple_exprs: expr list;
 }
 
 and expr_record = {
+  expr_record_pos: pos;
   expr_record_attrs: attr_expr list;
 }
 
 and expr_elem = {
+  expr_elem_pos: pos;
   expr_elem_expr: expr;
   expr_elem_index: int;
 }
 
 and expr_attr = {
+  expr_attr_pos: pos;
   expr_attr_expr: expr;
   expr_attr_name: string;
 }
 
 and expr_preop = {
+  expr_preop_pos: pos;
   expr_preop_op: string;
   expr_preop_expr: expr;
 }
 
 and expr_binop = {
+  expr_binop_pos: pos;
   expr_binop_left: expr;
   expr_binop_op: string;
   expr_binop_right: expr;
 }
 
 and expr_ascr = {
+  expr_ascr_pos: pos;
   expr_ascr_expr: expr;
   expr_ascr_type: type';
 }
 
 and expr_block = {
+  expr_block_pos: pos;
   expr_block_stmts: stmt list;
   expr_block_expr: expr option;
 }
 
 and expr_if = {
+  expr_if_pos: pos;
   expr_if_cond: expr;
   expr_if_then: expr;
   expr_if_else: expr;
 }
 
 and expr_abs = {
+  expr_abs_pos: pos;
   expr_abs_params: param_expr list;
   expr_abs_ret: type' option;
   expr_abs_body: expr;
 }
 
 and expr_app = {
+  expr_app_pos: pos;
   expr_app_expr: expr;
   expr_app_args: expr list;
 }
 
 and expr_type_abs = {
+  expr_type_abs_pos: pos;
   expr_type_abs_params: param_type list;
   expr_type_abs_body: expr;
 }
 
 and expr_type_app = {
+  expr_type_app_pos: pos;
   expr_type_app_expr: expr;
   expr_type_app_args: type' list;
 }
@@ -151,6 +187,7 @@ and param_expr = {
 }
 
 and attr_expr = {
+  attr_expr_pos: pos;
   attr_expr_name: string;
   attr_expr: expr;
 }
@@ -177,8 +214,9 @@ let make_param_expr pos id name type' =
     param_expr_type = type';
   }
 
-let make_attr_expr name expr =
+let make_attr_expr pos name expr =
   {
+    attr_expr_pos = pos;
     attr_expr_name = name;
     attr_expr = expr;
   }
@@ -203,3 +241,44 @@ let bind_expr_name bind =
   | BindExprDef   def   -> def.def_expr_name
   | BindExprParam param -> param.param_expr_name
   | BindExprVar   var   -> var.var_expr_name
+
+let expr_pos expr =
+  match expr with
+  | ExprVoid expr ->
+    expr.expr_void_pos
+  | ExprBool expr ->
+    expr.expr_bool_pos
+  | ExprInt expr ->
+    expr.expr_int_pos
+  | ExprChar expr ->
+    expr.expr_char_pos
+  | ExprString expr ->
+    expr.expr_string_pos
+  | ExprBind expr ->
+    expr.expr_bind_pos
+  | ExprTuple expr ->
+    expr.expr_tuple_pos
+  | ExprRecord expr ->
+    expr.expr_record_pos
+  | ExprElem expr ->
+    expr.expr_elem_pos
+  | ExprAttr expr ->
+    expr.expr_attr_pos
+  | ExprPreop expr ->
+    expr.expr_preop_pos
+  | ExprBinop expr ->
+    expr.expr_binop_pos
+  | ExprAscr expr ->
+    expr.expr_ascr_pos
+  | ExprBlock expr ->
+    expr.expr_block_pos
+  | ExprIf expr ->
+    expr.expr_if_pos
+  | ExprAbs expr ->
+    expr.expr_abs_pos
+  | ExprApp expr ->
+    expr.expr_app_pos
+  | ExprTypeAbs expr ->
+    expr.expr_type_abs_pos
+  | ExprTypeApp expr ->
+    expr.expr_type_app_pos

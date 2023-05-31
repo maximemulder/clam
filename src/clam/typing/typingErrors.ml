@@ -10,40 +10,41 @@ let raise_expr_recursive def =
 let raise_expr_constraint expr type' constraint' =
   let type' = display type' in
   let constraint' = display constraint' in
-  raise ("expected expression of type `" ^ constraint' ^ "` but found expression of type `" ^ type' ^ "`") (fst expr)
+  let pos = expr_pos expr in
+  raise ("expected expression of type `" ^ constraint' ^ "` but found expression of type `" ^ type' ^ "`") pos
 
 let raise_expr_elem elem type' =
   let type' = display type' in
   let index = string_of_int elem.expr_elem_index in
-  let pos = fst elem.expr_elem_expr in
+  let pos = elem.expr_elem_pos in
   raise ("expected tuple expression with element `" ^ index ^"` but found expression of type `" ^ type' ^ "`") pos
 
 let raise_expr_attr attr type' =
   let name = attr.expr_attr_name in
   let type' = display type' in
-  let pos = fst attr.expr_attr_expr in
+  let pos = attr.expr_attr_pos in
   raise ("expected record expression with attribute `" ^ name ^ "` but found expression of type `" ^ type' ^ "`") pos
 
 let raise_expr_app_kind app type' =
-  let pos = fst app.expr_app_expr in
   let type' = display type' in
+  let pos = app.expr_app_pos in
   raise ("expected expression abstraction but found expression of type `" ^ type' ^ "`") pos
 
 let raise_expr_app_arity app params =
-  let pos = fst app.expr_app_expr in
   let length_params = string_of_int (List.length params) in
   let length_args = string_of_int (List.length app.expr_app_args) in
+  let pos = app.expr_app_pos in
   raise ("expected " ^ length_params ^ " arguments but found " ^ length_args ^ " arguments") pos
 
 let raise_expr_type_app_kind app type' =
-  let pos = fst app.expr_type_app_expr in
   let type' = display type' in
+  let pos = app.expr_type_app_pos in
   raise ("expected type abstraction but found type `" ^ type' ^ "`") pos
 
 let raise_expr_type_app_arity app params =
-  let pos = fst app.expr_type_app_expr in
   let length_params = string_of_int (List.length params) in
   let length_args = string_of_int (List.length app.expr_type_app_args) in
+  let pos = app.expr_type_app_pos in
   raise ("expected " ^ length_params ^ " arguments but found " ^ length_args ^ " arguments") pos
 
 let raise_param param =

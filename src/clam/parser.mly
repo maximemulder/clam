@@ -176,7 +176,7 @@ let attr_type :=
 
 let attr_expr :=
   | name = IDENT; ASSIGN; expr = expr;
-    { { attr_expr_name = name; attr_expr = expr } }
+    { { attr_expr_pos = $startpos; attr_expr_name = name; attr_expr = expr } }
 
 let block :=
   | BRACE_LEFT; stmts = list(stmt); expr = option(RET; expr); BRACE_RIGHT;
