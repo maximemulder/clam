@@ -8,54 +8,70 @@ end
 open Monad.Monad(Monad.ReaderMonad(Reader))
 
 let rec apply_type type' =
-  let* type_data = apply_type_data type' in
-  return (fst type', type_data)
-
-and apply_type_data type' =
-  match snd type' with
-  | TypeAny ->
-    return TypeAny
-  | TypeVoid ->
-    return TypeVoid
-  | TypeBool ->
-    return TypeBool
-  | TypeInt ->
-    return TypeInt
-  | TypeChar ->
-    return TypeChar
-  | TypeString ->
-    return TypeString
+  match type' with
+  | TypeAny _ ->
+    return type'
+  | TypeVoid _ ->
+    return type'
+  | TypeBool _ ->
+    return type'
+  | TypeInt _ ->
+    return type'
+  | TypeChar _ ->
+    return type'
+  | TypeString _ ->
+    return type'
   | TypeVar var ->
     apply_var var
   | TypeAbsExpr abs ->
     let* params = map_list apply_type abs.type_abs_expr_params in
     let* ret = apply_type abs.type_abs_expr_ret in
     return (TypeAbsExpr {
+      abs with
       type_abs_expr_params = params;
       type_abs_expr_ret = ret;
     })
-  | TypeAbsExprType (params, type') ->
-    let* params = map_list apply_param params in
-    let* type' = apply_type type' in
-    return (TypeAbsExprType (params, type'))
-  | TypeTuple types ->
-    let* types = map_list apply_type types in
-    return (TypeTuple types)
-  | TypeRecord attrs ->
-    let* attrs = map_map apply_attr attrs in
-    return (TypeRecord attrs)
-  | TypeInter (left, right) ->
-    let* left = apply_type left in
-    let* right = apply_type right in
-    return (TypeInter (left, right))
-  | TypeUnion (left, right) ->
-    let* left = apply_type left in
-    let* right = apply_type right in
-    return (TypeUnion (left, right))
+  | TypeAbsExprType abs ->
+    let* params = map_list apply_param abs.type_abs_expr_type_params in
+    let* body = apply_type abs.type_abs_expr_type_body in
+    return (TypeAbsExprType {
+      abs with
+      type_abs_expr_type_params = params;
+      type_abs_expr_type_body = body;
+    })
+  | TypeTuple tuple ->
+    let* types = map_list apply_type tuple.type_tuple_types in
+    return (TypeTuple {
+      tuple with
+      type_tuple_types = types;
+    })
+  | TypeRecord record ->
+    let* attrs = map_map apply_attr record.type_record_attrs in
+    return (TypeRecord {
+      record with
+      type_record_attrs = attrs;
+    })
+  | TypeInter inter ->
+    let* left = apply_type inter.type_inter_left in
+    let* right = apply_type inter.type_inter_right in
+    return (TypeInter {
+      inter with
+      type_inter_left = left;
+      type_inter_right = right;
+    })
+  | TypeUnion union ->
+    let* left = apply_type union.type_union_left in
+    let* right = apply_type union.type_union_right in
+    return (TypeUnion {
+      union with
+      type_union_left = left;
+      type_union_right = right;
+    })
   | TypeAbs abs ->
     let* params = map_list apply_param abs.type_abs_params in
     let* body = apply_type abs.type_abs_body in
     return (TypeAbs {
+      abs with
       type_abs_params = params;
       type_abs_body = body;
     })
@@ -71,19 +87,19 @@ and apply_param param =
 
 and apply_app2 app =
   let args = app.type_app_args in
-  match snd app.type_app_type with
+  match app.type_app_type with
   | TypeAbs abs -> apply_app_abs abs.type_abs_body abs.type_abs_params args
-  | TypeAbsExprType (params, type') -> apply_app_abs type' params args
+  | TypeAbsExprType abs -> apply_app_abs abs.type_abs_expr_type_body abs.type_abs_expr_type_params args
   | _ -> TypingErrors.raise_unexpected ()
 
 and apply_app_abs body params args context =
   let params = List.combine params args in
   let context = { parent = Some context; params } in
-  snd (apply_type body context)
+  apply_type body context
 
 and apply_var var context =
   match List.find_opt (fun other -> (fst other) = var.type_var_param) context.params with
-  | Some pair -> snd (apply_type (snd pair) context)
+  | Some pair -> apply_type (snd pair) context
   | None ->
   match context.parent with
   | Some parent -> apply_var var parent
@@ -93,4 +109,4 @@ let apply type' context =
   apply_type type' context
 
 let apply_app app context =
-  (fst app.type_app_type, apply_app2 app context)
+  apply_app2 app context

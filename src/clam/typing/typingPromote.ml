@@ -1,7 +1,7 @@
 open Model
 
 let rec promote type' =
-  match snd type' with
+  match type' with
   | TypeVar var -> promote_var var
   | _ -> type'
 

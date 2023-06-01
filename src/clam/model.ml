@@ -2,40 +2,94 @@ open Utils
 
 type pos = Lexing.position
 
-type type' = pos * type_data
-
-and type_data =
-  | TypeAny
-  | TypeVoid
-  | TypeBool
-  | TypeInt
-  | TypeChar
-  | TypeString
+type type' =
+  | TypeAny         of type_any
+  | TypeVoid        of type_void
+  | TypeBool        of type_bool
+  | TypeInt         of type_int
+  | TypeChar        of type_char
+  | TypeString      of type_string
   | TypeVar         of type_var
+  | TypeTuple       of type_tuple
+  | TypeRecord      of type_record
+  | TypeInter       of type_inter
+  | TypeUnion       of type_union
   | TypeAbsExpr     of type_abs_expr
-  | TypeAbsExprType of (param_type list) * type'
-  | TypeTuple       of type' list
-  | TypeRecord      of attr_type NameMap.t
-  | TypeInter       of type' * type'
-  | TypeUnion       of type' * type'
+  | TypeAbsExprType of type_abs_expr_type
   | TypeAbs         of type_abs
   | TypeApp         of type_app
 
+and type_any = {
+  type_any_pos: pos;
+}
+
+and type_void = {
+  type_void_pos: pos;
+}
+
+and type_bool = {
+  type_bool_pos: pos;
+}
+
+and type_int = {
+  type_int_pos: pos;
+}
+
+and type_char = {
+  type_char_pos: pos;
+}
+
+and type_string = {
+  type_string_pos: pos;
+}
+
 and type_var = {
+  type_var_pos: pos;
   type_var_param: param_type;
 }
 
+and type_tuple = {
+  type_tuple_pos: pos;
+  type_tuple_types: type' list;
+}
+
+and type_record = {
+  type_record_pos: pos;
+  type_record_attrs: attr_type NameMap.t;
+}
+
+and type_inter = {
+  type_inter_pos: pos;
+  type_inter_left: type';
+  type_inter_right: type';
+}
+
+and type_union = {
+  type_union_pos: pos;
+  type_union_left: type';
+  type_union_right: type';
+}
+
 and type_abs_expr = {
+  type_abs_expr_pos: pos;
   type_abs_expr_params: type' list;
   type_abs_expr_ret: type';
 }
 
+and type_abs_expr_type = {
+  type_abs_expr_type_pos: pos;
+  type_abs_expr_type_params: param_type list;
+  type_abs_expr_type_body: type';
+}
+
 and type_abs = {
+  type_abs_pos: pos;
   type_abs_params: param_type list;
   type_abs_body: type';
 }
 
 and type_app = {
+  type_app_pos: pos;
   type_app_type: type';
   type_app_args: type' list;
 }
@@ -260,6 +314,70 @@ let bind_expr_name bind =
   | BindExprDef   def   -> def.def_expr_name
   | BindExprParam param -> param.param_expr_name
   | BindExprVar   var   -> var.var_expr_name
+
+let primitive_pos = {
+  Lexing.pos_fname = "primitives.clam";
+  Lexing.pos_lnum = 0;
+  Lexing.pos_bol = 0;
+  Lexing.pos_cnum = 0;
+}
+
+let type_any = TypeAny {
+  type_any_pos = primitive_pos;
+}
+
+let type_void = TypeVoid {
+  type_void_pos = primitive_pos;
+}
+
+let type_bool = TypeBool {
+  type_bool_pos = primitive_pos;
+}
+
+let type_int = TypeInt {
+  type_int_pos = primitive_pos;
+}
+
+let type_char = TypeChar {
+  type_char_pos = primitive_pos;
+}
+
+let type_string = TypeString {
+  type_string_pos = primitive_pos;
+}
+
+let type_pos type' =
+  match type' with
+  | TypeAny type' ->
+    type'.type_any_pos
+  | TypeVoid type' ->
+    type'.type_void_pos
+  | TypeBool type' ->
+    type'.type_bool_pos
+  | TypeInt type' ->
+    type'.type_int_pos
+  | TypeChar type' ->
+    type'.type_char_pos
+  | TypeString type' ->
+    type'.type_string_pos
+  | TypeVar type' ->
+    type'.type_var_pos
+  | TypeTuple type' ->
+    type'.type_tuple_pos
+  | TypeRecord type' ->
+    type'.type_record_pos
+  | TypeInter type' ->
+    type'.type_inter_pos
+  | TypeUnion type' ->
+    type'.type_union_pos
+  | TypeAbsExpr type' ->
+    type'.type_abs_expr_pos
+  | TypeAbsExprType type' ->
+    type'.type_abs_expr_type_pos
+  | TypeAbs type' ->
+    type'.type_abs_pos
+  | TypeApp type' ->
+    type'.type_app_pos
 
 let expr_pos expr =
   match expr with

@@ -256,7 +256,7 @@ and modelize_param (param: Ast.param) =
 
 and modelize_type_param (param: Ast.param) =
   let* type' = map_option modelize_type param.param_type in
-  let type' = Option.value type' ~default:(param.param_pos, Model.TypeAny) in
+  let type' = Option.value type' ~default:(Model.TypeAny { type_any_pos = param.param_pos }) in
   return { Model.param_type_name = param.param_name; Model.param_type = type' }
 
 and modelize_attr2 (attr: Ast.attr_expr) =
