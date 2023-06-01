@@ -26,6 +26,14 @@ module Monad (M: MONAD) = struct
       let* xs = map_list f xs in
       return (x :: xs)
 
+  let rec iter_list f xs =
+    match xs with
+    | [] -> return ()
+    | x :: xs ->
+      let* () = f x in
+      let* () = iter_list f xs in
+      return ()
+
   let rec map_list2 f xs ys =
     match (xs, ys) with
     | ([], []) -> return []
@@ -47,6 +55,16 @@ module Monad (M: MONAD) = struct
     | x :: xs ->
       let* b = f a x in
       fold_list f b xs
+
+  let rec compare_list2 f xs ys =
+    match (xs, ys) with
+    | ([], []) -> return true
+    | (x :: xs, y :: ys) ->
+      let* r = f x y in
+      let* r2 = compare_list2 f xs ys in
+      return (r && r2)
+    | _ -> invalid_arg "Monad.compare_list2"
+
 end
 
 module type STATE = sig
@@ -80,11 +98,3 @@ module ReaderMonad (R: READER) = struct
   let bind r f =
     fun c -> f (r c) c
 end
-
-(* state let map:
-
-  let (let+) m f =
-  fun s ->
-    let (a, s1) = m s in
-    (f a, s1)
-*)

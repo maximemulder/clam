@@ -1,6 +1,5 @@
 open Utils
 open Model
-open TypingContext
 
 module DefKey = struct
   type t = def_expr
@@ -25,7 +24,7 @@ type progress = {
 
 type state = {
   progress: progress;
-  context: context;
+  context: TypingContext.context;
 }
 
 module State = struct
@@ -39,7 +38,7 @@ let make_progress defs =
   { remains; currents = DefSet.empty; dones = BindMap.empty }
 
 let make_state progress =
-  { progress; context = empty_context }
+  { progress; context = TypingContext.context_empty }
 
 let get_context state =
   (state.context, state)
@@ -58,11 +57,12 @@ let add_bind bind type' state =
   let dones = BindMap.add bind type' state.progress.dones in
   ((), { state with progress = { state.progress with dones } })
 
-let with_params call params state =
-  let context = state.context in
-  let state = { state with context = { parent = Some context; params } } in
+let with_entries call entries state =
+  let parent = state.context in
+  let context = TypingContext.context_child parent entries in
+  let state = { state with context } in
   let res = call state in
-  (res, { state with context })
+  (res, { state with context = parent })
 
 let return_def def =
   fun type' state -> (type', { state with progress = end_progress state.progress def type' })
@@ -103,20 +103,28 @@ let print_type =
     type_abs_expr_ret = type_void;
   }
 
-let check_type type' context =
-  TypingCheck.check type';
-  TypingApply.apply type' context
+let validate type' =
+  let* context = get_context in
+  let () = TypingValidate.validate type' context in
+  return ()
 
-let check_type_proper type' context =
-  let type' = check_type type' context in
-  match type' with
-  | TypeAbs _ -> TypingErrors.raise_type_proper type'
-  | _ -> type'
+let validate_proper type' =
+  let* context = get_context in
+  let () = TypingValidate.validate_proper type' context in
+  return ()
+
+let validate_subtype type' constr =
+  let* context = get_context in
+  let () = TypingValidate.validate_subtype type' constr context in
+  return ()
 
 let rec check expr constr =
   match constr with
   | TypeUnion _ | TypeInter _ ->
     check_infer expr constr
+  | TypeApp app ->
+    let constr = TypingApply.apply_app app in
+    check expr constr
   | _ ->
   match expr with
   | ExprTuple tuple ->
@@ -134,7 +142,8 @@ let rec check expr constr =
 
 and check_infer expr constr =
   let* type' = infer_none expr in
-  if Bool.not (TypingSub.is_subtype type' constr) then
+  let* context = get_context in
+  if Bool.not (TypingSub.is_subtype type' constr context) then
     TypingErrors.raise_expr_constraint expr type' constr
   else
     return ()
@@ -164,7 +173,8 @@ and check_record record constr =
   | TypeRecord constr_record ->
     let* _ = map_map (fun constr_attr -> match List.find_opt (fun attr -> attr.attr_expr_name = constr_attr.attr_type_name) attrs with
     | Some attr -> check attr.attr_expr constr_attr.attr_type
-    | None -> check_error expr constr
+    | None ->
+      check_error expr constr
     ) constr_record.type_record_attrs in
     return ()
   | _ ->
@@ -199,9 +209,8 @@ and check_abs_params abs constr constr_params =
 and check_abs_param param constr =
   let* type' = match param.param_expr_type with
   | Some type' ->
-    let* context = get_context in
-    let type' = check_type_proper type' context in
-    TypingCheck.check_subtype constr type';
+    let* () = validate_proper type' in
+    let* () = validate_subtype constr type' in
     return type'
   | None ->
     return constr
@@ -211,9 +220,8 @@ and check_abs_param param constr =
 and check_abs_ret type' constr =
   match type' with
   | Some type' ->
-    let* context = get_context in
-    let type' = check_type_proper type' context in
-    TypingCheck.check_subtype type' constr;
+    let* () = validate_proper type' in
+    let* () = validate_subtype type' constr in
     return type'
   | None ->
     return constr
@@ -238,8 +246,8 @@ and check_type_abs_params abs constr constr_params =
   return ()
 
 and check_type_abs_param expr constr param constr_param state =
-  let type' = check_type param.param_type state.context in
-  if TypingSub.is_type type' constr_param.param_type then
+  let (_, state) = validate param.param_type state in
+  if TypingEqual.is_type param.param_type constr_param.param_type then
     (() ,state)
   else
     check_error expr constr state
@@ -361,7 +369,7 @@ and infer_elem_type type' index context =
     let type' = TypingPromote.promote_var var in
     infer_elem_type type' index context
   | TypeApp app ->
-    let type' = TypingApply.apply_app app context in
+    let type' = TypingApply.apply_app app in
     infer_elem_type type' index context
   | TypeUnion union ->
     let left = infer_elem_type union.type_union_left index context in
@@ -390,7 +398,7 @@ and infer_attr_type type' name context =
     let type' = TypingPromote.promote_var var in
     infer_attr_type type' name context
   | TypeApp app ->
-    let type' = TypingApply.apply_app app context in
+    let type' = TypingApply.apply_app app in
     infer_attr_type type' name context
   | TypeUnion union ->
     let left = infer_attr_type union.type_union_left name context in
@@ -417,7 +425,7 @@ and infer_app_type app type' context =
     let type' = TypingPromote.promote_var var in
     infer_app_type app type' context
   | TypeApp type_app ->
-    let type' = TypingApply.apply_app type_app context in
+    let type' = TypingApply.apply_app type_app in
     infer_app_type app type' context
   | TypeAbsExpr abs ->
     Some abs
@@ -457,8 +465,8 @@ and infer_binop binop returner =
     TypingErrors.raise_unexpected
 
 and infer_ascr ascr returner =
-  let* context = get_context in
-  let type' = check_type_proper ascr.expr_ascr_type context in
+  let type' = ascr.expr_ascr_type in
+  let* () = validate type' in
   let* _ = returner type' in
   let* _ = check ascr.expr_ascr_expr type' in
   return type'
@@ -480,8 +488,7 @@ and infer_block_stmt stmt =
   | StmtVar (var, type', expr) ->
     let* type' = match type' with
     | Some type' ->
-      let* context = get_context in
-      let type' = check_type_proper type' context in
+      let* () = validate type' in
       let* _ = check expr type' in
       return type'
     | None ->
@@ -497,8 +504,7 @@ and infer_abs abs returner =
   let* params = infer_abs_params abs.expr_abs_params in
   match abs.expr_abs_ret with
   | Some ret ->
-    let* context = get_context in
-    let ret = check_type_proper ret context in
+    let* () = validate_proper ret in
     let signature = TypeAbsExpr {
       type_abs_expr_pos = abs.expr_abs_pos;
       type_abs_expr_params = params;
@@ -520,8 +526,7 @@ and infer_abs_params params =
   | Some type' -> type'
   | None -> TypingErrors.raise_param param
   ) params in
-  let* context = get_context in
-  let types = List.map (fun type' -> check_type_proper type' context) types in
+  let* () = iter_list validate_proper types in
   let params = List.map (fun param -> BindExprParam param) params in
   let* _ = map_list2 add_bind params types in
   return types
@@ -529,8 +534,7 @@ and infer_abs_params params =
 and infer_type_abs abs returner =
   let params = abs.expr_type_abs_params in
   let body = abs.expr_type_abs_body in
-  let* context = get_context in
-  let _ = List.map (fun param -> check_type param.param_type context) params in
+  let _ = List.map (fun param -> TypingValidate.validate param.param_type) params in
   let* body = infer_none body in
   returner (TypeAbsExprType {
     type_abs_expr_type_pos = abs.expr_type_abs_pos;
@@ -552,16 +556,15 @@ and infer_type_app_abs app abs returner state =
     TypingErrors.raise_expr_type_app_arity app params
   else
   let pairs = List.combine params args in
-  List.iter (fun (param, arg) -> let _ = check_type arg state.context in TypingCheck.check_subtype arg param.param_type; ) pairs;
-  let context = { parent = Some state.context; params = pairs } in
-  let body = TypingApply.apply abs.type_abs_expr_type_body context in
+  let (_, state ) = iter_list (fun (param, arg) -> validate_subtype arg param.param_type) pairs state in
+  let body = TypingApply.apply abs.type_abs_expr_type_body pairs in
   returner body state
 
 and check_def def progress =
   let progress = start_progress progress def in
   match def.def_expr_type with
   | Some type' ->
-    let type' = check_type_proper type' empty_context in
+    TypingValidate.validate_proper type' TypingContext.context_empty;
     let progress = end_progress progress def type' in
     let state = make_state progress in
     let (_, state) = check def.def_expr type' state in
@@ -582,4 +585,4 @@ let check_exprs defs =
   progress_defs (make_progress defs)
 
 let check_types types =
-  List.iter (fun type' -> TypingCheck.check type') types
+  List.iter (fun type' -> TypingValidate.validate type' TypingContext.context_empty) types

@@ -1,88 +1,83 @@
-open Utils
 open Model
-open TypingApply
-open TypingContext
 
-let rec is_type type' other =
-  let type' = apply type' empty_context in
-  let other = apply other empty_context in
-  match (type', other) with
-  | (TypeAny _, TypeAny _) -> true
-  | (TypeVoid _, TypeVoid _) -> true
-  | (TypeBool _, TypeBool _) -> true
-  | (TypeInt _, TypeInt _) -> true
-  | (TypeChar _, TypeChar _) -> true
-  | (TypeString _, TypeString _) -> true
-  | (TypeVar param, TypeVar other_param) ->
-    param = other_param
-  | (TypeTuple tuple, TypeTuple other_tuple) ->
-    compare_lists is_type tuple.type_tuple_types other_tuple.type_tuple_types
-  | (TypeRecord record, TypeRecord other_record) ->
-    compare_maps is_type_attr record.type_record_attrs other_record.type_record_attrs
-  | (TypeInter inter, TypeInter other_inter) ->
-    is_type inter.type_inter_left other_inter.type_inter_left
-    && is_type inter.type_inter_right other_inter.type_inter_right
-  | (TypeUnion union, TypeUnion other_union) ->
-    is_type union.type_union_left other_union.type_union_left
-    || is_type union.type_union_right other_union.type_union_right
-  | (TypeAbsExpr abs, TypeAbsExpr other_abs) ->
-    compare_lists is_type abs.type_abs_expr_params other_abs.type_abs_expr_params
-    && is_type abs.type_abs_expr_ret other_abs.type_abs_expr_ret
-  | (TypeAbsExprType abs, TypeAbsExprType other_abs) ->
-    compare_lists is_type_param abs.type_abs_expr_type_params other_abs.type_abs_expr_type_params
-    && is_type abs.type_abs_expr_type_body other_abs.type_abs_expr_type_body
-  | (TypeAbs abs, TypeAbs other_abs) ->
-    compare_lists is_type_param abs.type_abs_params other_abs.type_abs_params
-    && is_type abs.type_abs_body other_abs.type_abs_body
-  | _ -> false
+module Reader = struct
+  type r = TypingContext.context
+end
 
-and is_type_param param other =
-  is_type param.param_type other.param_type
-
-and is_type_attr attr other =
-  is_type attr.attr_type other.attr_type
+open Monad.Monad(Monad.ReaderMonad(Reader))
 
 let rec is_subtype type' other =
-  let type' = apply type' empty_context in
-  let other = apply other empty_context in
   match (type', other) with
-  | (_, TypeAny _) -> true
-  | (TypeVoid _, TypeVoid _) -> true
-  | (TypeBool _, TypeBool _) -> true
-  | (TypeInt _, TypeInt _) -> true
-  | (TypeChar _, TypeChar _) -> true
-  | (TypeString _, TypeString _) -> true
-  | (TypeVar param, _) ->
-    is_subtype_var param other
-  | (TypeAbsExpr abs, TypeAbsExpr other_abs) ->
-    compare_lists is_subtype other_abs.type_abs_expr_params abs.type_abs_expr_params
-    && is_subtype abs.type_abs_expr_ret other_abs.type_abs_expr_ret
-  | (TypeAbsExprType abs, TypeAbsExprType other_abs) ->
-    compare_lists is_type_param other_abs.type_abs_expr_type_params abs.type_abs_expr_type_params
-    && is_subtype abs.type_abs_expr_type_body other_abs.type_abs_expr_type_body
+  | (_, TypeAny _) ->
+    return true
+  | (TypeVoid _, TypeVoid _) ->
+    return true
+  | (TypeBool _, TypeBool _) ->
+    return true
+  | (TypeInt _, TypeInt _) ->
+    return true
+  | (TypeChar _, TypeChar _) ->
+    return true
+  | (TypeString _, TypeString _) ->
+    return true
+  | (TypeVar var, _) ->
+    is_subtype_var var other
   | (TypeTuple tuple, TypeTuple other_tuple) ->
-    compare_lists is_subtype tuple.type_tuple_types other_tuple.type_tuple_types
+    compare_list2 is_subtype tuple.type_tuple_types other_tuple.type_tuple_types
   | (TypeRecord record, TypeRecord other_record) ->
-    NameMap.for_all (fun name other -> match NameMap.find_opt name record.type_record_attrs with
-    | Some attr -> is_subtype attr.attr_type other.attr_type
-    | None -> false
-    ) other_record.type_record_attrs
+    is_subtype_record record other_record
   | (_, TypeInter inter) ->
-    is_subtype type' inter.type_inter_left && is_subtype type' inter.type_inter_right
+    let* left = is_subtype type' inter.type_inter_left in
+    let* right = is_subtype type' inter.type_inter_right in
+    return (left && right)
   | (TypeInter inter, _) ->
-    is_subtype inter.type_inter_left other || is_subtype inter.type_inter_right other
+    let* left = is_subtype inter.type_inter_left other in
+    let* right = is_subtype inter.type_inter_right other in
+    return (left || right)
   | (TypeUnion union, _) ->
-    is_subtype union.type_union_left other && is_subtype union.type_union_right other
+    let* left = is_subtype union.type_union_left other in
+    let* right = is_subtype union.type_union_right other in
+    return (left && right)
   | (_, TypeUnion union) ->
-    is_subtype type' union.type_union_left || is_subtype type' union.type_union_right
+    let* left = is_subtype type' union.type_union_left in
+    let* right = is_subtype type' union.type_union_right in
+    return (left || right)
+  | (TypeAbsExpr abs, TypeAbsExpr other_abs) ->
+    let* params = compare_list2 is_subtype other_abs.type_abs_expr_params abs.type_abs_expr_params in
+    let* ret = is_subtype abs.type_abs_expr_ret other_abs.type_abs_expr_ret in
+    return (params && ret)
+  | (TypeAbsExprType abs, TypeAbsExprType other_abs) ->
+    let params = Utils.compare_lists TypingEqual.is_type_param abs.type_abs_expr_type_params other_abs.type_abs_expr_type_params in
+    let* ret = is_subtype abs.type_abs_expr_type_body other_abs.type_abs_expr_type_body in
+    return (params && ret)
   | (TypeAbs abs, TypeAbs other_abs) ->
-    compare_lists is_type_param abs.type_abs_params other_abs.type_abs_params
-      && is_subtype abs.type_abs_body other_abs.type_abs_body
-  | _ -> false
+    let params = Utils.compare_lists TypingEqual.is_type_param abs.type_abs_params other_abs.type_abs_params in
+    let* body = is_subtype abs.type_abs_body other_abs.type_abs_body in
+    return (params && body)
+  | (TypeApp app, _) ->
+    is_subtype (TypingApply.apply_app app) other
+  | (_, TypeApp app) ->
+    is_subtype type' (TypingApply.apply_app app)
+  | _ ->
+    return false
 
 and is_subtype_var var other =
+  let* arg = TypingContext.find_arg var.type_var_param in
+  match arg with
+  | Some arg -> is_subtype arg other
+  | None ->
   match other with
-  | TypeVar other ->
-    var.type_var_param = other.type_var_param || is_subtype var.type_var_param.param_type other.type_var_param.param_type
+  | TypeVar other_var ->
+    return (var.type_var_param = other_var.type_var_param)
   | _ ->
-    is_subtype var.type_var_param.param_type other
+    return false
+
+and is_subtype_record record other context =
+  Utils.NameMap.for_all (fun _ other -> is_subtype_attr other record context) other.type_record_attrs
+
+and is_subtype_attr other record =
+  match Utils.NameMap.find_opt other.attr_type_name record.type_record_attrs with
+    | Some attr ->
+      is_subtype attr.attr_type other.attr_type
+    | None ->
+      return false

@@ -50,21 +50,21 @@ let raise_expr_type_app_arity app params =
 let raise_param param =
   raise ("require type annotation for parameter `" ^ param.param_expr_name ^ "`") param.param_expr_pos
 
-let raise_type_constraint type' constraint' =
+let raise_type_constraint type' constr =
   let pos = type_pos type' in
   let type' = display type' in
-  let constraint' = display constraint' in
-  raise ("expected type `" ^ type' ^ "` but found type `" ^ constraint' ^ "`") pos
+  let constr = display constr in
+  raise ("expected type `" ^ constr ^ "` but found type `" ^ type' ^ "`") pos
 
 let raise_type_app_kind type' =
   let pos = type_pos type' in
   let type' = display type' in
   raise ("expected type abstraction but found type `" ^ type' ^ "`") pos
 
-let raise_type_app_arity app args =
-  let pos = app.type_abs_pos in
-  let length_params = string_of_int (List.length app.type_abs_params) in
-  let length_args = string_of_int (List.length args) in
+let raise_type_app_arity app abs =
+  let pos = app.type_app_pos in
+  let length_params = string_of_int (List.length abs.type_abs_params) in
+  let length_args = string_of_int (List.length app.type_app_args) in
   raise ("expected " ^ length_params ^ " arguments but found " ^ length_args ^ " arguments") pos
 
 let raise_type_proper type' =

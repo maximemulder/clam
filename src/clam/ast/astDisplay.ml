@@ -131,7 +131,7 @@ let node_attrs node =
     [("name", AString param_name); ("type", AOption (Option.map (fun type' -> Type type') param_type))]
   | AttrType { attr_type_name; attr_type; _ } ->
     [("name", AString attr_type_name); ("type", ANode (Type attr_type))]
-  | AttrExpr { attr_expr_name; attr_expr } ->
+  | AttrExpr { attr_expr_name; attr_expr; _ } ->
     [("name", AString attr_expr_name); ("expr", ANode (Expr attr_expr))]
   | Block block ->
     [("stmts", AList (List.map (fun stmt -> Stmt stmt) block.block_stmts)); ("expr", AOption (Option.map (fun expr -> Expr expr) block.block_expr))]
