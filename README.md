@@ -25,6 +25,12 @@ def main = {
 
 More examples of Clam code can be found in the `tests` directory.
 
+# How to build
+
+You can build this project on Linux using Dune !
+
+Bimply enter `dune build` to build to build the project or `dun exec clam filename.clam` to run the project with the code file `filename.clam` as an input.
+
 # Features
 
 Most of the interesting things about Clam are in its type system, which while not very original, incorporates many ideas notably of System $F^ω_{<:}$.
