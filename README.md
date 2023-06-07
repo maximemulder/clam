@@ -29,7 +29,7 @@ More examples of Clam code can be found in the `tests` directory.
 
 You can build this project on Linux using Dune !
 
-Bimply enter `dune build` to build to build the project or `dun exec clam filename.clam` to run the project with the code file `filename.clam` as an input.
+Simply enter `dune build` to build to build the project or `dune exec clam filename.clam` to run the project with the code file `filename.clam` as an input.
 
 # Features
 
