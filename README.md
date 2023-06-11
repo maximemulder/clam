@@ -11,7 +11,7 @@ A Clam program is a sequence of type definitions (declared with `type`) and expr
 When a program is executed, the `main` expression definition is evaluated. Printing can be done through the `print` function, which can be chained with other expressions in a block.
 
 ```
-def fibonacci = (n: Int) -> Int =>
+def fibonacci: (Int) -> Int = (n) ->
     if n == 0 | n == 1 then
         n
     else
@@ -70,7 +70,7 @@ Clam has a top type named `Any`, which is a supertype of all types.
 Clam features type operators, which allow to abstract over a type using other types. Type parameters have a bound, which is `Any` by default.
 
 ```
-type Pair = [T] (T, T);
+type Pair = [T] => (T, T);
 
 def main = {
     var a: Pair[Int] = @(0, 0);
@@ -84,12 +84,12 @@ Type parameters cannot be of a higher kind yet.
 Clam features universal types, which allow to abstract over an expression using types.
 
 ```
-def map = [T, U] => (p: (T, T), f: (T) -> U) =>
+def map_pair = [T, U] -> (p: (T, T), f: (T) -> U) ->
     @(f(p.0), f(p.1));
 
 def main = {
     var pair = @(2, 3);
-    var double = map[Int, Int](pair, (x) => x * 2);
+    var double = map_pair[Int, Int](pair, (x) -> x * 2);
 };
 ```
 
@@ -115,7 +115,7 @@ Clam features bidirectional type inference, which allows to eliminate many type 
 type Pair = [T] (T, T);
 type Make = [T] -> (T) -> Pair[T];
 
-def make: Make = [T] => (p) => @(p, p);
+def make: Make = [T] -> (p) -> @(p, p);
 
 def main = {
     var pair = make[Int](0, 0);
