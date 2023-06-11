@@ -7,7 +7,7 @@ def main = {
         ret a + 1
     };
 
-    var e = (p: Int) => p + 2;
+    var e = (p: Int) -> p + 2;
 
     print(a);
     print(b);

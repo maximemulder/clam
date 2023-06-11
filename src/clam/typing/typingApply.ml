@@ -54,10 +54,10 @@ let rec apply type' =
     })
   | TypeAbsExpr abs ->
     let* params = map_list apply abs.type_abs_expr_params in
-    let* ret = apply abs.type_abs_expr_ret in
+    let* body = apply abs.type_abs_expr_body in
     return (TypeAbsExpr { abs with
       type_abs_expr_params = params;
-      type_abs_expr_ret = ret;
+      type_abs_expr_body = body;
     })
   | TypeAbsExprType abs ->
     let* params = map_list apply_param abs.type_abs_expr_type_params in

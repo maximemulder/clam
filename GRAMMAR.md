@@ -20,7 +20,7 @@ type =
     | type '&' type
     | '(' list_comma(type) ')' -> type
     | '[' list_comma(param_type) ']' '->' type
-    | '[' list_comma(param_type) ']' type
+    | '[' list_comma(param_type) ']' '=>' type
 
 param_type = ident option(':' type)
 
@@ -49,7 +49,7 @@ expr =
     | expr binop_5 expr
     | expr ':' type
     | 'if' expr 'then' expr 'else' expr
-    | '(' list_comma(param_expr) ')' option(':' type) '->' expr
+    | '(' list_comma(param_expr) ')' '->' expr
     | '[' list_comma(param_type) ']' '->' expr
 
 param_expr = ident option(':' type)

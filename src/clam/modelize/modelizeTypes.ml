@@ -97,11 +97,11 @@ and modelize_type (type': Ast.type') =
     modelize_name type' name
   | TypeAbsExpr (params, ret) ->
     let* params = map_list modelize_type params in
-    let* ret = modelize_type ret in
+    let* body = modelize_type ret in
     return (Model.TypeAbsExpr {
       type_abs_expr_pos = pos;
       type_abs_expr_params = params;
-      type_abs_expr_ret = ret;
+      type_abs_expr_body = body;
     })
   | TypeAbsExprType (params, body) ->
     let* (params, body) = modelize_params params body in

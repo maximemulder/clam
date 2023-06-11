@@ -73,7 +73,7 @@ and type_union = {
 and type_abs_expr = {
   type_abs_expr_pos: pos;
   type_abs_expr_params: type' list;
-  type_abs_expr_ret: type';
+  type_abs_expr_body: type';
 }
 
 and type_abs_expr_type = {
@@ -212,7 +212,6 @@ and expr_if = {
 and expr_abs = {
   expr_abs_pos: pos;
   expr_abs_params: param_expr list;
-  expr_abs_ret: type' option;
   expr_abs_body: expr;
 }
 

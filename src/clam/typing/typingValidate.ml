@@ -43,7 +43,7 @@ and validate type' =
     return ()
   | TypeAbsExpr abs ->
     let* () = iter_list validate abs.type_abs_expr_params in
-    validate abs.type_abs_expr_ret;
+    validate abs.type_abs_expr_body;
   | TypeAbsExprType abs ->
     let* () = iter_list validate_param abs.type_abs_expr_type_params in
     validate abs.type_abs_expr_type_body;

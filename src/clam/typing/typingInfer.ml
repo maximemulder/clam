@@ -67,6 +67,13 @@ let with_entries call entries state =
 let return_def def =
   fun type' state -> (type', { state with progress = end_progress state.progress def type' })
 
+let return_abs abs params returner =
+  fun body -> returner (TypeAbsExpr {
+    type_abs_expr_pos = abs.expr_abs_pos;
+    type_abs_expr_params = params;
+    type_abs_expr_body = body;
+  })
+
 let preop_types =
   [
     ("+", (type_int, type_int));
@@ -100,7 +107,7 @@ let print_type =
   TypeAbsExpr {
     type_abs_expr_pos = primitive_pos;
     type_abs_expr_params = [type_any];
-    type_abs_expr_ret = type_void;
+    type_abs_expr_body = type_void;
   }
 
 let validate type' =
@@ -191,8 +198,7 @@ and check_abs abs constr =
   match constr with
   | TypeAbsExpr constr_abs ->
     let* _ = check_abs_params abs constr constr_abs.type_abs_expr_params in
-    let* ret = check_abs_ret abs.expr_abs_ret constr_abs.type_abs_expr_ret in
-    let* _ = check abs.expr_abs_body ret in
+    let* _ = check abs.expr_abs_body constr_abs.type_abs_expr_body in
     return ()
   | _ ->
     check_error expr constr
@@ -216,15 +222,6 @@ and check_abs_param param constr =
     return constr
   in
   add_bind (BindExprParam param) type'
-
-and check_abs_ret type' constr =
-  match type' with
-  | Some type' ->
-    let* () = validate_proper type' in
-    let* () = validate_subtype type' constr in
-    return type'
-  | None ->
-    return constr
 
 and check_type_abs abs constr =
   let expr = ExprTypeAbs abs in
@@ -438,7 +435,7 @@ and infer_app_abs app abs returner =
     TypingErrors.raise_expr_app_arity app params
   else
   let* _ = map_list2 check args params in
-  returner abs.type_abs_expr_ret
+  returner abs.type_abs_expr_body
 
 and infer_preop preop returner =
   let entry = NameMap.find_opt preop.expr_preop_op preop_types in
@@ -502,24 +499,13 @@ and infer_block_stmt stmt =
 
 and infer_abs abs returner =
   let* params = infer_abs_params abs.expr_abs_params in
-  match abs.expr_abs_ret with
-  | Some ret ->
-    let* () = validate_proper ret in
-    let signature = TypeAbsExpr {
-      type_abs_expr_pos = abs.expr_abs_pos;
-      type_abs_expr_params = params;
-      type_abs_expr_ret = ret;
-    } in
-    let* _ = returner signature in
-    let* _ = check abs.expr_abs_body ret in
-    return signature
-  | None ->
-    let* ret = infer_none abs.expr_abs_body in
-    returner (TypeAbsExpr {
-      type_abs_expr_pos = abs.expr_abs_pos;
-      type_abs_expr_params = params;
-      type_abs_expr_ret = ret;
-    })
+  let returner = return_abs abs params returner in
+  let* body = infer abs.expr_abs_body returner in
+  return (TypeAbsExpr {
+    type_abs_expr_pos = abs.expr_abs_pos;
+    type_abs_expr_params = params;
+    type_abs_expr_body = body;
+  })
 
 and infer_abs_params params =
   let types = List.map (fun param -> match param.param_expr_type with

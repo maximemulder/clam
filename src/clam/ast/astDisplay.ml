@@ -58,7 +58,7 @@ let node_name node =
   | AttrType _ -> "attr_type"
   | AttrExpr _ -> "attr_expr"
   | Block _ -> "block"
-  | Stmt stmt -> "stmt" ^ (match stmt with
+  | Stmt stmt -> "stmt." ^ (match stmt with
     | StmtVar  _ -> "var"
     | StmtExpr _ -> "expr")
 
@@ -119,8 +119,8 @@ let node_attrs node =
       [("block", ANode (Block block))]
     | ExprIf (cond, then', else') ->
       [("cond", ANode (Expr cond)); ("then", ANode (Expr then')); ("else", ANode (Expr else'))]
-    | ExprAbs (params, return, expr) ->
-      [("params", AList (List.map (fun param -> Param param) params)); ("return", AOption (Option.map (fun return -> Type return) return)); ("expr", ANode (Expr expr))]
+    | ExprAbs (params, expr) ->
+      [("params", AList (List.map (fun param -> Param param) params)); ("expr", ANode (Expr expr))]
     | ExprApp (expr, args) ->
       [("expr", ANode (Expr expr)); ("args", AList (List.map (fun arg -> Expr arg) args))]
     | ExprTypeAbs (params, expr) ->

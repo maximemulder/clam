@@ -12,7 +12,7 @@ let rec display type' =
   | TypeVar var -> var.type_var_param.param_type_name
   | TypeAbsExpr abs ->
     let params = List.map display abs.type_abs_expr_params in
-    "(" ^ (String.concat ", " params) ^ ") -> " ^ (display abs.type_abs_expr_ret)
+    "(" ^ (String.concat ", " params) ^ ") -> " ^ (display abs.type_abs_expr_body)
   | TypeAbsExprType abs ->
     let params = List.map (fun param -> param.param_type_name ^ ": " ^ display param.param_type) abs.type_abs_expr_type_params in
     "[" ^ (String.concat ", " params) ^ "] -> " ^ (display abs.type_abs_expr_type_body)
@@ -28,7 +28,7 @@ let rec display type' =
     (display union.type_union_left) ^ " | " ^ (display union.type_union_right)
   | TypeAbs abs ->
     let params = List.map (fun param -> param.param_type_name ^ ": " ^ display param.param_type) abs.type_abs_params in
-    "[" ^ (String.concat ", " params) ^ "] " ^ (display abs.type_abs_body)
+    "[" ^ (String.concat ", " params) ^ "] => " ^ (display abs.type_abs_body)
   | TypeApp app ->
     let args = List.map display app.type_app_args in
-    (display app.type_app_type) ^ " [" ^ (String.concat ", " args) ^ "]"
+    (display app.type_app_type) ^ "[" ^ (String.concat ", " args) ^ "]"

@@ -44,8 +44,8 @@ let rec is_subtype type' other =
     return (left || right)
   | (TypeAbsExpr abs, TypeAbsExpr other_abs) ->
     let* params = compare_list2 is_subtype other_abs.type_abs_expr_params abs.type_abs_expr_params in
-    let* ret = is_subtype abs.type_abs_expr_ret other_abs.type_abs_expr_ret in
-    return (params && ret)
+    let* body = is_subtype abs.type_abs_expr_body other_abs.type_abs_expr_body in
+    return (params && body)
   | (TypeAbsExprType abs, TypeAbsExprType other_abs) ->
     let params = Utils.compare_lists TypingEqual.is_type_param abs.type_abs_expr_type_params other_abs.type_abs_expr_type_params in
     let* ret = is_subtype abs.type_abs_expr_type_body other_abs.type_abs_expr_type_body in

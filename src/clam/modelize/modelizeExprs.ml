@@ -151,8 +151,8 @@ and modelize_expr (expr: Ast.expr): state -> Model.expr * state =
     modelize_block expr block
   | ExprIf (cond, then', else') ->
     modelize_if expr cond then' else'
-  | ExprAbs (params, ret, body) ->
-    modelize_abs expr params ret body
+  | ExprAbs (params, body) ->
+    modelize_abs expr params body
   | ExprApp (expr, args) ->
     modelize_app expr args
   | ExprTypeAbs (params, body) ->
@@ -319,15 +319,13 @@ and modelize_if expr cond then' else' =
     expr_if_else = else';
   })
 
-and modelize_abs expr params ret body =
+and modelize_abs expr params body =
   let* params = map_list modelize_param params in
-  let* ret = map_option modelize_type ret in
   let pairs = List.map (fun param -> (param.Model.param_expr_name, Model.BindExprParam param)) params in
   let* body = with_scope (modelize_expr body) NameMap.empty [] pairs in
   return (Model.ExprAbs {
     expr_abs_pos = fst expr;
     expr_abs_params = params;
-    expr_abs_ret = ret;
     expr_abs_body = body;
   })
 

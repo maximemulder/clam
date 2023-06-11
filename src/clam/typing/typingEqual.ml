@@ -28,7 +28,7 @@ let rec is_type type' other =
     && is_type union.type_union_right other_union.type_union_right
   | (TypeAbsExpr abs, TypeAbsExpr other_abs) ->
     Utils.compare_lists is_type abs.type_abs_expr_params other_abs.type_abs_expr_params
-    && is_type abs.type_abs_expr_ret other_abs.type_abs_expr_ret
+    && is_type abs.type_abs_expr_body other_abs.type_abs_expr_body
   | (TypeAbsExprType abs, TypeAbsExprType other_abs) ->
     Utils.compare_lists is_type_param abs.type_abs_expr_type_params other_abs.type_abs_expr_type_params
     && is_type abs.type_abs_expr_type_body other_abs.type_abs_expr_type_body

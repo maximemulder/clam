@@ -70,7 +70,7 @@ let type_ :=
     { $startpos, TypeAbsExpr (params, expr) }
   | CROTCHET_LEFT; params = list_comma(param); CROTCHET_RIGHT; ARROW; expr = type_;
     { $startpos, TypeAbsExprType (params, expr) }
-  | CROTCHET_LEFT; params = list_comma(param); CROTCHET_RIGHT; type_ = type_;
+  | CROTCHET_LEFT; params = list_comma(param); CROTCHET_RIGHT; DOUBLE_ARROW; type_ = type_;
     { $startpos, TypeAbs (params, type_) }
 
 let type_2 :=
@@ -94,9 +94,9 @@ let type_1 :=
 
 let expr :=
   | expr_7
-  | PARENTHESIS_LEFT; params = list_comma(param); PARENTHESIS_RIGHT; return = option(ARROW; type_); DOUBLE_ARROW; expr = expr;
-    { $startpos, ExprAbs (params, return, expr) }
-  | CROTCHET_LEFT; params = list_comma(param); CROTCHET_RIGHT; DOUBLE_ARROW; expr = expr;
+  | PARENTHESIS_LEFT; params = list_comma(param); PARENTHESIS_RIGHT; ARROW; expr = expr;
+    { $startpos, ExprAbs (params, expr) }
+  | CROTCHET_LEFT; params = list_comma(param); CROTCHET_RIGHT; ARROW; expr = expr;
     { $startpos, ExprTypeAbs (params, expr) }
   | IF; cond = expr; THEN; then_ = expr; ELSE; else_ = expr;
     { $startpos, ExprIf (cond, then_, else_) }

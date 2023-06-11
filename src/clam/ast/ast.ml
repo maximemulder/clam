@@ -53,7 +53,7 @@ and expr_data =
   | ExprAscr    of expr * type'
   | ExprBlock   of block
   | ExprIf      of expr * expr * expr
-  | ExprAbs     of (param list) * (type' option) * expr
+  | ExprAbs     of (param list) * expr
   | ExprApp     of expr * (expr list)
   | ExprTypeAbs of (param list) * expr
   | ExprTypeApp of expr * (type' list)
