@@ -112,7 +112,7 @@ def main = {
 Clam features bidirectional type inference, which allows to eliminate many type annotations when they are not needed.
 
 ```
-type Pair = [T] (T, T);
+type Pair = [T] => (T, T);
 type Make = [T] -> (T) -> Pair[T];
 
 def make: Make = [T] -> (p) -> @(p, p);
