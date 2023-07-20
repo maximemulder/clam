@@ -44,7 +44,7 @@ type A = (Int, Int);
 type B = (Int, Int);
 
 def main = {
-    var a: A = (0, 0);
+    var a: A = @(0, 0);
     var b: B = a;
 };
 ```
