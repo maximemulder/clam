@@ -14,10 +14,10 @@ open Monad.Monad(Monad.ReaderMonad(Reader))
 
 let rec apply type' =
   match type' with
-  | TypeAny _ ->
-    return type_any
-  | TypeVoid _ ->
-    return type_void
+  | TypeTop _ ->
+    return type_top
+  | TypeUnit _ ->
+    return type_unit
   | TypeBool _ ->
     return type_bool
   | TypeInt _ ->

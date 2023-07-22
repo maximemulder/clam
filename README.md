@@ -61,9 +61,17 @@ def main = {
 };
 ```
 
-## Top type
+## Top and unit types
 
-Clam has a top type named `Any`, which is a supertype of all types.
+Clam has a top type named `Top`, which is a supertype of all types.
+
+Clam has a unit type named `Unit`, whose only value is `unit`.
+
+```
+def a: Top = 0;
+def b: Top = "Hello world !";
+def c: Unit = unit;
+```
 
 ## Type operators
 

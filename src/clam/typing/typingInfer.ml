@@ -91,8 +91,8 @@ let binop_types =
     ("/",  ((type_int, type_int), type_int));
     ("%",  ((type_int, type_int), type_int));
     ("++", ((type_string, type_string), type_string));
-    ("==", ((type_any, type_any), type_bool));
-    ("!=", ((type_any, type_any), type_bool));
+    ("==", ((type_top, type_top), type_bool));
+    ("!=", ((type_top, type_top), type_bool));
     ("<",  ((type_int, type_int), type_bool));
     (">",  ((type_int, type_int), type_bool));
     ("<=", ((type_int, type_int), type_bool));
@@ -106,8 +106,8 @@ let binop_types =
 let print_type =
   TypeAbsExpr {
     type_abs_expr_pos = primitive_pos;
-    type_abs_expr_params = [type_any];
-    type_abs_expr_body = type_void;
+    type_abs_expr_params = [type_top];
+    type_abs_expr_body = type_unit;
   }
 
 let validate type' =
@@ -251,8 +251,8 @@ and check_type_abs_param expr constr param constr_param state =
 
 and infer expr returner =
   match expr with
-  | ExprVoid void ->
-    infer_void void returner
+  | ExprUnit unit ->
+    infer_unit unit returner
   | ExprBool bool ->
     infer_bool bool returner
   | ExprInt int ->
@@ -293,9 +293,9 @@ and infer expr returner =
 and infer_none expr =
   infer expr return
 
-and infer_void void returner =
-  returner (TypeVoid {
-    type_void_pos = void.expr_void_pos;
+and infer_unit unit returner =
+  returner (TypeUnit {
+    type_unit_pos = unit.expr_unit_pos;
   })
 
 and infer_bool bool returner =
@@ -478,7 +478,7 @@ and infer_block block returner =
   let* _ = map_list infer_block_stmt block.expr_block_stmts in
   match block.expr_block_expr with
   | Some expr -> infer expr returner
-  | None -> returner type_void
+  | None -> returner type_unit
 
 and infer_block_stmt stmt =
   match stmt with

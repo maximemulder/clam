@@ -119,8 +119,8 @@ and modelize_def def state =
 
 and modelize_expr (expr: Ast.expr): state -> Model.expr * state =
   match snd expr with
-  | ExprVoid ->
-    modelize_void expr
+  | ExprUnit ->
+    modelize_unit expr
   | ExprTrue ->
     modelize_bool expr true
   | ExprFalse ->
@@ -161,9 +161,9 @@ and modelize_expr (expr: Ast.expr): state -> Model.expr * state =
   | ExprTypeApp (expr, args) ->
     modelize_type_app expr args
 
-and modelize_void expr =
-  return (Model.ExprVoid {
-    expr_void_pos = fst expr;
+and modelize_unit expr =
+  return (Model.ExprUnit {
+    expr_unit_pos = fst expr;
   })
 
 and modelize_bool expr value =
@@ -256,7 +256,7 @@ and modelize_param (param: Ast.param) =
 
 and modelize_type_param (param: Ast.param) =
   let* type' = map_option modelize_type param.param_type in
-  let type' = Option.value type' ~default:(Model.TypeAny { type_any_pos = param.param_pos }) in
+  let type' = Option.value type' ~default:(Model.TypeTop { type_top_pos = param.param_pos }) in
   return { Model.param_type_name = param.param_name; Model.param_type = type' }
 
 and modelize_attr2 (attr: Ast.attr_expr) =

@@ -34,7 +34,7 @@ let node_name node =
     | TypeAbs         _ -> "abs"
     | TypeApp         _ -> "app")
   | Expr expr -> "expr." ^ (match snd expr with
-    | ExprVoid      -> "void"
+    | ExprUnit      -> "unit"
     | ExprTrue      -> "true"
     | ExprFalse     -> "false"
     | ExprInt     _ -> "int"
@@ -90,7 +90,7 @@ let node_attrs node =
     | TypeApp (type', args) ->
       [("type", ANode (Type type')); ("args", AList (List.map (fun arg -> Type arg) args))])
   | Expr expr -> (match snd expr with
-    | ExprVoid -> []
+    | ExprUnit -> []
     | ExprTrue -> []
     | ExprFalse -> []
     | ExprInt value ->

@@ -2,9 +2,9 @@ open Model
 
 let rec is_type type' other =
   match (type', other) with
-  | (TypeAny _, TypeAny _) ->
+  | (TypeTop _, TypeTop _) ->
     true
-  | (TypeVoid _, TypeVoid _) ->
+  | (TypeUnit _, TypeUnit _) ->
     true
   | (TypeBool _, TypeBool _) ->
     true

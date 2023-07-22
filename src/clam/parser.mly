@@ -3,7 +3,7 @@
 %}
 
 %token <string> IDENT
-%token VOID
+%token UNIT
 %token TRUE
 %token FALSE
 %token <string> INT
@@ -137,8 +137,8 @@ let expr_05 :=
     { $startpos, ExprAscr (expr, type_) }
 
 let expr_1 :=
-  | VOID;
-    { $startpos, ExprVoid }
+  | UNIT;
+    { $startpos, ExprUnit }
   | TRUE;
     { $startpos, ExprTrue }
   | FALSE;

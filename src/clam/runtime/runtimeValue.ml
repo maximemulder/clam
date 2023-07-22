@@ -2,7 +2,7 @@ open Utils
 
 type value =
 | VPrint
-| VVoid
+| VUnit
 | VBool    of bool
 | VInt     of int
 | VChar    of char
@@ -16,7 +16,7 @@ let rec compare value other =
   match (value, other) with
   | (VPrint, VPrint) ->
     true
-  | (VVoid, VVoid) ->
+  | (VUnit, VUnit) ->
     true
   | (VBool bool, VBool other) ->
     bool = other

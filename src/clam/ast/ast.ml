@@ -37,7 +37,7 @@ and type_data =
 and expr = pos * expr_data
 
 and expr_data =
-  | ExprVoid
+  | ExprUnit
   | ExprTrue
   | ExprFalse
   | ExprInt     of string

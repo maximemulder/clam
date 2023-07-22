@@ -3,13 +3,13 @@ open Model
 let rec meet left right =
   let pos = type_pos left in
   match (left, right) with
-  | (TypeAny _, right) ->
+  | (TypeTop _, right) ->
     right
-  | (left, TypeAny _) ->
+  | (left, TypeTop _) ->
     left
-  | (TypeVoid _, TypeVoid _) ->
-    TypeVoid {
-      type_void_pos = pos;
+  | (TypeUnit _, TypeUnit _) ->
+    TypeUnit {
+      type_unit_pos = pos;
     }
   | (TypeBool _, TypeBool _) ->
     TypeBool {

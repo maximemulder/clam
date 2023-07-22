@@ -3,17 +3,17 @@ open Model
 let rec join left right =
   let pos = type_pos left in
   match (left, right) with
-  | (TypeAny _, _) ->
-    TypeAny {
-      type_any_pos = pos;
+  | (TypeTop _, _) ->
+    TypeTop {
+      type_top_pos = pos;
     }
-  | (_, TypeAny _) ->
-    TypeAny {
-      type_any_pos = pos;
+  | (_, TypeTop _) ->
+    TypeTop {
+      type_top_pos = pos;
     }
-  | (TypeVoid _, TypeVoid _) ->
-    TypeVoid {
-      type_void_pos = pos;
+  | (TypeUnit _, TypeUnit _) ->
+    TypeUnit {
+      type_unit_pos = pos;
     }
   | (TypeBool _, TypeBool _) ->
     TypeBool {

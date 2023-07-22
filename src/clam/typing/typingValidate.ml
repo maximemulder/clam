@@ -27,9 +27,9 @@ and validate_proper type' =
 
 and validate type' =
   match type' with
-  | TypeAny _ ->
+  | TypeTop _ ->
     return ()
-  | TypeVoid _ ->
+  | TypeUnit _ ->
     return ()
   | TypeBool _ ->
     return ()

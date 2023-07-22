@@ -3,7 +3,7 @@ open RuntimeValue
 
 let rec display value =
   match value with
-  | VVoid -> "void"
+  | VUnit -> "unit"
   | VBool bool -> string_of_bool bool
   | VInt int -> string_of_int int
   | VChar char -> "'" ^ (String.escaped (String.make 1 char)) ^ "'"

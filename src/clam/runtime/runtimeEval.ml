@@ -46,8 +46,8 @@ open Monad.Monad(Monad.ReaderMonad(Reader))
 
 let rec eval (expr: Model.expr) =
   match expr with
-  | ExprVoid void ->
-    eval_void void
+  | ExprUnit unit ->
+    eval_unit unit
   | ExprBool bool ->
     eval_bool bool
   | ExprInt int ->
@@ -93,9 +93,9 @@ let rec eval (expr: Model.expr) =
   | ExprTypeApp app ->
     eval_type_app app.expr_type_app_expr
 
-and eval_void void =
-  let _ = void.expr_void_pos in
-  return VVoid
+and eval_unit unit =
+  let _ = unit.expr_unit_pos in
+  return VUnit
 
 and eval_bool bool =
   return (VBool bool.expr_bool)
@@ -128,7 +128,7 @@ and eval_expr_app_print args context =
   let value = eval (List.nth args 0) context in
   let string = RuntimeDisplay.display value in
   let _ = context.out_handler string in
-  VVoid
+  VUnit
 
 and eval_expr_app_abs abs args context =
   let args = map_list eval args context in
@@ -166,7 +166,7 @@ and eval_block_stmt stmt context =
 and eval_block_expr expr =
   match expr with
   | Some expr -> eval expr
-  | None -> return VVoid
+  | None -> return VUnit
 
 and eval_preop preop =
   let expr = preop.expr_preop_expr in

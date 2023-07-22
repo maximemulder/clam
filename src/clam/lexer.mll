@@ -30,8 +30,8 @@ rule read =
   | "then"   { THEN }
   | "true"   { TRUE }
   | "type"   { TYPE }
+  | "unit"   { UNIT }
   | "var"    { VAR }
-  | "void"   { VOID }
   | ident    { IDENT (Lexing.lexeme lexbuf) }
   | "->"     { ARROW }
   | "++"     { CONCAT }

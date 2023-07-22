@@ -3,8 +3,8 @@ open Utils
 type pos = Lexing.position
 
 type type' =
-  | TypeAny         of type_any
-  | TypeVoid        of type_void
+  | TypeTop         of type_top
+  | TypeUnit        of type_unit
   | TypeBool        of type_bool
   | TypeInt         of type_int
   | TypeChar        of type_char
@@ -19,12 +19,12 @@ type type' =
   | TypeAbs         of type_abs
   | TypeApp         of type_app
 
-and type_any = {
-  type_any_pos: pos;
+and type_top = {
+  type_top_pos: pos;
 }
 
-and type_void = {
-  type_void_pos: pos;
+and type_unit = {
+  type_unit_pos: pos;
 }
 
 and type_bool = {
@@ -106,7 +106,7 @@ and param_type = {
 }
 
 and expr =
-  | ExprVoid    of expr_void
+  | ExprUnit    of expr_unit
   | ExprBool    of expr_bool
   | ExprInt     of expr_int
   | ExprChar    of expr_char
@@ -126,8 +126,8 @@ and expr =
   | ExprTypeAbs of expr_type_abs
   | ExprTypeApp of expr_type_app
 
-and expr_void = {
-  expr_void_pos: pos;
+and expr_unit = {
+  expr_unit_pos: pos;
 }
 
 and expr_bool = {
@@ -321,12 +321,12 @@ let primitive_pos = {
   Lexing.pos_cnum = 0;
 }
 
-let type_any = TypeAny {
-  type_any_pos = primitive_pos;
+let type_top = TypeTop {
+  type_top_pos = primitive_pos;
 }
 
-let type_void = TypeVoid {
-  type_void_pos = primitive_pos;
+let type_unit = TypeUnit {
+  type_unit_pos = primitive_pos;
 }
 
 let type_bool = TypeBool {
@@ -347,10 +347,10 @@ let type_string = TypeString {
 
 let type_pos type' =
   match type' with
-  | TypeAny type' ->
-    type'.type_any_pos
-  | TypeVoid type' ->
-    type'.type_void_pos
+  | TypeTop type' ->
+    type'.type_top_pos
+  | TypeUnit type' ->
+    type'.type_unit_pos
   | TypeBool type' ->
     type'.type_bool_pos
   | TypeInt type' ->
@@ -380,8 +380,8 @@ let type_pos type' =
 
 let expr_pos expr =
   match expr with
-  | ExprVoid expr ->
-    expr.expr_void_pos
+  | ExprUnit expr ->
+    expr.expr_unit_pos
   | ExprBool expr ->
     expr.expr_bool_pos
   | ExprInt expr ->

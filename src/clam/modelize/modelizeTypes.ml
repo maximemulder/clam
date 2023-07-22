@@ -162,7 +162,7 @@ and modelize_params params type' =
 
 and modelize_param param =
   let* type' = map_option modelize_type param.param_type in
-  let type' = Option.value type' ~default:(Model.TypeAny { type_any_pos = param.param_pos }) in
+  let type' = Option.value type' ~default:(Model.TypeTop { type_top_pos = param.param_pos }) in
   return { Model.param_type_name = param.param_name; Model.param_type = type' }
 
 and modelize_attr attr =
@@ -185,8 +185,8 @@ let rec modelize_defs state =
     modelize_defs state
 
 let primitives = [
-  ("Any",    Model.type_any);
-  ("Void",   Model.type_void);
+  ("Top",    Model.type_top);
+  ("Unit",   Model.type_unit);
   ("Bool",   Model.type_bool);
   ("Int",    Model.type_int);
   ("Char",   Model.type_char);

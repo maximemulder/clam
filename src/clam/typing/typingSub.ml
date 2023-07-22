@@ -8,9 +8,9 @@ open Monad.Monad(Monad.ReaderMonad(Reader))
 
 let rec is_subtype type' other =
   match (type', other) with
-  | (_, TypeAny _) ->
+  | (_, TypeTop _) ->
     return true
-  | (TypeVoid _, TypeVoid _) ->
+  | (TypeUnit _, TypeUnit _) ->
     return true
   | (TypeBool _, TypeBool _) ->
     return true

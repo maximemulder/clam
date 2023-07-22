@@ -3,8 +3,8 @@ open Model
 
 let rec display type' =
   match type' with
-  | TypeAny _    -> "Any"
-  | TypeVoid _   -> "Void"
+  | TypeTop _    -> "Top"
+  | TypeUnit _   -> "Unit"
   | TypeBool _   -> "Bool"
   | TypeInt _    -> "Int"
   | TypeChar _   -> "Char"
