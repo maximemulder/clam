@@ -15,7 +15,7 @@ let run code_name code_text writer =
   let (exprs, types) = ModelizeExprs.modelize_program program types all_types in
   let _ = TypingInfer.check_exprs exprs in
   let _ = TypingInfer.check_types types in
-  let main = (match List.find_opt (fun expr -> expr.Model.def_expr_name = "main") exprs with
+  let main = (match List.find_opt (fun def -> def.Model.name = "main") exprs with
   | Some main -> main
   | None -> Error.raise_main ()
   ) in

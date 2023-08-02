@@ -64,12 +64,12 @@ let node_name node =
 
 let node_attrs node =
   match node with
-  | Prog { program_defs } -> [("defs", AList (List.map (fun def -> Def def) program_defs))]
+  | Prog { defs } -> [("defs", AList (List.map (fun def -> Def def) defs))]
   | Def def -> (match def with
     | Ast.DefType type' ->
-      [("name", AString type'.type_name); ("type", ANode (Type type'.type'))]
-    | Ast.DefExpr { expr_name; expr_type; expr; _ } ->
-      [("name", AString expr_name); ("type", AOption (Option.map (fun type' -> Type type') expr_type)); ("expr", ANode (Expr expr))])
+      [("name", AString type'.name); ("type", ANode (Type type'.type'))]
+    | Ast.DefExpr { name; type'; expr; _ } ->
+      [("name", AString name); ("type", AOption (Option.map (fun type' -> Type type') type')); ("expr", ANode (Expr expr))])
   | Type type' -> (match snd type' with
     | TypeIdent name ->
       [("name", AString name)]
@@ -127,14 +127,14 @@ let node_attrs node =
       [("params", AList (List.map (fun param -> Param param) params)); ("expr", ANode (Expr expr))]
     | ExprTypeApp (expr, args) ->
       [("expr", ANode (Expr expr)); ("args", AList (List.map (fun arg -> Type arg) args))])
-  | Param { param_name; param_type; _ } ->
-    [("name", AString param_name); ("type", AOption (Option.map (fun type' -> Type type') param_type))]
-  | AttrType { attr_type_name; attr_type; _ } ->
-    [("name", AString attr_type_name); ("type", ANode (Type attr_type))]
-  | AttrExpr { attr_expr_name; attr_expr; _ } ->
-    [("name", AString attr_expr_name); ("expr", ANode (Expr attr_expr))]
+  | Param { name; type'; _ } ->
+    [("name", AString name); ("type", AOption (Option.map (fun type' -> Type type') type'))]
+  | AttrType { name; type'; _ } ->
+    [("name", AString name); ("type", ANode (Type type'))]
+  | AttrExpr { name; expr; _ } ->
+    [("name", AString name); ("expr", ANode (Expr expr))]
   | Block block ->
-    [("stmts", AList (List.map (fun stmt -> Stmt stmt) block.block_stmts)); ("expr", AOption (Option.map (fun expr -> Expr expr) block.block_expr))]
+    [("stmts", AList (List.map (fun stmt -> Stmt stmt) block.stmts)); ("expr", AOption (Option.map (fun expr -> Expr expr) block.expr))]
   | Stmt stmt -> (match stmt with
     | StmtVar (name, type', expr) ->
       [("name", AString name); ("type", AOption (Option.map (fun type' -> Type type') type')); ("expr", ANode (Expr expr))]

@@ -1,4 +1,4 @@
-(lang dune 3.7)
+(lang dune 3.9)
 
 (name clam)
 (using menhir 2.1)
@@ -6,22 +6,19 @@
 (generate_opam_files true)
 
 (source
- (github username/reponame))
+ (github MaximeMulder/clam))
 
-(authors "Author Name")
+(authors "Maxime Mulder")
 
-(maintainers "Maintainer Name")
+(maintainers "Maxime Mulder")
 
-(license LICENSE)
+(license MIT)
 
-(documentation https://url/to/documentation)
+(documentation https://github.com/MaximeMulder/clam/README.md)
 
 (package
  (name clam)
- (synopsis "A minimalist purely functionnal language with a C-family syntax")
- (description "A longer description")
- (depends ocaml dune)
- (tags
-  (topics "to describe" your project)))
+ (synopsis "Minimalist purely functionnal language with a C-family syntax")
+ (depends ocaml dune))
 
 ; See the complete stanza docs at https://dune.readthedocs.io/en/stable/dune-files.html#dune-project

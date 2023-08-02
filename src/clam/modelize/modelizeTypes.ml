@@ -18,8 +18,8 @@ end
 
 open Monad.Monad(Monad.StateMonad(State))
 
-let fold_remain map remain =
-  NameMap.add remain.Ast.type_name remain.Ast.type' map
+let fold_remain map (remain: Ast.def_type) =
+  NameMap.add remain.name remain.type' map
 
 let fold_done map done' =
   NameMap.add (fst done') (snd done') map
@@ -47,8 +47,8 @@ let find_done name state =
   NameMap.find_opt name state.scope.dones
 
 let make_attrs attrs =
-  List.fold_left (fun map attr ->
-    let name = attr.Model.attr_type_name in
+  List.fold_left (fun map (attr: Model.attr_type) ->
+    let name = attr.name in
     if NameMap.mem name map
       then ModelizeErrors.raise_type_duplicate_attribute attr
       else NameMap.add name attr map
@@ -98,79 +98,49 @@ and modelize_type (type': Ast.type') =
   | TypeAbsExpr (params, ret) ->
     let* params = map_list modelize_type params in
     let* body = modelize_type ret in
-    return (Model.TypeAbsExpr {
-      type_abs_expr_pos = pos;
-      type_abs_expr_params = params;
-      type_abs_expr_body = body;
-    })
+    return (Model.TypeAbsExpr { pos; params; body })
   | TypeAbsExprType (params, body) ->
     let* (params, body) = modelize_params params body in
-    return (Model.TypeAbsExprType {
-      type_abs_expr_type_pos = pos;
-      type_abs_expr_type_params = params;
-      type_abs_expr_type_body = body;
-    })
+    return (Model.TypeAbsExprType { pos; params; body })
   | TypeTuple (types) ->
-    let* types = map_list modelize_type types in
-    return (Model.TypeTuple {
-      type_tuple_pos = pos;
-      type_tuple_types = types;
-    })
+    let* elems = map_list modelize_type types in
+    return (Model.TypeTuple { pos; elems })
   | TypeRecord (attrs) ->
     let* attrs = map_list modelize_attr attrs in
-    return (Model.TypeRecord {
-      type_record_pos = pos;
-      type_record_attrs = make_attrs attrs;
-    })
+    return (Model.TypeRecord { pos; attrs = make_attrs attrs })
   | TypeInter (left, right) ->
     let* left = modelize_type left in
     let* right = modelize_type right in
-    return (Model.TypeInter {
-      type_inter_pos = pos;
-      type_inter_left = left;
-      type_inter_right = right;
-    })
+    return (Model.TypeInter { pos; left; right })
   | TypeUnion (left, right) ->
     let* left = modelize_type left in
     let* right = modelize_type right in
-    return (Model.TypeUnion {
-      type_union_pos = pos;
-      type_union_left = left;
-      type_union_right = right;
-    })
+    return (Model.TypeUnion { pos; left; right })
   | TypeAbs (params, body) ->
     let* (params, body) = modelize_params params body in
-    return (Model.TypeAbs {
-      type_abs_pos = pos;
-      type_abs_params = params;
-      type_abs_body = body;
-    })
+    return (Model.TypeAbs { pos; params; body })
   | TypeApp (type', args) ->
     let* type' = modelize_type type' in
     let* args = map_list modelize_type args in
-    return (Model.TypeApp {
-      type_app_pos = pos;
-      type_app_type = type';
-      type_app_args = args;
-    })
+    return (Model.TypeApp { pos; type'; args })
 
 and modelize_params params type' =
   let* params = map_list modelize_param params in
-  let types = List.map (fun param -> (param.Model.param_type_name, Model.TypeVar { type_var_pos = Model.type_pos param.param_type; type_var_param = param})) params in
+  let types = List.map (fun (param: Model.param_type) -> (param.name, Model.TypeVar { pos = Model.type_pos param.type'; param })) params in
   let* type' = with_scope (modelize_type type') types in
   return (params, type')
 
 and modelize_param param =
-  let* type' = map_option modelize_type param.param_type in
-  let type' = Option.value type' ~default:(Model.TypeTop { type_top_pos = param.param_pos }) in
-  return { Model.param_type_name = param.param_name; Model.param_type = type' }
+  let* type' = map_option modelize_type param.type' in
+  let type' = Option.value type' ~default:(Model.TypeTop { pos = param.pos }) in
+  return { Model.name = param.name; Model.type' = type' }
 
 and modelize_attr attr =
-  let* type' = modelize_type attr.attr_type in
+  let* type' = modelize_type attr.type' in
   return {
-    Model.attr_type_pos = attr.attr_type_pos;
-    Model.attr_type_name = attr.attr_type_name;
-    Model.attr_type = type'
+    Model.pos = attr.pos;
+    Model.name = attr.name;
+    Model.type' = type'
   }
 
 let modelize_type_expr type' state =
@@ -185,12 +155,12 @@ let rec modelize_defs state =
     modelize_defs state
 
 let primitives = [
-  ("Top",    Model.type_top);
-  ("Unit",   Model.type_unit);
-  ("Bool",   Model.type_bool);
-  ("Int",    Model.type_int);
-  ("Char",   Model.type_char);
-  ("String", Model.type_string);
+  ("Top",    Model.prim_top);
+  ("Unit",   Model.prim_unit);
+  ("Bool",   Model.prim_bool);
+  ("Int",    Model.prim_int);
+  ("Char",   Model.prim_char);
+  ("String", Model.prim_string);
 ]
 
 let modelize_program (program: Ast.program) =
@@ -200,6 +170,6 @@ let modelize_program (program: Ast.program) =
   (state.scope.dones, state.all)
 
 let modelize_abs params state =
-  let types = List.map (fun param -> (param.Model.param_type_name, Model.TypeVar { type_var_pos = Model.type_pos param.param_type; type_var_param = param})) params in
+  let types = List.map (fun (param: Model.param_type) -> (param.name, Model.TypeVar { pos = Model.type_pos param.type'; param})) params in
   let (_, state) = make_child types state in
   state.scope.dones

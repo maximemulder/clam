@@ -34,6 +34,15 @@ module Monad (M: MONAD) = struct
       let* () = iter_list f xs in
       return ()
 
+  let rec iter_list2 f xs ys =
+    match (xs, ys) with
+    | ([], []) -> return ()
+    | (x :: xs, y :: ys) ->
+      let* () = f x y in
+      let* () = iter_list2 f xs ys in
+      return ()
+    | _ -> invalid_arg "Monad.iter_list2"
+
   let rec map_list2 f xs ys =
     match (xs, ys) with
     | ([], []) -> return []

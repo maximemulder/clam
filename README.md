@@ -115,6 +115,8 @@ def main = {
 };
 ```
 
+Although the current implementation of union and intersection types works in simple cases, I am still working on a complete implementation.
+
 ## Bidirectional type inference
 
 Clam features bidirectional type inference, which allows to eliminate many type annotations when they are not needed.
@@ -138,6 +140,6 @@ Clam does not feature recursive types yet, which is kind of a bummer.
 
 I find the syntax of Clam to be kind of meh, and it also lacks many important features. However, this is more intended to be a fun side project rather than a usable programming language.
 
-There are probably a few bugs in the program, notably when dealing with unions and intersections equivalence. Type errors are not tested yet so a few of them might have escaped me.
+The program testing is not very extensive yet, so a few bugs might have escaped me.
 
 If I have enough time, I will probably improve this project in the future.

@@ -1,3 +1,5 @@
+open Model
+
 let raise message pos =
   Error.raise "MODEL ERROR" (message ^ "\n" ^ (Error.display_pos pos))
 
@@ -21,5 +23,5 @@ let raise_type_bound type' name =
 let raise_type_recursive type' name =
   raise ("recursive type `" ^ name ^ "`") (fst type')
 
-let raise_type_duplicate_attribute attr =
-  raise ("duplicate attribute `" ^ attr.Model.attr_type_name ^ "`") attr.Model.attr_type_pos
+let raise_type_duplicate_attribute (attr: Model.attr_type) =
+  raise ("duplicate attribute `" ^ attr.name ^ "`") attr.pos

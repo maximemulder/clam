@@ -1,4 +1,3 @@
-open Utils
 open Model
 
 module Reader = struct
@@ -15,7 +14,7 @@ let rec validate_subtype type' constr =
   else
     return ()
 
-and validate_proper type' =
+and validate_proper (type': type') =
   let* () = validate type' in
   match type' with
   | TypeAbs _ -> TypingErrors.raise_type_proper type'
@@ -25,7 +24,7 @@ and validate_proper type' =
   | _ ->
     return ()
 
-and validate type' =
+and validate (type': type') =
   match type' with
   | TypeTop _ ->
     return ()
@@ -42,49 +41,52 @@ and validate type' =
   | TypeVar _ ->
     return ()
   | TypeAbsExpr abs ->
-    let* () = iter_list validate abs.type_abs_expr_params in
-    validate abs.type_abs_expr_body;
+    let* () = iter_list validate abs.params in
+    validate abs.body;
   | TypeAbsExprType abs ->
-    let* () = iter_list validate_param abs.type_abs_expr_type_params in
-    validate abs.type_abs_expr_type_body;
+    let* () = iter_list validate_param abs.params in
+    validate abs.body;
   | TypeTuple tuple ->
-    iter_list validate tuple.type_tuple_types
+    iter_list validate tuple.elems
   | TypeRecord record ->
     validate_record record
   | TypeInter inter ->
-    let* () = validate inter.type_inter_left in
-    validate inter.type_inter_right;
+    let* () = validate inter.left in
+    validate inter.right;
   | TypeUnion union ->
-    let* () = validate union.type_union_left in
-    validate union.type_union_right;
+    let* () = validate union.left in
+    validate union.right;
   | TypeAbs abs ->
-    let* () = iter_list validate_param abs.type_abs_params in
-    validate abs.type_abs_body;
+    let* () = iter_list validate_param abs.params in
+    validate abs.body;
   | TypeApp app ->
     validate_app app;
 
 and validate_record record context =
-  NameMap.iter (fun _ attr -> validate_attr attr context) record.type_record_attrs
+  Utils.NameMap.iter (fun _ attr -> validate_attr attr context) record.attrs
 
 and validate_app app =
-  match app.type_app_type with
+  match app.type' with
   | TypeAbs abs ->
     valiate_app_abs app abs
-  | _ -> TypingErrors.raise_type_app_kind app.type_app_type
+  | _ -> TypingErrors.raise_type_app_kind app.type'
 
 and valiate_app_abs app abs =
-  let params = abs.type_abs_params in
-  let args = app.type_app_args in
-  let body = abs.type_abs_body in
+  let params = abs.params in
+  let args = app.args in
+  let body = abs.body in
   if List.compare_lengths params args != 0 then
     TypingErrors.raise_type_app_arity app abs
   else
   let entries = List.combine params args in
-  let* () = iter_list (fun (param, arg) -> validate_subtype arg param.param_type) entries in
+  let* () = iter_list validate_app_abs_entry entries in
   validate body;
 
-and validate_param param =
-  validate param.param_type
-
 and validate_attr attr =
-  validate attr.attr_type
+  validate attr.type'
+
+and validate_param param =
+  validate param.type'
+
+and validate_app_abs_entry (param, arg) =
+  validate_subtype arg param.type'

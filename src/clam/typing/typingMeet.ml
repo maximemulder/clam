@@ -1,6 +1,6 @@
 open Model
 
-let rec meet left right =
+let rec meet (left: type') (right: type'): type' =
   let pos = type_pos left in
   match (left, right) with
   | (TypeTop _, right) ->
@@ -8,36 +8,22 @@ let rec meet left right =
   | (left, TypeTop _) ->
     left
   | (TypeUnit _, TypeUnit _) ->
-    TypeUnit {
-      type_unit_pos = pos;
-    }
+    TypeUnit { pos }
   | (TypeBool _, TypeBool _) ->
-    TypeBool {
-      type_bool_pos = pos;
-    }
+    TypeBool { pos }
   | (TypeInt _, TypeInt _) ->
-    TypeInt {
-      type_int_pos = pos;
-    }
+    TypeInt { pos }
   | (TypeChar _, TypeChar _) ->
-    TypeChar {
-      type_char_pos = pos;
-    }
+    TypeChar { pos }
   | (TypeString _, TypeString _) ->
-    TypeString {
-      type_string_pos = pos;
-    }
-  | (TypeVar param, TypeVar other_param) when param = other_param ->
+    TypeString { pos }
+  | (TypeVar param, TypeVar other) when param = other ->
     TypeVar param
   | (TypeInter other, _) ->
-    let inter = meet other.type_inter_left other.type_inter_right in
+    let inter = meet other.left other.right in
     meet inter right
   | (_, TypeInter other) ->
-    let inter = meet other.type_inter_left other.type_inter_right in
+    let inter = meet other.left other.right in
     meet left inter
   | (_, _) ->
-    TypeInter {
-      type_inter_pos = pos;
-      type_inter_left = left;
-      type_inter_right = right;
-    }
+    TypeInter { pos; left; right }

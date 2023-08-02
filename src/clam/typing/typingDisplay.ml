@@ -1,7 +1,4 @@
-open Utils
-open Model
-
-let rec display type' =
+let rec display (type': Model.type') =
   match type' with
   | TypeTop _    -> "Top"
   | TypeUnit _   -> "Unit"
@@ -9,26 +6,32 @@ let rec display type' =
   | TypeInt _    -> "Int"
   | TypeChar _   -> "Char"
   | TypeString _ -> "String"
-  | TypeVar var -> var.type_var_param.param_type_name
+  | TypeVar var -> var.param.name
   | TypeAbsExpr abs ->
-    let params = List.map display abs.type_abs_expr_params in
-    "(" ^ (String.concat ", " params) ^ ") -> " ^ (display abs.type_abs_expr_body)
+    let params = List.map display abs.params in
+    "(" ^ (String.concat ", " params) ^ ") -> " ^ (display abs.body)
   | TypeAbsExprType abs ->
-    let params = List.map (fun param -> param.param_type_name ^ ": " ^ display param.param_type) abs.type_abs_expr_type_params in
-    "[" ^ (String.concat ", " params) ^ "] -> " ^ (display abs.type_abs_expr_type_body)
+    let params = List.map display_param abs.params in
+    "[" ^ (String.concat ", " params) ^ "] -> " ^ (display abs.body)
   | TypeTuple tuple ->
-    let types = List.map display tuple.type_tuple_types in
+    let types = List.map display tuple.elems in
     "(" ^ (String.concat ", " types) ^ ")"
   | TypeRecord record ->
-    let attrs = List.map (fun (name, attr) -> name ^ ": " ^ display attr.attr_type) (List.of_seq (NameMap.to_seq record.type_record_attrs)) in
+    let attrs = List.map display_attr_entry (List.of_seq (Utils.NameMap.to_seq record.attrs)) in
     "{" ^ (String.concat ", " attrs) ^ "}"
   | TypeInter inter ->
-    (display inter.type_inter_left) ^ " & " ^ (display inter.type_inter_right)
+    (display inter.left) ^ " & " ^ (display inter.right)
   | TypeUnion union ->
-    (display union.type_union_left) ^ " | " ^ (display union.type_union_right)
+    (display union.left) ^ " | " ^ (display union.right)
   | TypeAbs abs ->
-    let params = List.map (fun param -> param.param_type_name ^ ": " ^ display param.param_type) abs.type_abs_params in
-    "[" ^ (String.concat ", " params) ^ "] => " ^ (display abs.type_abs_body)
+    let params = List.map display_param abs.params in
+    "[" ^ (String.concat ", " params) ^ "] => " ^ (display abs.body)
   | TypeApp app ->
-    let args = List.map display app.type_app_args in
-    (display app.type_app_type) ^ "[" ^ (String.concat ", " args) ^ "]"
+    let args = List.map display app.args in
+    (display app.type') ^ "[" ^ (String.concat ", " args) ^ "]"
+
+and display_attr_entry (name, attr) =
+  name ^ ": " ^ display attr.type'
+
+and display_param param =
+  param.name ^ ": " ^ display param.type'

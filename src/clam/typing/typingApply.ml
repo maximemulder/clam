@@ -12,77 +12,55 @@ end
 
 open Monad.Monad(Monad.ReaderMonad(Reader))
 
-let rec apply type' =
+let rec apply (type': type') =
   match type' with
   | TypeTop _ ->
-    return type_top
+    return type'
   | TypeUnit _ ->
-    return type_unit
+    return type'
   | TypeBool _ ->
-    return type_bool
+    return type'
   | TypeInt _ ->
-    return type_int
+    return type'
   | TypeChar _ ->
-    return type_char
+    return type'
   | TypeString _ ->
-    return type_string
+    return type'
   | TypeVar var ->
     apply_var var
   | TypeTuple tuple ->
-    let* types = map_list apply tuple.type_tuple_types in
-    return (TypeTuple { tuple with
-      type_tuple_types = types
-    })
+    let* elems = map_list apply tuple.elems in
+    return (TypeTuple { tuple with elems })
   | TypeRecord record ->
-    let* attrs = map_map apply_attr record.type_record_attrs in
-    return (TypeRecord { record with
-      type_record_attrs = attrs
-    })
+    let* attrs = map_map apply_attr record.attrs in
+    return (TypeRecord { record with attrs })
   | TypeInter inter ->
-    let* left = apply inter.type_inter_left in
-    let* right = apply inter.type_inter_right in
-    return (TypeInter { inter with
-      type_inter_left = left;
-      type_inter_right = right;
-    })
+    let* left = apply inter.left in
+    let* right = apply inter.right in
+    return (TypeInter { inter with left; right })
   | TypeUnion union ->
-    let* left = apply union.type_union_left in
-    let* right = apply union.type_union_right in
-    return (TypeUnion { union with
-      type_union_left = left;
-      type_union_right = right;
-    })
+    let* left = apply union.left in
+    let* right = apply union.right in
+    return (TypeUnion { union with left; right })
   | TypeAbsExpr abs ->
-    let* params = map_list apply abs.type_abs_expr_params in
-    let* body = apply abs.type_abs_expr_body in
-    return (TypeAbsExpr { abs with
-      type_abs_expr_params = params;
-      type_abs_expr_body = body;
-    })
+    let* params = map_list apply abs.params in
+    let* body = apply abs.body in
+    return (TypeAbsExpr { abs with params; body })
   | TypeAbsExprType abs ->
-    let* params = map_list apply_param abs.type_abs_expr_type_params in
-    let* body = apply abs.type_abs_expr_type_body in
-    return (TypeAbsExprType { abs with
-      type_abs_expr_type_params = params;
-      type_abs_expr_type_body = body;
-    })
+    let* params = map_list apply_param abs.params in
+    let* body = apply abs.body in
+    return (TypeAbsExprType { abs with params; body })
   | TypeAbs abs ->
-    let* params = map_list apply_param abs.type_abs_params in
-    let* body = apply abs.type_abs_body in
-    return (TypeAbs { abs with
-      type_abs_params = params;
-      type_abs_body = body;
-    })
+    let* params = map_list apply_param abs.params in
+    let* body = apply abs.body in
+    return (TypeAbs { abs with params; body })
   | TypeApp app ->
-    let* type' = apply app.type_app_type in
-    let* args = map_list apply app.type_app_args in
-    return (TypeApp { app with
-      type_app_type = type';
-      type_app_args = args;
-    })
+    let* type' = apply app.type' in
+    let* args = map_list apply app.args in
+    return (TypeApp { app with type'; args })
 
 and apply_var var =
-  let* arg = find_arg var.type_var_param in
+  let* arg = find_arg var.param in
   match arg with
   | Some arg ->
     return arg
@@ -90,19 +68,19 @@ and apply_var var =
     return (TypeVar var)
 
 and apply_param param =
-  let* type' = apply param.param_type in
-  return { param with param_type = type' }
+  let* type' = apply param.type' in
+  return { param with type' }
 
 and apply_attr attr =
-  let* type' = apply attr.attr_type in
-  return { attr with attr_type = type' }
+  let* type' = apply attr.type' in
+  return { attr with type' }
 
-let apply_app app =
-  match app.type_app_type with
+let apply_app (app: type_app) =
+  match app.type' with
   | TypeAbs abs ->
-    if List.compare_lengths abs.type_abs_params app.type_app_args != 0 then
+    if List.compare_lengths abs.params app.args != 0 then
       TypingErrors.raise_unexpected ()
     else
-    let pairs = List.combine abs.type_abs_params app.type_app_args in
-    apply abs.type_abs_body pairs
+    let pairs = List.combine abs.params app.args in
+    apply abs.body pairs
   | _ -> TypingErrors.raise_unexpected ()

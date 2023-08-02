@@ -3,7 +3,7 @@ open Model
 
 module DefKey = struct
   type t = def_expr
-  let compare x y = Stdlib.compare x.def_expr_id y.def_expr_id
+  let compare x y = Stdlib.compare x.id y.id
 end
 
 module DefSet = Set.Make(DefKey)
@@ -64,51 +64,43 @@ let with_entries call entries state =
   let res = call state in
   (res, { state with context = parent })
 
-let return_def def =
+let return_def (def: def_expr) =
   fun type' state -> (type', { state with progress = end_progress state.progress def type' })
 
-let return_abs abs params returner =
-  fun body -> returner (TypeAbsExpr {
-    type_abs_expr_pos = abs.expr_abs_pos;
-    type_abs_expr_params = params;
-    type_abs_expr_body = body;
-  })
+let return_abs (abs: expr_abs) params returner =
+  fun body -> returner (TypeAbsExpr { pos = abs.pos; params; body })
 
 let preop_types =
   [
-    ("+", (type_int, type_int));
-    ("-", (type_int, type_int));
-    ("!", (type_bool, type_bool));
+    ("+", (prim_int, prim_int));
+    ("-", (prim_int, prim_int));
+    ("!", (prim_bool, prim_bool));
   ]
   |> List.to_seq
   |> NameMap.of_seq
 
 let binop_types =
   [
-    ("+",  ((type_int, type_int), type_int));
-    ("-",  ((type_int, type_int), type_int));
-    ("*",  ((type_int, type_int), type_int));
-    ("/",  ((type_int, type_int), type_int));
-    ("%",  ((type_int, type_int), type_int));
-    ("++", ((type_string, type_string), type_string));
-    ("==", ((type_top, type_top), type_bool));
-    ("!=", ((type_top, type_top), type_bool));
-    ("<",  ((type_int, type_int), type_bool));
-    (">",  ((type_int, type_int), type_bool));
-    ("<=", ((type_int, type_int), type_bool));
-    (">=", ((type_int, type_int), type_bool));
-    ("|",  ((type_bool, type_bool), type_bool));
-    ("&",  ((type_bool, type_bool), type_bool));
+    ("+",  ((prim_int, prim_int), prim_int));
+    ("-",  ((prim_int, prim_int), prim_int));
+    ("*",  ((prim_int, prim_int), prim_int));
+    ("/",  ((prim_int, prim_int), prim_int));
+    ("%",  ((prim_int, prim_int), prim_int));
+    ("++", ((prim_string, prim_string), prim_string));
+    ("==", ((prim_top, prim_top), prim_bool));
+    ("!=", ((prim_top, prim_top), prim_bool));
+    ("<",  ((prim_int, prim_int), prim_bool));
+    (">",  ((prim_int, prim_int), prim_bool));
+    ("<=", ((prim_int, prim_int), prim_bool));
+    (">=", ((prim_int, prim_int), prim_bool));
+    ("|",  ((prim_bool, prim_bool), prim_bool));
+    ("&",  ((prim_bool, prim_bool), prim_bool));
   ]
   |> List.to_seq
   |> NameMap.of_seq
 
 let print_type =
-  TypeAbsExpr {
-    type_abs_expr_pos = primitive_pos;
-    type_abs_expr_params = [type_top];
-    type_abs_expr_body = type_unit;
-  }
+  TypeAbsExpr { pos = prim_pos; params = [prim_top]; body = prim_unit }
 
 let validate type' =
   let* context = get_context in
@@ -161,51 +153,51 @@ and check_error expr constr =
 
 and check_tuple tuple constr =
   let expr = ExprTuple tuple in
-  let exprs = tuple.expr_tuple_exprs in
+  let elems = tuple.elems in
   match constr with
   | TypeTuple constr_tuple ->
-    let constr_params = constr_tuple.type_tuple_types in
-    if List.compare_lengths exprs constr_params != 0 then
+    let constr_elems = constr_tuple.elems in
+    if List.compare_lengths elems constr_elems != 0 then
       check_error expr constr
     else
-    let* _ = map_list2 check exprs constr_params in
+    let* _ = map_list2 check elems constr_elems in
     return ()
   | _ ->
     check_error expr constr
 
 and check_record record constr =
   let expr = ExprRecord record in
-  let attrs = record.expr_record_attrs in
+  let attrs = record.attrs in
   match constr with
   | TypeRecord constr_record ->
-    let* _ = map_map (fun constr_attr -> match List.find_opt (fun attr -> attr.attr_expr_name = constr_attr.attr_type_name) attrs with
-    | Some attr -> check attr.attr_expr constr_attr.attr_type
+    let* _ = map_map (fun (constr_attr: attr_type) -> match List.find_opt (fun (attr: attr_expr) -> attr.name = constr_attr.name) attrs with
+    | Some attr -> check attr.expr constr_attr.type'
     | None ->
       check_error expr constr
-    ) constr_record.type_record_attrs in
+    ) constr_record.attrs in
     return ()
   | _ ->
     check_error expr constr
 
 and check_if if' constr =
-  let* _ = check if'.expr_if_cond type_bool in
-  let* _ = check if'.expr_if_then constr in
-  let* _ = check if'.expr_if_then constr in
+  let* _ = check if'.cond prim_bool in
+  let* _ = check if'.then' constr in
+  let* _ = check if'.else' constr in
   return ()
 
 and check_abs abs constr =
   let expr = ExprAbs abs in
   match constr with
   | TypeAbsExpr constr_abs ->
-    let* _ = check_abs_params abs constr constr_abs.type_abs_expr_params in
-    let* _ = check abs.expr_abs_body constr_abs.type_abs_expr_body in
+    let* _ = check_abs_params abs constr constr_abs.params in
+    let* _ = check abs.body constr_abs.body in
     return ()
   | _ ->
     check_error expr constr
 
 and check_abs_params abs constr constr_params =
   let expr = ExprAbs abs in
-  let params = abs.expr_abs_params in
+  let params = abs.params in
   if List.compare_lengths params constr_params != 0 then
     check_error expr constr
   else
@@ -213,7 +205,7 @@ and check_abs_params abs constr constr_params =
   return ()
 
 and check_abs_param param constr =
-  let* type' = match param.param_expr_type with
+  let* type' = match param.type' with
   | Some type' ->
     let* () = validate_proper type' in
     let* () = validate_subtype constr type' in
@@ -227,15 +219,15 @@ and check_type_abs abs constr =
   let expr = ExprTypeAbs abs in
   match constr with
   | TypeAbsExprType constr_abs ->
-    let* _ = check_type_abs_params abs constr constr_abs.type_abs_expr_type_params in
-    let* _ = check abs.expr_type_abs_body constr_abs.type_abs_expr_type_body in
+    let* _ = check_type_abs_params abs constr constr_abs.params in
+    let* _ = check abs.body constr_abs.body in
     return ()
   | _ ->
     check_error expr constr
 
 and check_type_abs_params abs constr constr_params =
   let expr = ExprTypeAbs abs in
-  let params = abs.expr_type_abs_params in
+  let params = abs.params in
   if List.compare_lengths params constr_params != 0 then
     check_error expr constr
   else
@@ -243,8 +235,8 @@ and check_type_abs_params abs constr constr_params =
   return ()
 
 and check_type_abs_param expr constr param constr_param state =
-  let (_, state) = validate param.param_type state in
-  if TypingEqual.is_type param.param_type constr_param.param_type then
+  let (_, state) = validate param.type' state in
+  if TypingEqual.is_type param.type' constr_param.type' then
     (() ,state)
   else
     check_error expr constr state
@@ -294,32 +286,22 @@ and infer_none expr =
   infer expr return
 
 and infer_unit unit returner =
-  returner (TypeUnit {
-    type_unit_pos = unit.expr_unit_pos;
-  })
+  returner (TypeUnit { pos = unit.pos })
 
 and infer_bool bool returner =
-  returner (TypeBool {
-    type_bool_pos = bool.expr_bool_pos;
-  })
+  returner (TypeBool { pos = bool.pos })
 
 and infer_int int returner =
-  returner (TypeInt {
-    type_int_pos = int.expr_int_pos;
-  })
+  returner (TypeInt { pos = int.pos })
 
 and infer_char char returner =
-  returner (TypeChar {
-    type_char_pos = char.expr_char_pos;
-  })
+  returner (TypeChar { pos = char.pos })
 
 and infer_string string returner =
-  returner (TypeString {
-    type_string_pos = string.expr_string_pos;
-  })
+  returner (TypeString { pos = string.pos })
 
 and infer_bind bind returner state =
-  let bind = Option.get !(bind.expr_bind) in
+  let bind = Option.get !(bind.bind) in
   match bind with
   | BindExprPrint ->
     returner print_type state
@@ -332,36 +314,30 @@ and infer_bind bind returner state =
     returner (BindMap.find bind state.progress.dones) state
 
 and infer_tuple tuple returner =
-  let* types = map_list infer_none tuple.expr_tuple_exprs in
-  returner (TypeTuple {
-    type_tuple_pos = tuple.expr_tuple_pos;
-    type_tuple_types = types;
-  })
+  let* elems = map_list infer_none tuple.elems in
+  returner (TypeTuple { pos = tuple.pos; elems })
 
 and infer_record record returner =
-  let attrs = record.expr_record_attrs in
-  let attrs = List.fold_left (fun map attr -> NameMap.add attr.attr_expr_name attr map) NameMap.empty attrs in
+  let attrs = record.attrs in
+  let attrs = List.fold_left (fun map (attr: attr_expr) -> NameMap.add attr.name attr map) NameMap.empty attrs in
   let* attrs = map_map infer_record_attr attrs in
-  returner (TypeRecord {
-    type_record_pos = record.expr_record_pos;
-    type_record_attrs = attrs;
-  })
+  returner (TypeRecord { pos = record.pos; attrs })
 
 and infer_record_attr attr =
-  let* type' = infer_none attr.attr_expr in
-  return (make_attr_type attr.attr_expr_pos attr.attr_expr_name type')
+  let* type' = infer_none attr.expr in
+  return ({ pos = attr.pos; name = attr.name; type' })
 
 and infer_elem elem returner =
-  let* type' = infer_none elem.expr_elem_expr in
+  let* type' = infer_none elem.expr in
   let* context = get_context in
-  match infer_elem_type type' elem.expr_elem_index context with
+  match infer_elem_type type' elem.index context with
   | Some type' -> returner type'
   | None -> TypingErrors.raise_expr_elem elem type'
 
 and infer_elem_type type' index context =
   match type' with
   | TypeTuple tuple ->
-    List.nth_opt tuple.type_tuple_types index
+    List.nth_opt tuple.elems index
   | TypeVar var ->
     let type' = TypingPromote.promote_var var in
     infer_elem_type type' index context
@@ -369,28 +345,28 @@ and infer_elem_type type' index context =
     let type' = TypingApply.apply_app app in
     infer_elem_type type' index context
   | TypeUnion union ->
-    let left = infer_elem_type union.type_union_left index context in
-    let right = infer_elem_type union.type_union_right index context in
+    let left = infer_elem_type union.left index context in
+    let right = infer_elem_type union.right index context in
     Utils.map_option2 left right
       (fun left right -> TypingJoin.join left right)
   | TypeInter inter ->
-    let left = infer_elem_type inter.type_inter_left index context in
-    let right = infer_elem_type inter.type_inter_right index context in
+    let left = infer_elem_type inter.left index context in
+    let right = infer_elem_type inter.right index context in
     Utils.join_option2 left right
       (fun left right -> TypingMeet.meet left right)
   | _ -> None
 
 and infer_attr attr returner =
-  let* type' = infer_none attr.expr_attr_expr in
+  let* type' = infer_none attr.expr in
   let* context = get_context in
-  match infer_attr_type type' attr.expr_attr_name context with
+  match infer_attr_type type' attr.name context with
   | Some type' -> returner type'
   | None -> TypingErrors.raise_expr_attr attr type'
 
 and infer_attr_type type' name context =
   match type' with
   | TypeRecord record ->
-    Option.map (fun attr -> attr.attr_type) (NameMap.find_opt name record.type_record_attrs)
+    Option.map (fun (attr: attr_type) -> attr.type') (NameMap.find_opt name record.attrs)
   | TypeVar var ->
     let type' = TypingPromote.promote_var var in
     infer_attr_type type' name context
@@ -398,19 +374,19 @@ and infer_attr_type type' name context =
     let type' = TypingApply.apply_app app in
     infer_attr_type type' name context
   | TypeUnion union ->
-    let left = infer_attr_type union.type_union_left name context in
-    let right = infer_attr_type union.type_union_right name context in
+    let left = infer_attr_type union.left name context in
+    let right = infer_attr_type union.right name context in
     Utils.map_option2 left right
       (fun left right -> TypingJoin.join left right)
   | TypeInter inter ->
-    let left = infer_attr_type inter.type_inter_left name context in
-    let right = infer_attr_type inter.type_inter_right name context in
+    let left = infer_attr_type inter.left name context in
+    let right = infer_attr_type inter.right name context in
     Utils.join_option2 left right
       (fun left right -> TypingMeet.meet left right)
   | _ -> None
 
 and infer_app app returner =
-  let* type' = infer_none app.expr_app_expr in
+  let* type' = infer_none app.expr in
   let* context = get_context in
   match infer_app_type app type' context with
   | Some abs -> infer_app_abs app abs returner
@@ -429,19 +405,19 @@ and infer_app_type app type' context =
   | _ -> None
 
 and infer_app_abs app abs returner =
-  let params = abs.type_abs_expr_params in
-  let args = app.expr_app_args in
+  let params = abs.params in
+  let args = app.args in
   if List.compare_lengths params args != 0 then
     TypingErrors.raise_expr_app_arity app params
   else
   let* _ = map_list2 check args params in
-  returner abs.type_abs_expr_body
+  returner abs.body
 
 and infer_preop preop returner =
-  let entry = NameMap.find_opt preop.expr_preop_op preop_types in
+  let entry = NameMap.find_opt preop.op preop_types in
   match entry with
   | Some (type_operand, type_result) ->
-    let operand = preop.expr_preop_expr in
+    let operand = preop.expr in
     let* _ = returner type_result in
     let* _ = check operand type_operand in
     return type_result
@@ -449,11 +425,11 @@ and infer_preop preop returner =
     TypingErrors.raise_unexpected
 
 and infer_binop binop returner =
-  let entry = NameMap.find_opt binop.expr_binop_op binop_types in
+  let entry = NameMap.find_opt binop.op binop_types in
   match entry with
   | Some ((type_left, type_right), type_result) ->
-    let left = binop.expr_binop_left in
-    let right = binop.expr_binop_right in
+    let left = binop.left in
+    let right = binop.right in
     let* _ = returner type_result in
     let* _ = check left type_left in
     let* _ = check right type_right in
@@ -462,23 +438,23 @@ and infer_binop binop returner =
     TypingErrors.raise_unexpected
 
 and infer_ascr ascr returner =
-  let type' = ascr.expr_ascr_type in
+  let type' = ascr.type' in
   let* () = validate type' in
   let* _ = returner type' in
-  let* _ = check ascr.expr_ascr_expr type' in
+  let* _ = check ascr.expr type' in
   return type'
 
 and infer_if if' returner =
-  let* _ = check if'.expr_if_cond type_bool in
-  let* then' = infer_none if'.expr_if_then in
-  let* else' = infer_none if'.expr_if_else in
+  let* _ = check if'.cond prim_bool in
+  let* then' = infer_none if'.then' in
+  let* else' = infer_none if'.else' in
   returner (TypingJoin.join then' else')
 
 and infer_block block returner =
-  let* _ = map_list infer_block_stmt block.expr_block_stmts in
-  match block.expr_block_expr with
+  let* _ = map_list infer_block_stmt block.stmts in
+  match block.expr with
   | Some expr -> infer expr returner
-  | None -> returner type_unit
+  | None -> returner prim_unit
 
 and infer_block_stmt stmt =
   match stmt with
@@ -498,17 +474,13 @@ and infer_block_stmt stmt =
     return ()
 
 and infer_abs abs returner =
-  let* params = infer_abs_params abs.expr_abs_params in
+  let* params = infer_abs_params abs.params in
   let returner = return_abs abs params returner in
-  let* body = infer abs.expr_abs_body returner in
-  return (TypeAbsExpr {
-    type_abs_expr_pos = abs.expr_abs_pos;
-    type_abs_expr_params = params;
-    type_abs_expr_body = body;
-  })
+  let* body = infer abs.body returner in
+  return (TypeAbsExpr { pos = abs.pos; params; body })
 
 and infer_abs_params params =
-  let types = List.map (fun param -> match param.param_expr_type with
+  let types = List.map (fun (param: param_expr) -> match param.type' with
   | Some type' -> type'
   | None -> TypingErrors.raise_param param
   ) params in
@@ -518,46 +490,42 @@ and infer_abs_params params =
   return types
 
 and infer_type_abs abs returner =
-  let params = abs.expr_type_abs_params in
-  let body = abs.expr_type_abs_body in
-  let _ = List.map (fun param -> TypingValidate.validate param.param_type) params in
+  let params = abs.params in
+  let body = abs.body in
+  let _ = List.map (fun (param: param_type) -> TypingValidate.validate param.type') params in
   let* body = infer_none body in
-  returner (TypeAbsExprType {
-    type_abs_expr_type_pos = abs.expr_type_abs_pos;
-    type_abs_expr_type_params = params;
-    type_abs_expr_type_body = body;
-  })
+  returner (TypeAbsExprType { pos = abs.pos; params; body })
 
 and infer_type_app app returner =
-  let* type' = infer_none app.expr_type_app_expr in
+  let* type' = infer_none app.expr in
   match type' with
   | TypeAbsExprType abs ->
     infer_type_app_abs app abs returner
   | _ -> TypingErrors.raise_expr_type_app_kind app type'
 
-and infer_type_app_abs app abs returner state =
-  let params = abs.type_abs_expr_type_params in
-  let args = app.expr_type_app_args in
+and infer_type_app_abs app abs returner =
+  let params = abs.params in
+  let args = app.args in
   if List.compare_lengths params args != 0 then
     TypingErrors.raise_expr_type_app_arity app params
   else
-  let pairs = List.combine params args in
-  let (_, state ) = iter_list (fun (param, arg) -> validate_subtype arg param.param_type) pairs state in
-  let body = TypingApply.apply abs.type_abs_expr_type_body pairs in
-  returner body state
+  let* _ = iter_list2 (fun (param: param_type) arg -> validate_subtype arg param.type') params args in
+  let entries = List.combine params args in
+  let body = TypingApply.apply abs.body entries in
+  returner body
 
 and check_def def progress =
   let progress = start_progress progress def in
-  match def.def_expr_type with
+  match def.type' with
   | Some type' ->
     TypingValidate.validate_proper type' TypingContext.context_empty;
     let progress = end_progress progress def type' in
     let state = make_state progress in
-    let (_, state) = check def.def_expr type' state in
+    let (_, state) = check def.expr type' state in
     (type', state.progress)
   | None ->
     let state = make_state progress in
-    let (type', state) = infer def.def_expr (return_def def) state in
+    let (type', state) = infer def.expr (return_def def) state in
     (type', state.progress)
 
 let rec progress_defs progress =

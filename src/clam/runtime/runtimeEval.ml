@@ -59,31 +59,31 @@ let rec eval (expr: Model.expr) =
   | ExprBind bind ->
     eval_bind bind
   | ExprTuple tuple ->
-    let* values = map_list eval tuple.expr_tuple_exprs in
+    let* values = map_list eval tuple.elems in
     return (VTuple values)
   | ExprRecord record ->
-    let* attrs = fold_list (fun map attr ->
-      let* value = (eval attr.Model.attr_expr) in
-      return (NameMap.add attr.Model.attr_expr_name value map)
-    ) NameMap.empty record.expr_record_attrs in
+    let* attrs = fold_list (fun map (attr: attr_expr) ->
+      let* value = (eval attr.expr) in
+      return (NameMap.add attr.name value map)
+    ) NameMap.empty record.attrs in
     return (VRecord attrs)
   | ExprElem elem ->
-    let* values = eval_tuple elem.expr_elem_expr in
-    return (List.nth values elem.expr_elem_index)
+    let* values = eval_tuple elem.expr in
+    return (List.nth values elem.index)
   | ExprAttr attr ->
-    let* attrs = eval_record attr.expr_attr_expr in
-    return (NameMap.find attr.expr_attr_name attrs)
+    let* attrs = eval_record attr.expr in
+    return (NameMap.find attr.name attrs)
   | ExprPreop preop ->
     eval_preop preop
   | ExprBinop binop ->
     eval_binop binop
   | ExprAscr ascr ->
-    eval ascr.expr_ascr_expr
+    eval ascr.expr
   | ExprBlock block ->
     eval_expr_block block
   | ExprIf if' ->
-    let* cond = eval_value_bool if'.expr_if_cond in
-    if cond then eval if'.expr_if_then else eval if'.expr_if_else
+    let* cond = eval_value_bool if'.cond in
+    if cond then eval if'.then' else eval if'.else'
   | ExprAbs abs ->
     return (VExprAbs abs)
   | ExprApp app ->
@@ -91,34 +91,34 @@ let rec eval (expr: Model.expr) =
   | ExprTypeAbs abs ->
     return (VTypeAbs abs)
   | ExprTypeApp app ->
-    eval_type_app app.expr_type_app_expr
+    eval_type_app app.expr
 
 and eval_unit unit =
-  let _ = unit.expr_unit_pos in
+  let _ = unit.pos in
   return VUnit
 
 and eval_bool bool =
-  return (VBool bool.expr_bool)
+  return (VBool bool.value)
 
 and eval_int int =
-  return (VInt int.expr_int)
+  return (VInt int.value)
 
 and eval_char char =
-  return (VChar char.expr_char)
+  return (VChar char.value)
 
 and eval_string string =
-  return (VString string.expr_string)
+  return (VString string.value)
 
 and eval_bind bind context =
-  match (Option.get !(bind.expr_bind)) with
-  | BindExprDef def -> eval def.def_expr (new_empty context.out_handler)
+  match (Option.get !(bind.bind)) with
+  | BindExprDef def -> eval def.expr (new_empty context.out_handler)
   | BindExprParam param -> get_param param context.stack
   | BindExprPrint -> VPrint
   | BindExprVar var -> get_var var context.stack
 
 and eval_expr_app app context =
-  let value = eval app.expr_app_expr context in
-  let args = app.expr_app_args in
+  let value = eval app.expr context in
+  let args = app.args in
   match value with
   | VPrint -> eval_expr_app_print args context
   | VExprAbs abs -> eval_expr_app_abs abs args context
@@ -132,19 +132,19 @@ and eval_expr_app_print args context =
 
 and eval_expr_app_abs abs args context =
   let args = map_list eval args context in
-  let pairs = List.combine abs.expr_abs_params args in
+  let pairs = List.combine abs.params args in
   let binds = List.fold_left (fun map (param, value) -> BindMap.add (Model.BindExprParam param) value map) BindMap.empty pairs in
   let context = new_frame context binds in
-  eval abs.expr_abs_body context
+  eval abs.body context
 
 and eval_type_app expr =
   let* value = eval expr in
   match value with
-  | VTypeAbs app -> eval app.expr_type_abs_body
+  | VTypeAbs app -> eval app.body
   | _ -> RuntimeErrors.raise_value ()
 
 and eval_expr_block block =
-  eval_block_stmts block.expr_block_stmts block.expr_block_expr
+  eval_block_stmts block.stmts block.expr
 
 and eval_block_stmts stmts expr context =
   match stmts with
@@ -169,8 +169,8 @@ and eval_block_expr expr =
   | None -> return VUnit
 
 and eval_preop preop =
-  let expr = preop.expr_preop_expr in
-  match preop.expr_preop_op with
+  let expr = preop.expr in
+  match preop.op with
   | "+" ->
     let* value = eval_value_int expr in
     return (VInt value)
@@ -180,12 +180,12 @@ and eval_preop preop =
   | "!" ->
     let* value = eval_value_bool expr in
     return (VBool (not value))
-  | _ -> RuntimeErrors.raise_operator preop.expr_preop_op
+  | _ -> RuntimeErrors.raise_operator preop.op
 
 and eval_binop binop =
-  let left = binop.expr_binop_left in
-  let right = binop.expr_binop_right in
-  match binop.expr_binop_op with
+  let left = binop.left in
+  let right = binop.right in
+  match binop.op with
   | "+"  ->
     let* left = eval_value_int left in
     let* right = eval_value_int right in
@@ -242,7 +242,7 @@ and eval_binop binop =
     let* left = eval_value_bool left in
     let* right = eval_value_bool right in
     return (VBool (left && right))
-  | _ -> RuntimeErrors.raise_operator binop.expr_binop_op
+  | _ -> RuntimeErrors.raise_operator binop.op
 
 and eval_value_bool (expr: Model.expr) =
   let* value = eval expr in
@@ -275,5 +275,5 @@ and eval_record (expr: Model.expr) =
   | _ -> RuntimeErrors.raise_value ()
 
 let eval_def def stdout =
-  eval def.Model.def_expr (new_empty stdout)
+  eval def.expr (new_empty stdout)
 

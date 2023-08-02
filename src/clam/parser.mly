@@ -56,13 +56,13 @@
 
 let program :=
   | defs = list(def); EOF;
-    { { program_defs = defs } }
+    { { defs } }
 
 let def :=
   | TYPE; name = IDENT; ASSIGN; type_ = type_; SEMICOLON;
-    { DefType { type_pos = $startpos; type_name = name; type' = type_ } }
+    { DefType { pos = $startpos; name; type' = type_ } }
   | DEF; name = IDENT; type_ = option(COLON; type_); ASSIGN; expr = expr; SEMICOLON;
-    { DefExpr { expr_pos = $startpos; expr_name = name; expr_type = type_; expr = expr } }
+    { DefExpr { pos = $startpos; name; type' = type_; expr } }
 
 let type_ :=
   | type_2
@@ -168,19 +168,19 @@ let expr_1 :=
 
 let param :=
   | name = IDENT; type_ = option(COLON; type_);
-    { { param_pos = $startpos; param_name = name; param_type = type_ } }
+    { { pos = $startpos; name; type' = type_ } }
 
 let attr_type :=
   | name = IDENT; COLON; type_ = type_;
-    { { attr_type_pos = $startpos; attr_type_name = name; attr_type = type_ } }
+    { { pos = $startpos; name; type' = type_ } }
 
 let attr_expr :=
   | name = IDENT; ASSIGN; expr = expr;
-    { { attr_expr_pos = $startpos; attr_expr_name = name; attr_expr = expr } }
+    { { pos = $startpos; name; expr } }
 
 let block :=
   | BRACE_LEFT; stmts = list(stmt); expr = option(RET; expr); BRACE_RIGHT;
-    { { block_stmts = stmts; block_expr = expr } }
+    { { stmts; expr } }
 
 let stmt :=
   | VAR; name = IDENT; type_ = option(COLON; type_); ASSIGN; expr = expr; SEMICOLON;

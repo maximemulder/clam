@@ -1,5 +1,3 @@
-open Utils
-
 type pos = Lexing.position
 
 type type' =
@@ -20,92 +18,124 @@ type type' =
   | TypeApp         of type_app
 
 and type_top = {
-  type_top_pos: pos;
+  pos: pos;
 }
 
 and type_unit = {
-  type_unit_pos: pos;
+  pos: pos;
 }
 
 and type_bool = {
-  type_bool_pos: pos;
+  pos: pos;
 }
 
 and type_int = {
-  type_int_pos: pos;
+  pos: pos;
 }
 
 and type_char = {
-  type_char_pos: pos;
+  pos: pos;
 }
 
 and type_string = {
-  type_string_pos: pos;
+  pos: pos;
 }
 
 and type_var = {
-  type_var_pos: pos;
-  type_var_param: param_type;
+  pos: pos;
+  param: param_type;
 }
 
 and type_tuple = {
-  type_tuple_pos: pos;
-  type_tuple_types: type' list;
+  pos: pos;
+  elems: type' list;
 }
 
 and type_record = {
-  type_record_pos: pos;
-  type_record_attrs: attr_type NameMap.t;
+  pos: pos;
+  attrs: attr_type Utils.NameMap.t;
 }
 
 and type_inter = {
-  type_inter_pos: pos;
-  type_inter_left: type';
-  type_inter_right: type';
+  pos: pos;
+  left: type';
+  right: type';
 }
 
 and type_union = {
-  type_union_pos: pos;
-  type_union_left: type';
-  type_union_right: type';
+  pos: pos;
+  left: type';
+  right: type';
 }
 
 and type_abs_expr = {
-  type_abs_expr_pos: pos;
-  type_abs_expr_params: type' list;
-  type_abs_expr_body: type';
+  pos: pos;
+  params: type' list;
+  body: type';
 }
 
 and type_abs_expr_type = {
-  type_abs_expr_type_pos: pos;
-  type_abs_expr_type_params: param_type list;
-  type_abs_expr_type_body: type';
+  pos: pos;
+  params: param_type list;
+  body: type';
 }
 
 and type_abs = {
-  type_abs_pos: pos;
-  type_abs_params: param_type list;
-  type_abs_body: type';
+  pos: pos;
+  params: param_type list;
+  body: type';
 }
 
 and type_app = {
-  type_app_pos: pos;
-  type_app_type: type';
-  type_app_args: type' list;
+  pos: pos;
+  type': type';
+  args: type' list;
 }
 
 and attr_type = {
-  attr_type_pos: pos;
-  attr_type_name: string;
-  attr_type: type';
+  pos: pos;
+  name: string;
+  type': type';
 }
 
 and param_type = {
-  param_type_name: string;
-  param_type: type';
+  name: string;
+  type': type';
 }
 
-and expr =
+let type_pos type' =
+  match type' with
+  | TypeTop         type' -> type'.pos
+  | TypeUnit        type' -> type'.pos
+  | TypeBool        type' -> type'.pos
+  | TypeInt         type' -> type'.pos
+  | TypeChar        type' -> type'.pos
+  | TypeString      type' -> type'.pos
+  | TypeVar         type' -> type'.pos
+  | TypeTuple       type' -> type'.pos
+  | TypeRecord      type' -> type'.pos
+  | TypeInter       type' -> type'.pos
+  | TypeUnion       type' -> type'.pos
+  | TypeAbsExpr     type' -> type'.pos
+  | TypeAbsExprType type' -> type'.pos
+  | TypeAbs         type' -> type'.pos
+  | TypeApp         type' -> type'.pos
+
+let prim_pos = {
+  Lexing.pos_fname = "primitives.clam";
+  Lexing.pos_lnum = 0;
+  Lexing.pos_bol = 0;
+  Lexing.pos_cnum = 0;
+}
+
+let prim_top    = TypeTop    { pos = prim_pos; }
+let prim_unit   = TypeUnit   { pos = prim_pos; }
+let prim_bool   = TypeBool   { pos = prim_pos; }
+let prim_int    = TypeInt    { pos = prim_pos; }
+let prim_char   = TypeChar   { pos = prim_pos; }
+let prim_string = TypeString { pos = prim_pos; }
+
+type expr =
   | ExprUnit    of expr_unit
   | ExprBool    of expr_bool
   | ExprInt     of expr_int
@@ -127,122 +157,140 @@ and expr =
   | ExprTypeApp of expr_type_app
 
 and expr_unit = {
-  expr_unit_pos: pos;
+  pos: pos;
 }
 
 and expr_bool = {
-  expr_bool_pos: pos;
-  expr_bool: bool;
+  pos: pos;
+  value: bool;
 }
 
 and expr_int = {
-  expr_int_pos: pos;
-  expr_int: int;
+  pos: pos;
+  value: int;
 }
 
 and expr_char = {
-  expr_char_pos: pos;
-  expr_char: char;
+  pos: pos;
+  value: char;
 }
 
 and expr_string = {
-  expr_string_pos: pos;
-  expr_string: string;
+  pos: pos;
+  value: string;
 }
 
 and expr_bind = {
-  expr_bind_pos: pos;
-  expr_bind: bind_expr option ref;
+  pos: pos;
+  bind: bind_expr option ref;
 }
 
 and expr_tuple = {
-  expr_tuple_pos: pos;
-  expr_tuple_exprs: expr list;
+  pos: pos;
+  elems: expr list;
 }
 
 and expr_record = {
-  expr_record_pos: pos;
-  expr_record_attrs: attr_expr list;
+  pos: pos;
+  attrs: attr_expr list;
 }
 
 and expr_elem = {
-  expr_elem_pos: pos;
-  expr_elem_expr: expr;
-  expr_elem_index: int;
+  pos: pos;
+  expr: expr;
+  index: int;
 }
 
 and expr_attr = {
-  expr_attr_pos: pos;
-  expr_attr_expr: expr;
-  expr_attr_name: string;
+  pos: pos;
+  expr: expr;
+  name: string;
 }
 
 and expr_preop = {
-  expr_preop_pos: pos;
-  expr_preop_op: string;
-  expr_preop_expr: expr;
+  pos: pos;
+  op: string;
+  expr: expr;
 }
 
 and expr_binop = {
-  expr_binop_pos: pos;
-  expr_binop_left: expr;
-  expr_binop_op: string;
-  expr_binop_right: expr;
+  pos: pos;
+  left: expr;
+  op: string;
+  right: expr;
 }
 
 and expr_ascr = {
-  expr_ascr_pos: pos;
-  expr_ascr_expr: expr;
-  expr_ascr_type: type';
+  pos: pos;
+  expr: expr;
+  type': type';
 }
 
 and expr_block = {
-  expr_block_pos: pos;
-  expr_block_stmts: stmt list;
-  expr_block_expr: expr option;
+  pos: pos;
+  stmts: stmt list;
+  expr: expr option;
 }
 
 and expr_if = {
-  expr_if_pos: pos;
-  expr_if_cond: expr;
-  expr_if_then: expr;
-  expr_if_else: expr;
+  pos: pos;
+  cond: expr;
+  then': expr;
+  else': expr;
 }
 
 and expr_abs = {
-  expr_abs_pos: pos;
-  expr_abs_params: param_expr list;
-  expr_abs_body: expr;
+  pos: pos;
+  params: param_expr list;
+  body: expr;
 }
 
 and expr_app = {
-  expr_app_pos: pos;
-  expr_app_expr: expr;
-  expr_app_args: expr list;
+  pos: pos;
+  expr: expr;
+  args: expr list;
 }
 
 and expr_type_abs = {
-  expr_type_abs_pos: pos;
-  expr_type_abs_params: param_type list;
-  expr_type_abs_body: expr;
+  pos: pos;
+  params: param_type list;
+  body: expr;
 }
 
 and expr_type_app = {
-  expr_type_app_pos: pos;
-  expr_type_app_expr: expr;
-  expr_type_app_args: type' list;
+  pos: pos;
+  expr: expr;
+  args: type' list;
+}
+
+and attr_expr = {
+  pos: pos;
+  name: string;
+  expr: expr;
 }
 
 and stmt =
   | StmtVar  of var_expr * (type' option) * expr
   | StmtExpr of expr
 
+and var_expr = {
+  id: int;
+  name: string;
+}
+
+and param_expr = {
+  pos: pos;
+  id: int;
+  name: string;
+  type': type' option;
+}
+
 and def_expr = {
-  def_expr_pos: pos;
-  def_expr_id: int;
-  def_expr_name: string;
-  def_expr_type: type' option;
-  def_expr: expr;
+  pos: pos;
+  id: int;
+  name: string;
+  type': type' option;
+  expr: expr;
 }
 
 and bind_expr =
@@ -251,170 +299,38 @@ and bind_expr =
   | BindExprParam of param_expr
   | BindExprVar   of var_expr
 
-and param_expr = {
-  param_expr_pos: pos;
-  param_expr_id: int;
-  param_expr_name: string;
-  param_expr_type: type' option;
-}
-
-and attr_expr = {
-  attr_expr_pos: pos;
-  attr_expr_name: string;
-  attr_expr: expr;
-}
-
-and var_expr = {
-  var_expr_id: int;
-  var_expr_name: string;
-}
-
-let make_def_expr pos id name type' expr =
-  {
-    def_expr_pos = pos;
-    def_expr_id = id;
-    def_expr_name = name;
-    def_expr_type = type';
-    def_expr = expr;
-  }
-
-let make_param_expr pos id name type' =
-  {
-    param_expr_pos = pos;
-    param_expr_id = id;
-    param_expr_name = name;
-    param_expr_type = type';
-  }
-
-let make_attr_expr pos name expr =
-  {
-    attr_expr_pos = pos;
-    attr_expr_name = name;
-    attr_expr = expr;
-  }
-
-let make_attr_type pos name type' =
-  {
-    attr_type_pos = pos;
-    attr_type_name = name;
-    attr_type = type';
-  }
+let expr_pos expr =
+  match expr with
+  | ExprUnit    expr -> expr.pos
+  | ExprBool    expr -> expr.pos
+  | ExprInt     expr -> expr.pos
+  | ExprChar    expr -> expr.pos
+  | ExprString  expr -> expr.pos
+  | ExprBind    expr -> expr.pos
+  | ExprTuple   expr -> expr.pos
+  | ExprRecord  expr -> expr.pos
+  | ExprElem    expr -> expr.pos
+  | ExprAttr    expr -> expr.pos
+  | ExprPreop   expr -> expr.pos
+  | ExprBinop   expr -> expr.pos
+  | ExprAscr    expr -> expr.pos
+  | ExprBlock   expr -> expr.pos
+  | ExprIf      expr -> expr.pos
+  | ExprAbs     expr -> expr.pos
+  | ExprApp     expr -> expr.pos
+  | ExprTypeAbs expr -> expr.pos
+  | ExprTypeApp expr -> expr.pos
 
 let bind_expr_id bind =
   match bind with
   | BindExprPrint       -> -1
-  | BindExprDef   def   -> def.def_expr_id
-  | BindExprParam param -> param.param_expr_id
-  | BindExprVar   var   -> var.var_expr_id
+  | BindExprVar   var   -> var.id
+  | BindExprParam param -> param.id
+  | BindExprDef   def   -> def.id
 
 let bind_expr_name bind =
   match bind with
   | BindExprPrint       -> "print"
-  | BindExprDef   def   -> def.def_expr_name
-  | BindExprParam param -> param.param_expr_name
-  | BindExprVar   var   -> var.var_expr_name
-
-let primitive_pos = {
-  Lexing.pos_fname = "primitives.clam";
-  Lexing.pos_lnum = 0;
-  Lexing.pos_bol = 0;
-  Lexing.pos_cnum = 0;
-}
-
-let type_top = TypeTop {
-  type_top_pos = primitive_pos;
-}
-
-let type_unit = TypeUnit {
-  type_unit_pos = primitive_pos;
-}
-
-let type_bool = TypeBool {
-  type_bool_pos = primitive_pos;
-}
-
-let type_int = TypeInt {
-  type_int_pos = primitive_pos;
-}
-
-let type_char = TypeChar {
-  type_char_pos = primitive_pos;
-}
-
-let type_string = TypeString {
-  type_string_pos = primitive_pos;
-}
-
-let type_pos type' =
-  match type' with
-  | TypeTop type' ->
-    type'.type_top_pos
-  | TypeUnit type' ->
-    type'.type_unit_pos
-  | TypeBool type' ->
-    type'.type_bool_pos
-  | TypeInt type' ->
-    type'.type_int_pos
-  | TypeChar type' ->
-    type'.type_char_pos
-  | TypeString type' ->
-    type'.type_string_pos
-  | TypeVar type' ->
-    type'.type_var_pos
-  | TypeTuple type' ->
-    type'.type_tuple_pos
-  | TypeRecord type' ->
-    type'.type_record_pos
-  | TypeInter type' ->
-    type'.type_inter_pos
-  | TypeUnion type' ->
-    type'.type_union_pos
-  | TypeAbsExpr type' ->
-    type'.type_abs_expr_pos
-  | TypeAbsExprType type' ->
-    type'.type_abs_expr_type_pos
-  | TypeAbs type' ->
-    type'.type_abs_pos
-  | TypeApp type' ->
-    type'.type_app_pos
-
-let expr_pos expr =
-  match expr with
-  | ExprUnit expr ->
-    expr.expr_unit_pos
-  | ExprBool expr ->
-    expr.expr_bool_pos
-  | ExprInt expr ->
-    expr.expr_int_pos
-  | ExprChar expr ->
-    expr.expr_char_pos
-  | ExprString expr ->
-    expr.expr_string_pos
-  | ExprBind expr ->
-    expr.expr_bind_pos
-  | ExprTuple expr ->
-    expr.expr_tuple_pos
-  | ExprRecord expr ->
-    expr.expr_record_pos
-  | ExprElem expr ->
-    expr.expr_elem_pos
-  | ExprAttr expr ->
-    expr.expr_attr_pos
-  | ExprPreop expr ->
-    expr.expr_preop_pos
-  | ExprBinop expr ->
-    expr.expr_binop_pos
-  | ExprAscr expr ->
-    expr.expr_ascr_pos
-  | ExprBlock expr ->
-    expr.expr_block_pos
-  | ExprIf expr ->
-    expr.expr_if_pos
-  | ExprAbs expr ->
-    expr.expr_abs_pos
-  | ExprApp expr ->
-    expr.expr_app_pos
-  | ExprTypeAbs expr ->
-    expr.expr_type_abs_pos
-  | ExprTypeApp expr ->
-    expr.expr_type_app_pos
+  | BindExprDef   def   -> def.name
+  | BindExprParam param -> param.name
+  | BindExprVar   var   -> var.name

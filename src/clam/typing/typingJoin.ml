@@ -1,47 +1,29 @@
 open Model
 
-let rec join left right =
+let rec join (left: type') (right: type'): type' =
   let pos = type_pos left in
   match (left, right) with
   | (TypeTop _, _) ->
-    TypeTop {
-      type_top_pos = pos;
-    }
+    TypeTop { pos }
   | (_, TypeTop _) ->
-    TypeTop {
-      type_top_pos = pos;
-    }
+    TypeTop { pos }
   | (TypeUnit _, TypeUnit _) ->
-    TypeUnit {
-      type_unit_pos = pos;
-    }
+    TypeUnit { pos }
   | (TypeBool _, TypeBool _) ->
-    TypeBool {
-      type_bool_pos = pos;
-    }
+    TypeBool { pos}
   | (TypeInt _, TypeInt _) ->
-    TypeInt {
-      type_int_pos = pos;
-    }
+    TypeInt { pos }
   | (TypeChar _, TypeChar _) ->
-    TypeChar {
-      type_char_pos = pos;
-    }
+    TypeChar { pos }
   | (TypeString _, TypeString _) ->
-    TypeString {
-      type_string_pos = pos;
-    }
-  | (TypeVar param, TypeVar other_param) when param = other_param ->
+    TypeString { pos }
+  | (TypeVar param, TypeVar other) when param = other ->
     TypeVar param
   | (TypeUnion other, _) ->
-    let union = join other.type_union_left other.type_union_right in
+    let union = join other.left other.right in
     join union right
   | (_, TypeUnion other) ->
-    let union = join other.type_union_left other.type_union_right in
+    let union = join other.left other.right in
     join left union
   | (_, _) ->
-    TypeUnion {
-      type_union_pos = pos;
-      type_union_left = left;
-      type_union_right = right;
-    }
+    TypeUnion { pos; left; right }
