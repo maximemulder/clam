@@ -451,27 +451,7 @@ and infer_if if' returner =
   returner (TypingJoin.join then' else')
 
 and infer_block block returner =
-  let* _ = map_list infer_block_stmt block.stmts in
-  match block.expr with
-  | Some expr -> infer expr returner
-  | None -> returner prim_unit
-
-and infer_block_stmt stmt =
-  match stmt with
-  | StmtVar (var, type', expr) ->
-    let* type' = match type' with
-    | Some type' ->
-      let* () = validate type' in
-      let* _ = check expr type' in
-      return type'
-    | None ->
-      infer_none expr
-    in
-    let* _ = add_bind (BindExprVar var) type' in
-    return ()
-  | StmtExpr expr ->
-    let* _ = infer_none expr in
-    return ()
+  infer_stmts block.stmts returner
 
 and infer_abs abs returner =
   let* params = infer_abs_params abs.params in
@@ -513,6 +493,34 @@ and infer_type_app_abs app abs returner =
   let entries = List.combine params args in
   let body = TypingApply.apply abs.body entries in
   returner body
+
+and infer_stmts stmts returner =
+  match stmts with
+  | StmtsStmt stmt ->
+    infer_stmt stmt
+  | StmtsExpr expr ->
+    infer expr returner
+
+and infer_stmt stmt =
+  let* _ = infer_stmt_body stmt.body in
+  infer_stmts stmt.stmts return
+
+and infer_stmt_body body =
+  match body with
+  | StmtVar (var, type', expr) ->
+    let* type' = match type' with
+    | Some type' ->
+      let* () = validate type' in
+      let* _ = check expr type' in
+      return type'
+    | None ->
+      infer_none expr
+    in
+    let* _ = add_bind (BindExprVar var) type' in
+    return ()
+  | StmtExpr expr ->
+    let* _ = infer_none expr in
+    return ()
 
 and check_def def progress =
   let progress = start_progress progress def in

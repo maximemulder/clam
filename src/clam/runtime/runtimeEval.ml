@@ -144,29 +144,7 @@ and eval_type_app expr =
   | _ -> RuntimeErrors.raise_value ()
 
 and eval_expr_block block =
-  eval_block_stmts block.stmts block.expr
-
-and eval_block_stmts stmts expr context =
-  match stmts with
-  | [] ->
-    eval_block_expr expr context
-  | stmt :: stmts ->
-    let context = eval_block_stmt stmt context in
-    eval_block_stmts stmts expr context
-
-and eval_block_stmt stmt context =
-  match stmt with
-  | StmtVar (var, _, expr) ->
-    let value = eval expr context in
-    new_frame context (BindMap.singleton (BindExprVar var) value)
-  | StmtExpr expr ->
-    let _ = eval expr context in
-    context
-
-and eval_block_expr expr =
-  match expr with
-  | Some expr -> eval expr
-  | None -> return VUnit
+  eval_stmts block.stmts
 
 and eval_preop preop =
   let expr = preop.expr in
@@ -244,6 +222,32 @@ and eval_binop binop =
     return (VBool (left && right))
   | _ -> RuntimeErrors.raise_operator binop.op
 
+  and eval_record (expr: Model.expr) =
+  let* value = eval expr in
+  match value with
+  | VRecord attrs -> return attrs
+  | _ -> RuntimeErrors.raise_value ()
+
+and eval_stmts stmts =
+  match stmts with
+  | StmtsStmt stmt ->
+    eval_stmt stmt
+  | StmtsExpr expr ->
+    eval expr
+
+and eval_stmt stmt context =
+  let context = eval_stmt_body stmt.body context in
+  eval_stmts stmt.stmts context
+
+and eval_stmt_body body context =
+  match body with
+  | StmtVar (var, _, expr) ->
+    let value = eval expr context in
+    new_frame context (BindMap.singleton (BindExprVar var) value)
+  | StmtExpr expr ->
+    let _ = eval expr context in
+    context
+
 and eval_value_bool (expr: Model.expr) =
   let* value = eval expr in
   match value with
@@ -266,12 +270,6 @@ and eval_tuple (expr: Model.expr) =
   let* value = eval expr in
   match value with
   | VTuple values -> return values
-  | _ -> RuntimeErrors.raise_value ()
-
-and eval_record (expr: Model.expr) =
-  let* value = eval expr in
-  match value with
-  | VRecord attrs -> return attrs
   | _ -> RuntimeErrors.raise_value ()
 
 let eval_def def stdout =

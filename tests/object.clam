@@ -19,30 +19,30 @@ type CounterResetClass = [S] => {
     reset: (S) -> S
 };
 
-def counter_class: CounterClass[CounterState] = @{
-    make = @{ value = 0 },
-    next = (c) -> @{ value = c.value + 1 },
+def counter_class: CounterClass[CounterState] = {
+    make = { value = 0 },
+    next = (c) -> { value = c.value + 1 },
     value = (c) -> c.value
 };
 
-def counter_reset_class: CounterResetClass[CounterState] = @{
-    make = @{ value = 0 },
-    next = (c) -> @{ value = c.value + 1 },
+def counter_reset_class: CounterResetClass[CounterState] = {
+    make = { value = 0 },
+    next = (c) -> { value = c.value + 1 },
     value = (c) -> c.value,
-    reset = (c) -> @{ value = 0 }
+    reset = (c) -> { value = 0 }
 };
 
-def new_counter: Counter = @{
+def new_counter: Counter = {
     class = counter_class,
     state = counter_class.make
 };
 
-def new_counter_reset: CounterReset = @{
+def new_counter_reset: CounterReset = {
     class = counter_reset_class,
     state = counter_reset_class.make
 };
 
-def call_next = (c: Counter) -> @{
+def call_next = (c: Counter) -> {
     class = c.class,
     state = c.class.next(c.state)
 };
@@ -50,12 +50,12 @@ def call_next = (c: Counter) -> @{
 def call_value = (c: Counter) ->
     c.class.value(c.state);
 
-def call_reset_next = (c: CounterReset) -> @{
+def call_reset_next = (c: CounterReset) -> {
     class = c.class,
     state = c.class.next(c.state)
 };
 
-def call_reset = (c: CounterReset) -> @{
+def call_reset = (c: CounterReset) -> {
     class = c.class,
     state = c.class.reset(c.state)
 };
@@ -72,4 +72,5 @@ def main = {
     print(call_value(c2));
     var c2 = call_reset(c2);
     print(call_value(c2));
+    unit
 };

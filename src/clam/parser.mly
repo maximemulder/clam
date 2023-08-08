@@ -43,7 +43,6 @@
 %token DEF
 %token ELSE
 %token IF
-%token RET
 %token THEN
 %token TYPE
 %token VAR
@@ -153,7 +152,7 @@ let expr_1 :=
     { $startpos, ExprBind name }
   | AT; PARENTHESIS_LEFT; exprs = list_comma(expr); PARENTHESIS_RIGHT;
     { $startpos, ExprTuple exprs }
-  | AT; BRACE_LEFT; attrs = list_comma(attr_expr); BRACE_RIGHT;
+  | BRACE_LEFT; attrs = list_comma(attr_expr); BRACE_RIGHT;
     { $startpos, ExprRecord (attrs) }
   | expr = expr_1; DOT; index = INT;
     { $startpos, ExprElem (expr, index) }
@@ -179,13 +178,23 @@ let attr_expr :=
     { { pos = $startpos; name; expr } }
 
 let block :=
-  | BRACE_LEFT; stmts = list(stmt); expr = option(RET; expr); BRACE_RIGHT;
-    { { stmts; expr } }
+  | BRACE_LEFT; stmts = stmts; BRACE_RIGHT;
+    { { stmts } }
+
+let stmts :=
+  | stmt = stmt;
+    { StmtsStmt stmt }
+  | expr = expr;
+    { StmtsExpr expr }
 
 let stmt :=
-  | VAR; name = IDENT; type_ = option(COLON; type_); ASSIGN; expr = expr; SEMICOLON;
+  | body = stmt_body; SEMICOLON; stmts = stmts;
+    { { body; stmts } }
+
+let stmt_body :=
+  | VAR; name = IDENT; type_ = option(COLON; type_); ASSIGN; expr = expr;
   { StmtVar (name, type_, expr) }
-  | expr = expr; SEMICOLON;
+  | expr = expr;
   { StmtExpr (expr) }
 
 // Operators

@@ -2,11 +2,11 @@ type A = {a: Int};
 type B = {a: Int, b: String};
 
 def main = {
-    var a: A = @{ a = 0 };
-    var b: B = @{ a = 1, b = "Hello" };
+    var a: A = { a = 0 };
+    var b: B = { a = 1, b = "Hello" };
 
     var c: A = b;
-    var d: A = @{ a = 1, b = "Hello" };
+    var d: A = { a = 1, b = "Hello" };
 
     print(a);
     print(b);
@@ -14,4 +14,5 @@ def main = {
     print(a.a);
     print(b.a);
     print(b.b);
+    unit
 };

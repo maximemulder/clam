@@ -1,11 +1,12 @@
 type AB = {a: Int, b: Int} | {a: Int, b: String};
 
 def main = {
-    var ab: AB = @{a = 1, b = 2};
+    var ab: AB = {a = 1, b = 2};
     var a: Int = ab.a;
     var b: Int | String = ab.b;
 
     print(ab);
     print(a);
     print(b);
+    unit
 };

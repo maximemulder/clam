@@ -11,4 +11,5 @@ def main = {
     print(a.0);
     print(b.0);
     print(b.1);
+    unit
 };

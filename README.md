@@ -20,6 +20,7 @@ def fibonacci: (Int) -> Int = (n) ->
 def main = {
     print(fibonacci(2));
     print(fibonacci(5));
+    unit
 };
 ```
 
@@ -29,7 +30,7 @@ More examples of Clam code can be found in the `tests` directory.
 
 You can build this project on Linux using Dune !
 
-Simply enter `dune build` to build to build the project or `dune exec clam filename.clam` to run the project with the code file `filename.clam` as an input.
+Simply enter `dune build` to build to build the project or `dune exec main filename.clam` to run the project with the code file `filename.clam` as an input.
 
 # Features
 
@@ -46,6 +47,7 @@ type B = (Int, Int);
 def main = {
     var a: A = @(0, 0);
     var b: B = a;
+    unit
 };
 ```
 
@@ -57,7 +59,8 @@ Clam features subtyping, meaning that a value may belong to several types and th
 type A = {x: Int, y: Int};
 
 def main = {
-    var a: A = @{x = 0, y = 0, z = 0};
+    var a: A = {x = 0, y = 0, z = 0};
+    unit
 };
 ```
 
@@ -82,6 +85,7 @@ type Pair = [T] => (T, T);
 
 def main = {
     var a: Pair[Int] = @(0, 0);
+    unit
 };
 ```
 
@@ -98,6 +102,7 @@ def map_pair = [T, U] -> (p: (T, T), f: (T) -> U) ->
 def main = {
     var pair = @(2, 3);
     var double = map_pair[Int, Int](pair, (x) -> x * 2);
+    unit
 };
 ```
 
@@ -110,8 +115,9 @@ type A = {a: Int} | {a: String};
 type B = {a: Int} & {b: String};
 
 def main = {
-    var a: A = @{a = 1};
-    var b: B = @{a = 2, b = "World"};
+    var a: A = {a = 1};
+    var b: B = {a = 2, b = "World"};
+    unit
 };
 ```
 

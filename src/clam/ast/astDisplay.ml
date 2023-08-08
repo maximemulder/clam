@@ -9,7 +9,9 @@ type node =
   | AttrType of Ast.attr_type
   | AttrExpr of Ast.attr_expr
   | Block    of Ast.block
+  | Stmts    of Ast.stmts
   | Stmt     of Ast.stmt
+  | StmtBody of Ast.stmt_body
 
 type attr =
   | ANode   of node
@@ -58,7 +60,9 @@ let node_name node =
   | AttrType _ -> "attr_type"
   | AttrExpr _ -> "attr_expr"
   | Block _ -> "block"
-  | Stmt stmt -> "stmt." ^ (match stmt with
+  | Stmts _ -> "stmts"
+  | Stmt _ -> "stmt"
+  | StmtBody body -> "stmt_body." ^ (match body with
     | StmtVar  _ -> "var"
     | StmtExpr _ -> "expr")
 
@@ -134,8 +138,15 @@ let node_attrs node =
   | AttrExpr { name; expr; _ } ->
     [("name", AString name); ("expr", ANode (Expr expr))]
   | Block block ->
-    [("stmts", AList (List.map (fun stmt -> Stmt stmt) block.stmts)); ("expr", AOption (Option.map (fun expr -> Expr expr) block.expr))]
-  | Stmt stmt -> (match stmt with
+    [("stmts", ANode (Stmts block.stmts))]
+  | Stmts stmts -> (match stmts with
+    | StmtsStmt stmt ->
+      [("stmt", ANode (Stmt stmt))]
+    | StmtsExpr expr ->
+      [("expr", ANode (Expr expr))])
+  | Stmt stmt ->
+    [("stmt", ANode (StmtBody stmt.body))]
+  | StmtBody stmt -> (match stmt with
     | StmtVar (name, type', expr) ->
       [("name", AString name); ("type", AOption (Option.map (fun type' -> Type type') type')); ("expr", ANode (Expr expr))]
     | StmtExpr expr ->

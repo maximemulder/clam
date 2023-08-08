@@ -228,8 +228,7 @@ and expr_ascr = {
 
 and expr_block = {
   pos: pos;
-  stmts: stmt list;
-  expr: expr option;
+  stmts: stmts;
 }
 
 and expr_if = {
@@ -269,7 +268,16 @@ and attr_expr = {
   expr: expr;
 }
 
-and stmt =
+and stmts =
+  | StmtsStmt of stmt
+  | StmtsExpr of expr
+
+and stmt = {
+  body: stmt_body;
+  stmts: stmts;
+}
+
+and stmt_body =
   | StmtVar  of var_expr * (type' option) * expr
   | StmtExpr of expr
 

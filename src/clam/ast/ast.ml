@@ -77,11 +77,19 @@ and attr_expr = {
 }
 
 and block = {
-  stmts: stmt list;
-  expr: expr option;
+  stmts: stmts;
 }
 
-and stmt =
+and stmts =
+  | StmtsStmt of stmt
+  | StmtsExpr of expr
+
+and stmt = {
+  body: stmt_body;
+  stmts: stmts;
+}
+
+and stmt_body =
   | StmtVar  of string * (type' option) * expr
   | StmtExpr of expr
 
