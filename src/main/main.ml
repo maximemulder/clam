@@ -22,4 +22,4 @@ let read_file file_name =
 let () =
   let file_name = read_file_name () in
   let file_text = read_file file_name in
-  Clam.Main.run file_name file_text print_endline
+  Clam.Lib.run file_name file_text print_endline

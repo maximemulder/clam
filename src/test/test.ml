@@ -34,7 +34,7 @@ let list_tests () =
 let test file_name =
   let file_text = read_file file_name in
   let output_buffer = make_buffer () in
-  Clam.Main.run file_name file_text (write_buffer output_buffer);
+  Clam.Lib.run file_name file_text (write_buffer output_buffer);
   let output = output_buffer.string in
   let expected_output = read_file (file_name ^ ".out") in
   if output <> expected_output then (

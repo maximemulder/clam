@@ -1,3 +1,4 @@
 (test
-  (name clam)
-  (libraries clam))
+  (name test)
+  (libraries clam)
+  (deps (source_tree ../../tests)))

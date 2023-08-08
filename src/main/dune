@@ -1,4 +1,4 @@
 (executable
-  (public_name clam)
   (name main)
+  (public_name main)
   (libraries clam))
