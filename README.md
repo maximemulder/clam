@@ -64,28 +64,32 @@ def main = {
 };
 ```
 
-## Top and bottom types
-
-Clam has a top type named `Top` and a bottom type named `Bot`. The top type is a supertype of all types and the bottom type is a subtype of all types.
-
-```
-def a: Top = 0;
-def b: Top = "Hello world !";
-```
-
-```
-def a = (p: Bot) -> {
-    var b: String = p;
-    p
-};
-```
-
 ## Unit type
 
 Clam has a default unit type named `Unit`, whose only value is `unit`.
 
 ```
 def u: Unit = unit;
+```
+
+## Top type
+
+Clam has a top type named `Top`, which is a supertype of all types.
+
+```
+def a: Top = 0;
+def b: Top = "Hello world !";
+```
+
+## Bottom type
+
+Clam has a bottom type named `Bot`, which is a subtype of all types.
+
+```
+def a = (p: Bot) -> {
+    var b: String = p;
+    unit
+};
 ```
 
 ## Type operators
