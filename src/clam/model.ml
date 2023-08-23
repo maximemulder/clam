@@ -2,6 +2,7 @@ type pos = Lexing.position
 
 type type' =
   | TypeTop         of type_top
+  | TypeBot         of type_bot
   | TypeUnit        of type_unit
   | TypeBool        of type_bool
   | TypeInt         of type_int
@@ -18,6 +19,10 @@ type type' =
   | TypeApp         of type_app
 
 and type_top = {
+  pos: pos;
+}
+
+and type_bot = {
   pos: pos;
 }
 
@@ -106,6 +111,7 @@ and param_type = {
 let type_pos type' =
   match type' with
   | TypeTop         type' -> type'.pos
+  | TypeBot         type' -> type'.pos
   | TypeUnit        type' -> type'.pos
   | TypeBool        type' -> type'.pos
   | TypeInt         type' -> type'.pos
@@ -129,6 +135,7 @@ let prim_pos = {
 }
 
 let prim_top    = TypeTop    { pos = prim_pos; }
+let prim_bot    = TypeBot    { pos = prim_pos; }
 let prim_unit   = TypeUnit   { pos = prim_pos; }
 let prim_bool   = TypeBool   { pos = prim_pos; }
 let prim_int    = TypeInt    { pos = prim_pos; }

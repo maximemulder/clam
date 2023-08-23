@@ -49,3 +49,29 @@ let test file_name =
 let () =
   let tests = list_tests () in
   List.iter test tests;
+
+(*
+
+let pos = Clam.Model.prim_pos
+let unit = Clam.Model.prim_unit
+let bool = Clam.Model.prim_bool
+let char = Clam.Model.prim_char
+let test = fun t ->
+  let a = Clam.TypingDisplay.display t in
+  let b = Clam.TypingDisplay.display (Clam.TypingBool.normalize t) in
+  print_endline(a ^ " ===> " ^ b)
+
+let union left right =
+  Clam.Model.TypeUnion { pos; left; right }
+
+let inter left right =
+  Clam.Model.TypeInter { pos; left; right }
+
+;; test (union unit (inter bool char))
+;; test (inter unit (union bool char))
+;; test (union unit (inter bool char))
+;; test (union (union unit bool) char)
+;; test (inter (inter unit bool) char)
+;; test (inter (union bool unit) (union bool unit))
+
+*)

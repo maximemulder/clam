@@ -16,6 +16,8 @@ let rec apply (type': type') =
   match type' with
   | TypeTop _ ->
     return type'
+  | TypeBot _ ->
+    return type'
   | TypeUnit _ ->
     return type'
   | TypeBool _ ->

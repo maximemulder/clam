@@ -7,6 +7,10 @@ let rec join (left: type') (right: type'): type' =
     TypeTop { pos }
   | (_, TypeTop _) ->
     TypeTop { pos }
+  | (TypeBot _, right) ->
+    right
+  | (left, TypeBot _) ->
+    left
   | (TypeUnit _, TypeUnit _) ->
     TypeUnit { pos }
   | (TypeBool _, TypeBool _) ->

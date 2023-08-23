@@ -38,3 +38,15 @@ let join_option2 x y f =
   | (Some x, None) -> Some x
   | (None, Some y) -> Some y
   | _ -> None
+
+let rec product_lists_aux acc f l1 l2 =
+  match (l1, l2) with
+  | ([], _) | (_, []) ->
+    acc
+  | (h1 :: t1, h2 :: t2) ->
+    let acc = (f h1 h2) :: acc in
+    let acc = product_lists_aux acc f t1 l2 in
+    product_lists_aux acc f [h1] t2
+
+let product_lists f l1 l2 =
+  product_lists_aux [] f l1 l2

@@ -1,6 +1,10 @@
 let rec is_type (type': Model.type') (other: Model.type') =
+  let type' = TypingBool.normalize type' in
+  let other = TypingBool.normalize other in
   match (type', other) with
   | (TypeTop _, TypeTop _) ->
+    true
+  | (TypeBot _, TypeBot _) ->
     true
   | (TypeUnit _, TypeUnit _) ->
     true

@@ -1,6 +1,7 @@
 let rec display (type': Model.type') =
   match type' with
   | TypeTop _    -> "Top"
+  | TypeBot _    -> "Bot"
   | TypeUnit _   -> "Unit"
   | TypeBool _   -> "Bool"
   | TypeInt _    -> "Int"
@@ -20,9 +21,9 @@ let rec display (type': Model.type') =
     let attrs = List.map display_attr_entry (List.of_seq (Utils.NameMap.to_seq record.attrs)) in
     "{" ^ (String.concat ", " attrs) ^ "}"
   | TypeInter inter ->
-    (display inter.left) ^ " & " ^ (display inter.right)
+    "(" ^ (display inter.left) ^ " & " ^ (display inter.right) ^ ")"
   | TypeUnion union ->
-    (display union.left) ^ " | " ^ (display union.right)
+    "(" ^ (display union.left) ^ " | " ^ (display union.right) ^ ")"
   | TypeAbs abs ->
     let params = List.map display_param abs.params in
     "[" ^ (String.concat ", " params) ^ "] => " ^ (display abs.body)

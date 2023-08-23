@@ -156,6 +156,7 @@ let rec modelize_defs state =
 
 let primitives = [
   ("Top",    Model.prim_top);
+  ("Bot",    Model.prim_bot);
   ("Unit",   Model.prim_unit);
   ("Bool",   Model.prim_bool);
   ("Int",    Model.prim_int);

@@ -1,0 +1,9 @@
+def test = (p: Bot) -> {
+    var a: Top    = p;
+    var b: Top    = p;
+    var c: Unit   = p;
+    var d: Int    = p;
+    unit
+};
+
+def main = unit;

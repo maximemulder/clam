@@ -7,8 +7,12 @@ end
 open Monad.Monad(Monad.ReaderMonad(Reader))
 
 let rec is_subtype (type': type') (other: type') =
+  let type' = TypingBool.normalize type' in
+  let other = TypingBool.normalize other in
   match (type', other) with
   | (_, TypeTop _) ->
+    return true
+  | (TypeBot _, _) ->
     return true
   | (TypeUnit _, TypeUnit _) ->
     return true
@@ -55,9 +59,11 @@ let rec is_subtype (type': type') (other: type') =
     let* body = is_subtype abs.body other_abs.body in
     return (params && body)
   | (TypeApp app, _) ->
-    is_subtype (TypingApply.apply_app app) other
+    let app = TypingApply.apply_app app in
+    is_subtype app other
   | (_, TypeApp app) ->
-    is_subtype type' (TypingApply.apply_app app)
+    let app = TypingApply.apply_app app in
+    is_subtype type' app
   | _ ->
     return false
 

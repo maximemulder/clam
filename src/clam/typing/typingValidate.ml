@@ -28,6 +28,8 @@ and validate (type': type') =
   match type' with
   | TypeTop _ ->
     return ()
+  | TypeBot _ ->
+    return ()
   | TypeUnit _ ->
     return ()
   | TypeBool _ ->

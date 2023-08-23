@@ -64,21 +64,33 @@ def main = {
 };
 ```
 
-## Top and unit types
+## Top and bottom types
 
-Clam has a top type named `Top`, which is a supertype of all types.
-
-Clam has a unit type named `Unit`, whose only value is `unit`.
+Clam has a top type named `Top` and a bottom type named `Bot`. The top type is a supertype of all types and the bottom type is a subtype of all types.
 
 ```
 def a: Top = 0;
 def b: Top = "Hello world !";
-def c: Unit = unit;
+```
+
+```
+def a = (p: Bot) -> {
+    var b: String = p;
+    p
+};
+```
+
+## Unit type
+
+Clam has a default unit type named `Unit`, whose only value is `unit`.
+
+```
+def u: Unit = unit;
 ```
 
 ## Type operators
 
-Clam features type operators, which allow to abstract over a type using other types. Type parameters have a bound, which is `Any` by default.
+Clam features type operators, which allow to abstract over a type using other types. Type parameters have a bound, which is `Top` by default.
 
 ```
 type Pair = [T] => (T, T);

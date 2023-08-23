@@ -2,3 +2,7 @@
   (name main)
   (public_name main)
   (libraries clam))
+
+(env
+  (dev
+    (flags (:standard -warn-error -A))))
