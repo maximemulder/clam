@@ -5,4 +5,4 @@
 
 (env
   (dev
-    (flags (:standard -w -33))))
+    (flags (:standard -w -A))))

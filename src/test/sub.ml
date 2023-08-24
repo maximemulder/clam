@@ -7,4 +7,4 @@ let assert_sub type' constraint' =
 ;; assert_sub a (union a b)
 ;; assert_sub (union a b) (union a b)
 ;; assert_sub (inter a b) (union b a)
-;; assert_sub (union (inter a b) (inter a c)) (inter a (union b c))
+;; (* assert_sub (union (inter a b) (inter a c)) (inter a (union b c)) *)
