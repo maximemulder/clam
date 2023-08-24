@@ -1,5 +1,7 @@
 # Grammar
 
+NOTE: This file is not up-to-date
+
 This is the current "ideal" grammar I have in mind for Clam. I believe this grammar is context-free if we resolve its conflicts, it is however not LR(1). Alternatives are generally listed by order of precedecence.
 
 ## Grammar

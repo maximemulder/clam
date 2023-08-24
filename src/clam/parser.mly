@@ -82,6 +82,8 @@ let type_2 :=
 let type_1 :=
   | name = IDENT;
     { $startpos, TypeIdent name }
+  | LT; type_ = type_; GT;
+    { type_ }
   | PARENTHESIS_LEFT; types = list_comma(type_); PARENTHESIS_RIGHT;
     { $startpos, TypeTuple types }
   | BRACE_LEFT; attrs = list_comma(attr_type); BRACE_RIGHT;

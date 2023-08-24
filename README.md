@@ -86,8 +86,9 @@ def b: Top = "Hello world !";
 Clam has a bottom type named `Bot`, which is a subtype of all types.
 
 ```
-def a = (p: Bot) -> {
-    var b: String = p;
+def foo = (bot: Bot) -> {
+    var a: Unit   = bot;
+    var b: String = bot;
     unit
 };
 ```
@@ -130,14 +131,14 @@ Clam features union and intersection types.
 type A = {a: Int} | {a: String};
 type B = {a: Int} & {b: String};
 
-def main = {
-    var a: A = {a = 1};
-    var b: B = {a = 2, b = "World"};
+def a: A = {a = 1};
+def b: B = {a = 2, b = "World"};
+
+def distributivity = [A, B, C] -> (developed: <A & B> | <A & C>) -> {
+    var factorized: A & <B | C> = developed;
     unit
 };
 ```
-
-Although the current implementation of union and intersection types works in simple cases, I am still working on a complete implementation.
 
 ## Bidirectional type inference
 
@@ -160,8 +161,8 @@ Clam does not feature recursive types yet, which is kind of a bummer.
 
 # Notes
 
-I find the syntax of Clam to be kind of meh, and it also lacks many important features. However, this is more intended to be a fun side project rather than a usable programming language.
+Clam is not intended to be a usable programming language. It is rather just a pet project of mine.
 
-The program testing is not very extensive yet, so a few bugs might have escaped me.
+The syntax of Clam is not definitive yet, I tried to stay safe in some areas while experimenting in others. The `@` for tuples and `<` `>` are workarounds that will eventually disappear.
 
-If I have enough time, I will probably improve this project in the future.
+Although the examples provided work, some features are not yet complete, notably unions and intersections and the bottom type. I want to finish them and improve my testing framework before adding new features.

@@ -1,4 +1,1 @@
-def main = {
-    print("Hello world !");
-    unit
-};
+def main = print("Hello world !");

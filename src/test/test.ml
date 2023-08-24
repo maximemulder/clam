@@ -1,3 +1,5 @@
+open Sub
+
 let test_directory = "../../../../tests/"
 
 type buffer = {

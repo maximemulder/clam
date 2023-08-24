@@ -10,6 +10,22 @@ let rec is_subtype (type': type') (other: type') =
   let type' = TypingBool.normalize type' in
   let other = TypingBool.normalize other in
   match (type', other) with
+  | (_, TypeInter inter) ->
+    let* left = is_subtype type' inter.left in
+    let* right = is_subtype type' inter.right in
+    return (left && right)
+  | (TypeInter inter, _) ->
+    let* left = is_subtype inter.left other in
+    let* right = is_subtype inter.right other in
+    return (left || right)
+  | (TypeUnion union, _) ->
+    let* left = is_subtype union.left other in
+    let* right = is_subtype union.right other in
+    return (left && right)
+  | (_, TypeUnion union) ->
+    let* left = is_subtype type' union.left in
+    let* right = is_subtype type' union.right in
+    return (left || right)
   | (_, TypeTop _) ->
     return true
   | (TypeBot _, _) ->
@@ -30,22 +46,6 @@ let rec is_subtype (type': type') (other: type') =
     compare_list2 is_subtype tuple.elems other_tuple.elems
   | (TypeRecord record, TypeRecord other_record) ->
     is_subtype_record record other_record
-  | (_, TypeInter inter) ->
-    let* left = is_subtype type' inter.left in
-    let* right = is_subtype type' inter.right in
-    return (left && right)
-  | (TypeInter inter, _) ->
-    let* left = is_subtype inter.left other in
-    let* right = is_subtype inter.right other in
-    return (left || right)
-  | (TypeUnion union, _) ->
-    let* left = is_subtype union.left other in
-    let* right = is_subtype union.right other in
-    return (left && right)
-  | (_, TypeUnion union) ->
-    let* left = is_subtype type' union.left in
-    let* right = is_subtype type' union.right in
-    return (left || right)
   | (TypeAbsExpr abs, TypeAbsExpr other_abs) ->
     let* params = compare_list2 is_subtype other_abs.params abs.params in
     let* body = is_subtype abs.body other_abs.body in
