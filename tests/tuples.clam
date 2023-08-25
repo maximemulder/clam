@@ -1,7 +1,7 @@
 type A = (Int)
 type B = (Int, String)
 
-def main = {
+def main =
     var a: A = @(0);
     var b: B = @(1, "Hello");
 
@@ -12,4 +12,3 @@ def main = {
     print(b.0);
     print(b.1);
     unit
-}

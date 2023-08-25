@@ -4,9 +4,8 @@ def ab: AB = {a = 1, b = 2}
 def a: Int = ab.a
 def b: Int | String = ab.b
 
-def main = {
+def main =
     print(ab);
     print(a);
     print(b);
     unit
-}

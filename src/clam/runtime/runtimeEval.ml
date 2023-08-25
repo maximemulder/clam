@@ -79,8 +79,6 @@ let rec eval (expr: Model.expr) =
     eval_binop binop
   | ExprAscr ascr ->
     eval ascr.expr
-  | ExprBlock block ->
-    eval_expr_block block
   | ExprIf if' ->
     let* cond = eval_value_bool if'.cond in
     if cond then eval if'.then' else eval if'.else'
@@ -92,6 +90,8 @@ let rec eval (expr: Model.expr) =
     return (VTypeAbs abs)
   | ExprTypeApp app ->
     eval_type_app app.expr
+  | ExprStmt stmt ->
+    eval_stmt stmt
 
 and eval_unit unit =
   let _ = unit.pos in
@@ -142,9 +142,6 @@ and eval_type_app expr =
   match value with
   | VTypeAbs app -> eval app.body
   | _ -> RuntimeErrors.raise_value ()
-
-and eval_expr_block block =
-  eval_stmts block.stmts
 
 and eval_preop preop =
   let expr = preop.expr in
@@ -222,31 +219,22 @@ and eval_binop binop =
     return (VBool (left && right))
   | _ -> RuntimeErrors.raise_operator binop.op
 
-  and eval_record (expr: Model.expr) =
+and eval_record (expr: Model.expr) =
   let* value = eval expr in
   match value with
   | VRecord attrs -> return attrs
   | _ -> RuntimeErrors.raise_value ()
 
-and eval_stmts stmts =
-  match stmts with
-  | StmtsStmt stmt ->
-    eval_stmt stmt
-  | StmtsExpr expr ->
-    eval expr
-
 and eval_stmt stmt context =
-  let context = eval_stmt_body stmt.body context in
-  eval_stmts stmt.stmts context
-
-and eval_stmt_body body context =
-  match body with
+  let context = match stmt.stmt with
   | StmtVar (var, _, expr) ->
     let value = eval expr context in
     new_frame context (BindMap.singleton (BindExprVar var) value)
   | StmtExpr expr ->
     let _ = eval expr context in
     context
+  in
+  eval stmt.expr context
 
 and eval_value_bool (expr: Model.expr) =
   let* value = eval expr in

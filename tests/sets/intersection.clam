@@ -1,6 +1,6 @@
 type AB = {a: Int, c: String} & {a: Int, b: String}
 
-def main = {
+def main =
     var ab: AB = {a = 1, b = "Hello", c = "World"};
     var a: Int = ab.a;
     var b: String = ab.b;
@@ -10,4 +10,3 @@ def main = {
     print(b);
     print(c);
     unit
-}

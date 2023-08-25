@@ -156,12 +156,12 @@ type expr =
   | ExprPreop   of expr_preop
   | ExprBinop   of expr_binop
   | ExprAscr    of expr_ascr
-  | ExprBlock   of expr_block
   | ExprIf      of expr_if
   | ExprAbs     of expr_abs
   | ExprApp     of expr_app
   | ExprTypeAbs of expr_type_abs
   | ExprTypeApp of expr_type_app
+  | ExprStmt    of expr_stmt
 
 and expr_unit = {
   pos: pos;
@@ -233,11 +233,6 @@ and expr_ascr = {
   type': type';
 }
 
-and expr_block = {
-  pos: pos;
-  stmts: stmts;
-}
-
 and expr_if = {
   pos: pos;
   cond: expr;
@@ -269,22 +264,19 @@ and expr_type_app = {
   args: type' list;
 }
 
+and expr_stmt = {
+  pos: pos;
+  stmt: stmt;
+  expr: expr;
+}
+
 and attr_expr = {
   pos: pos;
   name: string;
   expr: expr;
 }
 
-and stmts =
-  | StmtsStmt of stmt
-  | StmtsExpr of expr
-
-and stmt = {
-  body: stmt_body;
-  stmts: stmts;
-}
-
-and stmt_body =
+and stmt =
   | StmtVar  of var_expr * (type' option) * expr
   | StmtExpr of expr
 
@@ -329,12 +321,12 @@ let expr_pos expr =
   | ExprPreop   expr -> expr.pos
   | ExprBinop   expr -> expr.pos
   | ExprAscr    expr -> expr.pos
-  | ExprBlock   expr -> expr.pos
   | ExprIf      expr -> expr.pos
   | ExprAbs     expr -> expr.pos
   | ExprApp     expr -> expr.pos
   | ExprTypeAbs expr -> expr.pos
   | ExprTypeApp expr -> expr.pos
+  | ExprStmt    expr -> expr.pos
 
 let bind_expr_id bind =
   match bind with

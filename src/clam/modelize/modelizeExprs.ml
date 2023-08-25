@@ -147,8 +147,6 @@ and modelize_expr (expr: Ast.expr): state -> Model.expr * state =
     modelize_binop expr left op right
   | ExprAscr (expr, type') ->
     modelize_ascr expr type'
-  | ExprBlock block ->
-    modelize_block expr block
   | ExprIf (cond, then', else') ->
     modelize_if expr cond then' else'
   | ExprAbs (params, body) ->
@@ -160,6 +158,8 @@ and modelize_expr (expr: Ast.expr): state -> Model.expr * state =
     modelize_type_abs_expr expr params body
   | ExprTypeApp (expr, args) ->
     modelize_type_app expr args
+  | ExprStmt (stmt, expr) ->
+    modelize_stmt stmt expr
 
 and modelize_unit expr =
   return (Model.ExprUnit { pos = fst expr })
@@ -223,38 +223,21 @@ and modelize_type_param (param: Ast.param) =
   let type' = Option.value type' ~default:(Model.TypeTop { pos = param.pos }) in
   return { Model.name = param.name; type' }
 
-and modelize_block expr (block: Ast.block) =
-  let* stmts = modelize_stmts block.stmts in
-  return (Model.ExprBlock { Model.pos = fst expr; stmts })
-
-and modelize_stmts (stmts: Ast.stmts) =
-  match stmts with
-  | StmtsStmt stmt ->
-    let* stmt = modelize_stmt stmt in
-    return (Model.StmtsStmt stmt)
-  | StmtsExpr expr ->
-    let* expr = modelize_expr expr in
-    return (Model.StmtsExpr expr)
-
-and modelize_stmt stmt =
-  let* (body, stmts) = modelize_stmt_body stmt.body (modelize_stmts stmt.stmts) in
-  return { Model.body; stmts }
-
-and modelize_stmt_body body next =
-  match body with
-  | StmtVar (name, type', expr) ->
-    let* expr = modelize_expr expr in
-    let* type' = map_option modelize_type type' in
+and modelize_stmt (stmt: Ast.stmt) (expr: Ast.expr) =
+  match stmt with
+  | StmtVar (var_name, var_type, var_expr) ->
+    let* var_expr = modelize_expr var_expr in
+    let* var_type = map_option modelize_type var_type in
     let* id = next_id in
-    let var = { Model.id = id; Model.name = name } in
-    let body = Model.StmtVar (var, type', expr) in
-    let* stmts = with_scope (next) NameMap.empty [] [(name, Model.BindExprVar var)] in
-    return (body, stmts)
-  | StmtExpr expr ->
+    let var = { Model.id = id; Model.name = var_name } in
+    let body = Model.StmtVar (var, var_type, var_expr) in
+    let* expr = with_scope (modelize_expr expr) NameMap.empty [] [(var_name, Model.BindExprVar var)] in
+    return (Model.ExprStmt { pos = Model.expr_pos expr; stmt = body; expr })
+  | StmtExpr stmt_expr ->
+    let* stmt_expr = modelize_expr stmt_expr in
+    let stmt = Model.StmtExpr stmt_expr in
     let* expr = modelize_expr expr in
-    let* stmts = next in
-    let body = Model.StmtExpr expr in
-    return (body, stmts)
+    return (Model.ExprStmt { pos = Model.expr_pos stmt_expr; stmt; expr })
 
 and modelize_ascr expr type' =
   let* expr2 = modelize_expr expr in

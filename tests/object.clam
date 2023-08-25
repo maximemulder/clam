@@ -60,7 +60,7 @@ def call_reset = (c: CounterReset) -> {
     state = c.class.reset(c.state)
 }
 
-def main = {
+def main =
     var c1 = new_counter;
     print(call_value(c1));
     var c1 = call_next(c1);
@@ -73,4 +73,3 @@ def main = {
     var c2 = call_reset(c2);
     print(call_value(c2));
     unit
-}

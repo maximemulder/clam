@@ -37,6 +37,7 @@
 %token OR
 %token PARENTHESIS_LEFT
 %token PARENTHESIS_RIGHT
+%token PARENTHESIS_RIGHT_ARROW
 %token PLUS
 %token SEMICOLON
 
@@ -94,13 +95,18 @@ let type_1 :=
 // Expressions
 
 let expr :=
-  | expr_7
-  | PARENTHESIS_LEFT; params = list_comma(param); PARENTHESIS_RIGHT; ARROW; expr = expr;
+  | expr_8
+  | PARENTHESIS_LEFT; params = list_comma(param); PARENTHESIS_RIGHT_ARROW; expr = expr;
     { $startpos, ExprAbs (params, expr) }
   | CROTCHET_LEFT; params = list_comma(param); CROTCHET_RIGHT; ARROW; expr = expr;
     { $startpos, ExprTypeAbs (params, expr) }
   | IF; cond = expr; THEN; then_ = expr; ELSE; else_ = expr;
     { $startpos, ExprIf (cond, then_, else_) }
+
+let expr_8 :=
+  | expr_7
+  | stmt = stmt; SEMICOLON; expr = expr;
+    { $startpos, ExprStmt (stmt, expr) }
 
 let expr_7 :=
   | expr_6
@@ -160,8 +166,6 @@ let expr_1 :=
     { $startpos, ExprElem (expr, index) }
   | expr = expr_1; DOT; name = IDENT;
     { $startpos, ExprAttr (expr, name) }
-  | block = block;
-    { $startpos, ExprBlock block }
   | expr = expr_1; PARENTHESIS_LEFT; args = list_comma(expr); PARENTHESIS_RIGHT;
     { $startpos, ExprApp (expr, args)}
   | expr = expr_1; CROTCHET_LEFT; args = list_comma(type_); CROTCHET_RIGHT;
@@ -179,25 +183,11 @@ let attr_expr :=
   | name = IDENT; ASSIGN; expr = expr;
     { { pos = $startpos; name; expr } }
 
-let block :=
-  | BRACE_LEFT; stmts = stmts; BRACE_RIGHT;
-    { { stmts } }
-
-let stmts :=
-  | stmt = stmt;
-    { StmtsStmt stmt }
-  | expr = expr;
-    { StmtsExpr expr }
-
 let stmt :=
-  | body = stmt_body; SEMICOLON; stmts = stmts;
-    { { body; stmts } }
-
-let stmt_body :=
-  | VAR; name = IDENT; type_ = option(COLON; type_); ASSIGN; expr = expr;
-  { StmtVar (name, type_, expr) }
-  | expr = expr;
-  { StmtExpr (expr) }
+  | VAR; name = IDENT; type_ = option(COLON; type_); ASSIGN; expr = expr_7;
+    { StmtVar (name, type_, expr) }
+  | expr = expr_7;
+    { StmtExpr (expr) }
 
 // Operators
 

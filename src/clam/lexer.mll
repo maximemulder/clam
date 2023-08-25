@@ -58,13 +58,20 @@ rule read =
   | '!'      { NOT }
   | '|'      { OR }
   | '('      { PARENTHESIS_LEFT }
-  | ')'      { PARENTHESIS_RIGHT }
+  | ')'      { read_parenthesis_right lexbuf }
   | "+"      { PLUS }
   | ';'      { SEMICOLON }
   | '\''     { read_char (Buffer.create 2) lexbuf }
   | '"'      { read_string (Buffer.create 16) lexbuf }
   | _        { raise (Error ("unexpected character: `" ^ Lexing.lexeme lexbuf ^ "`")) }
   | eof      { EOF }
+
+and read_parenthesis_right =
+  parse
+  | space { read_parenthesis_right lexbuf }
+  | line  { next_line lexbuf; read_parenthesis_right lexbuf }
+  | "->"  { PARENTHESIS_RIGHT_ARROW }
+  | ""    { PARENTHESIS_RIGHT }
 
 and read_char buf =
   parse

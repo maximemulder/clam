@@ -51,12 +51,12 @@ and expr_data =
   | ExprPreop   of string * expr
   | ExprBinop   of expr * string * expr
   | ExprAscr    of expr * type'
-  | ExprBlock   of block
   | ExprIf      of expr * expr * expr
   | ExprAbs     of (param list) * expr
   | ExprApp     of expr * (expr list)
   | ExprTypeAbs of (param list) * expr
   | ExprTypeApp of expr * (type' list)
+  | ExprStmt    of stmt * expr
 
 and param = {
   pos: pos;
@@ -76,20 +76,7 @@ and attr_expr = {
   expr: expr;
 }
 
-and block = {
-  stmts: stmts;
-}
-
-and stmts =
-  | StmtsStmt of stmt
-  | StmtsExpr of expr
-
-and stmt = {
-  body: stmt_body;
-  stmts: stmts;
-}
-
-and stmt_body =
+and stmt =
   | StmtVar  of string * (type' option) * expr
   | StmtExpr of expr
 

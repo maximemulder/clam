@@ -269,8 +269,6 @@ and infer expr returner =
     infer_binop binop returner
   | ExprAscr ascr ->
     infer_ascr ascr returner
-  | ExprBlock block ->
-    infer_block block returner
   | ExprIf if' ->
     infer_if if' returner
   | ExprAbs abs ->
@@ -281,6 +279,8 @@ and infer expr returner =
     infer_type_abs abs returner
   | ExprTypeApp app ->
     infer_type_app app returner
+  | ExprStmt stmt ->
+    infer_stmt stmt returner
 
 and infer_none expr =
   infer expr return
@@ -450,9 +450,6 @@ and infer_if if' returner =
   let* else' = infer_none if'.else' in
   returner (TypingJoin.join then' else')
 
-and infer_block block returner =
-  infer_stmts block.stmts returner
-
 and infer_abs abs returner =
   let* params = infer_abs_params abs.params in
   let returner = return_abs abs params returner in
@@ -494,16 +491,9 @@ and infer_type_app_abs app abs returner =
   let body = TypingApply.apply abs.body entries in
   returner body
 
-and infer_stmts stmts returner =
-  match stmts with
-  | StmtsStmt stmt ->
-    infer_stmt stmt
-  | StmtsExpr expr ->
-    infer expr returner
-
-and infer_stmt stmt =
-  let* _ = infer_stmt_body stmt.body in
-  infer_stmts stmt.stmts return
+and infer_stmt stmt returner =
+  let* _ = infer_stmt_body stmt.stmt in
+  infer stmt.expr returner
 
 and infer_stmt_body body =
   match body with
