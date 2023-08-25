@@ -30,7 +30,7 @@ More examples of Clam code can be found in the `tests` directory.
 
 You can build this project on Linux using Dune !
 
-Simply enter `dune build` to build to build the project or `dune exec main filename.clam` to run the project with the code file `filename.clam` as an input.
+Simply enter `dune build` to build to build the project or `dune exec main example.clam` to run the interpreter with the code file `example.clam` as an input.
 
 # Features
 
@@ -151,7 +151,7 @@ type Make = [T] -> (T) -> Pair[T]
 def make: Make = [T] -> (p) -> @(p, p)
 
 def main = {
-    var pair = make[Int](0, 0);
+    var pair = make[Int](0);
     unit
 }
 ```
