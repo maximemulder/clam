@@ -4,6 +4,6 @@ def test = (p: Bot) -> {
     var c: Unit = p;
     var d: Int  = p;
     unit
-};
+}
 
-def main = unit;
+def main = unit

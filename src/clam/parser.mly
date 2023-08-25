@@ -58,9 +58,9 @@ let program :=
     { { defs } }
 
 let def :=
-  | TYPE; name = IDENT; ASSIGN; type_ = type_; SEMICOLON;
+  | TYPE; name = IDENT; ASSIGN; type_ = type_;
     { DefType { pos = $startpos; name; type' = type_ } }
-  | DEF; name = IDENT; type_ = option(COLON; type_); ASSIGN; expr = expr; SEMICOLON;
+  | DEF; name = IDENT; type_ = option(COLON; type_); ASSIGN; expr = expr;
     { DefExpr { pos = $startpos; name; type' = type_; expr } }
 
 let type_ :=

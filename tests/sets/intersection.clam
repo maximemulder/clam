@@ -1,4 +1,4 @@
-type AB = {a: Int, c: String} & {a: Int, b: String};
+type AB = {a: Int, c: String} & {a: Int, b: String}
 
 def main = {
     var ab: AB = {a = 1, b = "Hello", c = "World"};
@@ -10,4 +10,4 @@ def main = {
     print(b);
     print(c);
     unit
-};
+}

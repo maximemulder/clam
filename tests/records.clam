@@ -1,5 +1,5 @@
-type A = {a: Int};
-type B = {a: Int, b: String};
+type A = {a: Int}
+type B = {a: Int, b: String}
 
 def main = {
     var a: A = { a = 0 };
@@ -15,4 +15,4 @@ def main = {
     print(b.a);
     print(b.b);
     unit
-};
+}

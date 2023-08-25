@@ -4,4 +4,4 @@ def main = {
     print('A' == 'A');
     print('A' == 'B');
     unit
-};
+}
