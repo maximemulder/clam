@@ -66,7 +66,7 @@ let def :=
 
 let type_ :=
   | type_2
-  | PARENTHESIS_LEFT; params = list_comma(type_); PARENTHESIS_RIGHT; ARROW; expr = type_;
+  | PARENTHESIS_LEFT; params = list_comma(type_); PARENTHESIS_RIGHT_ARROW; expr = type_;
     { $startpos, TypeAbsExpr (params, expr) }
   | CROTCHET_LEFT; params = list_comma(param); CROTCHET_RIGHT; ARROW; expr = type_;
     { $startpos, TypeAbsExprType (params, expr) }

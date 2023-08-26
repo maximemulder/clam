@@ -1,4 +1,4 @@
-def main = {
+def main =
     print(true);
     print(false);
 
@@ -9,4 +9,3 @@ def main = {
     print(false == false);
     print(true == false);
     unit
-}
