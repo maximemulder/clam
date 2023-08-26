@@ -40,7 +40,6 @@ rule read =
   | "<="     { LE }
   | "!="     { NE }
   | '&'      { AND }
-  | '@'      { AT }
   | '{'      { BRACE_LEFT }
   | '}'      { BRACE_RIGHT }
   | ':'      { COLON }

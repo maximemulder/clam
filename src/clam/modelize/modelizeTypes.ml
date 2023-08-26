@@ -102,12 +102,8 @@ and modelize_type (type': Ast.type') =
   | TypeAbsExprType (params, body) ->
     let* (params, body) = modelize_params params body in
     return (Model.TypeAbsExprType { pos; params; body })
-  | TypeTuple (types) ->
-    let* elems = map_list modelize_type types in
-    return (Model.TypeTuple { pos; elems })
-  | TypeRecord (attrs) ->
-    let* attrs = map_list modelize_attr attrs in
-    return (Model.TypeRecord { pos; attrs = make_attrs attrs })
+  | TypeProduct (fields) ->
+    modelize_product type' fields
   | TypeInter (left, right) ->
     let* left = modelize_type left in
     let* right = modelize_type right in
@@ -135,11 +131,25 @@ and modelize_param param =
   let type' = Option.value type' ~default:(Model.TypeTop { pos = param.pos }) in
   return { Model.name = param.name; Model.type' = type' }
 
-and modelize_attr attr =
-  let* type' = modelize_type attr.type' in
+and modelize_product type' fields =
+  if (List.length fields) == 0 then
+    return (Model.TypeRecord { pos = fst type'; attrs = NameMap.empty })
+  else if List.for_all (fun (field: Ast.field_type) -> Option.is_some field.name) fields then
+    let* attrs = map_list modelize_record_attr fields in
+    let attrs = make_attrs attrs in
+    return (Model.TypeRecord { pos = fst type'; attrs })
+  else
+    let* elems = map_list modelize_tuple_elem fields in
+    return (Model.TypeTuple { pos = fst type'; elems })
+
+and modelize_tuple_elem field =
+  modelize_type field.type'
+
+and modelize_record_attr field =
+  let* type' = modelize_type field.type' in
   return {
-    Model.pos = attr.pos;
-    Model.name = attr.name;
+    Model.pos = field.pos;
+    Model.name = Option.get field.name;
     Model.type' = type'
   }
 

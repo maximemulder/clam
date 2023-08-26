@@ -135,8 +135,8 @@ and modelize_expr (expr: Ast.expr): state -> Model.expr * state =
     modelize_bind expr name
   | ExprTuple exprs ->
     modelize_tuple expr exprs
-  | ExprRecord attrs ->
-    modelize_record expr attrs
+  | ExprProduct fields ->
+    modelize_product expr fields
   | ExprElem (expr, index) ->
     modelize_elem expr index
   | ExprAttr (expr, name) ->
@@ -187,13 +187,22 @@ and modelize_tuple expr elems =
   let* elems = map_list modelize_expr elems in
   return (Model.ExprTuple { pos = fst expr; elems })
 
-and modelize_record expr attrs =
-  let* attrs = map_list modelize_record_attr attrs in
-  return (Model.ExprRecord { pos = fst expr; attrs })
+and modelize_product expr fields =
+  if (List.length fields) == 0 then
+    return (Model.ExprRecord { pos = fst expr; attrs = [] })
+  else if List.for_all (fun (field: Ast.field_expr) -> Option.is_some field.name) fields then
+    let* attrs = map_list modelize_record_attr fields in
+    return (Model.ExprRecord { pos = fst expr; attrs })
+  else
+    let* elems = map_list modelize_tuple_elem fields in
+    return (Model.ExprTuple { pos = fst expr; elems })
 
-and modelize_record_attr attr =
-  let* expr = modelize_expr attr.expr in
-  return { Model.pos = attr.pos; Model.name = attr.name; Model.expr = expr }
+and modelize_tuple_elem field =
+  modelize_expr field.expr
+
+and modelize_record_attr field =
+  let* expr = modelize_expr field.expr in
+  return { Model.pos = field.pos; Model.name = Option.get field.name; Model.expr = expr }
 
 and modelize_elem expr index =
   let* expr2 = modelize_expr expr in

@@ -1,9 +1,9 @@
-def factorize = [A, B, C] -> (developed: <A & B> | <A & C>) ->
-    var factorized: A & <B | C> = developed;
+def factorize = [A, B, C] -> (developed: (A & B) | (A & C)) ->
+    var factorized: A & (B | C) = developed;
     unit
 
-def develop = [A, B, C] -> (factorized: A & <B | C>) ->
-    var developed: <A & B> | <A & C> = factorized;
+def develop = [A, B, C] -> (factorized: A & (B | C)) ->
+    var developed: (A & B) | (A & C) = factorized;
     unit
 
 def main = unit

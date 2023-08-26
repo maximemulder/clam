@@ -1,14 +1,14 @@
 open Ast
 
 type node =
-  | Prog     of Ast.program
-  | Def      of Ast.def
-  | Type     of Ast.type'
-  | Expr     of Ast.expr
-  | Param    of Ast.param
-  | AttrType of Ast.attr_type
-  | AttrExpr of Ast.attr_expr
-  | Stmt     of Ast.stmt
+  | Prog      of Ast.program
+  | Def       of Ast.def
+  | Type      of Ast.type'
+  | Expr      of Ast.expr
+  | Param     of Ast.param
+  | FieldType of Ast.field_type
+  | FieldExpr of Ast.field_expr
+  | Stmt      of Ast.stmt
 
 type attr =
   | ANode   of node
@@ -26,8 +26,7 @@ let node_name node =
     | TypeIdent       _ -> "name"
     | TypeAbsExpr     _ -> "abs_expr"
     | TypeAbsExprType _ -> "abs_expr_type"
-    | TypeTuple       _ -> "tuple"
-    | TypeRecord      _ -> "record"
+    | TypeProduct     _ -> "product"
     | TypeInter       _ -> "inter"
     | TypeUnion       _ -> "union"
     | TypeAbs         _ -> "abs"
@@ -41,7 +40,7 @@ let node_name node =
     | ExprString  _ -> "string"
     | ExprBind    _ -> "bind"
     | ExprTuple   _ -> "tuple"
-    | ExprRecord  _ -> "record"
+    | ExprProduct _ -> "product"
     | ExprElem    _ -> "elem"
     | ExprAttr    _ -> "attr"
     | ExprPreop   _ -> "preop"
@@ -53,9 +52,9 @@ let node_name node =
     | ExprTypeAbs _ -> "type_abs"
     | ExprTypeApp _ -> "type_app"
     | ExprStmt    _ -> "stmt")
+  | FieldType _ -> "field_type"
+  | FieldExpr _ -> "field_expr"
   | Param _ -> "param"
-  | AttrType _ -> "attr_type"
-  | AttrExpr _ -> "attr_expr"
   | Stmt stmt -> "stmt." ^ (match stmt with
     | StmtVar  _ -> "var"
     | StmtExpr _ -> "expr")
@@ -75,10 +74,8 @@ let node_attrs node =
       [("params", AList (List.map (fun param -> Type param) params)); ("expr", ANode (Type return))]
     | TypeAbsExprType (params, return) ->
       [("params", AList (List.map (fun param -> Param param) params)); ("expr", ANode (Type return))]
-    | TypeTuple types ->
-      [("types", AList (List.map (fun type' -> Type type') types))]
-    | TypeRecord attrs ->
-      [("attrs", AList (List.map (fun attr -> AttrType attr) attrs))]
+    | TypeProduct fields ->
+      [("fields", AList (List.map (fun field -> FieldType field) fields))]
     | TypeInter (left, right) ->
       [("left", ANode (Type left)); ("right", ANode (Type right))]
     | TypeUnion (left, right) ->
@@ -101,8 +98,8 @@ let node_attrs node =
       [("name", AString name)]
     | ExprTuple exprs ->
       [("exprs", AList (List.map (fun expr -> Expr expr) exprs))]
-    | ExprRecord attrs ->
-      [("attrs", AList (List.map (fun attr -> AttrExpr attr) attrs))]
+    | ExprProduct fields ->
+      [("fields", AList (List.map (fun field -> FieldExpr field) fields))]
     | ExprElem (expr, index) ->
       [("expr", ANode (Expr expr)); ("index", AString index)]
     | ExprAttr (expr, attr) ->
@@ -125,12 +122,12 @@ let node_attrs node =
       [("expr", ANode (Expr expr)); ("args", AList (List.map (fun arg -> Type arg) args))]
     | ExprStmt (stmt, expr) ->
       [("stmt", ANode (Stmt stmt)); ("expr", ANode (Expr expr))])
+  | FieldType { type'; _ } ->
+    [("type", ANode (Type type'))]
+  | FieldExpr { expr; _ } ->
+    [("expr", ANode (Expr expr))]
   | Param { name; type'; _ } ->
     [("name", AString name); ("type", AOption (Option.map (fun type' -> Type type') type'))]
-  | AttrType { name; type'; _ } ->
-    [("name", AString name); ("type", ANode (Type type'))]
-  | AttrExpr { name; expr; _ } ->
-    [("name", AString name); ("expr", ANode (Expr expr))]
   | Stmt stmt -> (match stmt with
     | StmtVar (name, type', expr) ->
       [("name", AString name); ("type", AOption (Option.map (fun type' -> Type type') type')); ("expr", ANode (Expr expr))]

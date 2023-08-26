@@ -1,6 +1,6 @@
 # What is this ?
 
-This is Clam ! A small statically typed functional programming language with a C-family syntax and numerous type features.
+This is Clam ! A small statically typed functional language with several interesting type features.
 
 I developped this interpreter while my master's thesis was being evaluated. I made it to learn OCaml, practice functional programming, and apply some of the knowledge I gained about types and type theory.
 
@@ -40,11 +40,11 @@ Most of the interesting things about Clam are in its type system, which while no
 Clam features a structural type system, meaning that two structurally equivalent types are considered the same.
 
 ```
-type A = (Int, Int)
-type B = (Int, Int)
+type A = {Int, Int}
+type B = {Int, Int}
 
 def main =
-    var a: A = @(0, 0);
+    var a: A = {0, 0};
     var b: B = a;
     unit
 ```
@@ -94,10 +94,10 @@ def foo = (bot: Bot) ->
 Clam features type operators, which allow to abstract over a type using other types. Type parameters have a bound, which is `Top` by default.
 
 ```
-type Pair = [T] => (T, T)
+type Pair = [T] => {T, T}
 
 def main =
-    var a: Pair[Int] = @(0, 0);
+    var a: Pair[Int] = {0, 0};
     unit
 ```
 
@@ -109,10 +109,10 @@ Clam features universal types, which allow to abstract over an expression using 
 
 ```
 def map_pair = [T, U] -> (p: (T, T), f: (T) -> U) ->
-    @(f(p.0), f(p.1))
+    {f(p.0), f(p.1)}
 
 def main =
-    var pair = @(2, 3);
+    var pair = {2, 3};
     var double = map_pair[Int, Int](pair, (x) -> x * 2);
     unit
 ```
@@ -128,8 +128,8 @@ type B = {a: Int} & {b: String}
 def a: A = {a = 1}
 def b: B = {a = 2, b = "World"}
 
-def distributivity = [A, B, C] -> (developed: <A & B> | <A & C>) ->
-    var factorized: A & <B | C> = developed;
+def distributivity = [A, B, C] -> (developed: (A & B) | (A & C)) ->
+    var factorized: A & (B | C) = developed;
     unit
 ```
 
@@ -138,10 +138,10 @@ def distributivity = [A, B, C] -> (developed: <A & B> | <A & C>) ->
 Clam features bidirectional type inference, which allows to eliminate many type annotations when they are not needed.
 
 ```
-type Pair = [T] => (T, T)
+type Pair = [T] => {T, T}
 type Make = [T] -> (T) -> Pair[T]
 
-def make: Make = [T] -> (p) -> @(p, p)
+def make: Make = [T] -> (p) -> {p, p}
 
 def main =
     var pair = make[Int](0);
@@ -154,8 +154,6 @@ Clam does not feature recursive types yet, which is kind of a bummer.
 
 # Notes
 
-Clam is not intended to be a usable programming language. It is rather just a pet project of mine.
-
-The syntax of Clam is not definitive yet, I tried to stay safe in some areas while experimenting in others. The `@` for tuples and `<` `>` are workarounds that will eventually disappear.
+Clam is not intended to be a usable programming language. It is just a pet project of mine.
 
 Although the examples provided should work, some features are not yet complete, notably unions and intersections and the bottom type. I want to finish them and improve my testing framework before adding new features.

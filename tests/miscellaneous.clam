@@ -1,13 +1,13 @@
 def main =
     var a: Int = 0 : Int;
-    var b: Int = if true then 1 else 2;
-    var c: Int = if false then 1 else 2;
-    var d = {
+    var b: Int = (if true then 1 else 2);
+    var c: Int = (if false then 1 else 2);
+    var d = (
         var a = 2;
         a + 1
-    };
+    );
 
-    var e = (p: Int) -> p + 2;
+    var e = ((p: Int) -> p + 2);
 
     print(a);
     print(b);

@@ -1,7 +1,7 @@
-type Tuple = [T] => (Int, T)
-type Make = [T] -> (T) -> (Int, T)
+type Tuple = [T] => {Int, T}
+type Make = [T] -> (T) -> {Int, T}
 
-def make_one: Make = [T] -> (p) -> @(1, p)
+def make_one: Make = [T] -> (p) -> {1, p}
 
 def main =
     var a: Tuple[String] = make_one[String]("Hello");

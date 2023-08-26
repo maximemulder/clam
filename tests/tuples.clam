@@ -1,9 +1,9 @@
-type A = (Int)
-type B = (Int, String)
+type A = {Int}
+type B = {Int, String}
 
 def main =
-    var a: A = @(0);
-    var b: B = @(1, "Hello");
+    var a: A = {0};
+    var b: B = {1, "Hello"};
 
     print(a);
     print(b);

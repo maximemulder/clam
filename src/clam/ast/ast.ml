@@ -27,8 +27,7 @@ and type_data =
   | TypeIdent       of string
   | TypeAbsExpr     of (type' list) * type'
   | TypeAbsExprType of (param list) * type'
-  | TypeTuple       of type' list
-  | TypeRecord      of attr_type list
+  | TypeProduct     of field_type list
   | TypeInter       of type' * type'
   | TypeUnion       of type' * type'
   | TypeAbs         of (param list) * type'
@@ -45,7 +44,7 @@ and expr_data =
   | ExprString  of string
   | ExprBind    of string
   | ExprTuple   of expr list
-  | ExprRecord  of attr_expr list
+  | ExprProduct of field_expr list
   | ExprElem    of expr * string
   | ExprAttr    of expr * string
   | ExprPreop   of string * expr
@@ -58,6 +57,18 @@ and expr_data =
   | ExprTypeApp of expr * (type' list)
   | ExprStmt    of stmt * expr
 
+and field_type = {
+  pos: pos;
+  name: string option;
+  type': type';
+}
+
+and field_expr = {
+  pos: pos;
+  name: string option;
+  expr: expr;
+}
+
 and param = {
   pos: pos;
   name: string;
@@ -68,12 +79,6 @@ and attr_type = {
   pos: pos;
   name: string;
   type': type';
-}
-
-and attr_expr = {
-  pos: pos;
-  name: string;
-  expr: expr;
 }
 
 and stmt =

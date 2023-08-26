@@ -1,8 +1,6 @@
 # Grammar
 
-NOTE: This file is not up-to-date
-
-This is the current "ideal" grammar I have in mind for Clam. I believe this grammar is context-free if we resolve its conflicts, it is however not LR(1). Alternatives are generally listed by order of precedecence.
+This is the current "ideal" grammar I have in mind for Clam. It can be parsed in LR(1) except for lambdas.
 
 ## Grammar
 
@@ -10,13 +8,13 @@ This is the current "ideal" grammar I have in mind for Clam. I believe this gram
 program = list(def) eof
 
 def =
-    | 'type' ident '=' type ';'
-    | 'def' ident option(':' type) '=' expr ';'
+    | 'type' ident '=' type
+    | 'def' ident option(':' type) '=' expr
 
 type =
     | ident
-    | '(' list_comma(type) ')'
-    | '{' list_comma(attr_type) '}'
+    | '(' type ')'
+    | '{' list_comma(field_type) '}'
     | type '[' list_comma(type) ']'
     | type '|' type
     | type '&' type
@@ -26,7 +24,7 @@ type =
 
 param_type = ident option(':' type)
 
-attr_type = ident ':' type
+field_type = option(ident ':') type
 
 expr =
     | ident
@@ -36,9 +34,8 @@ expr =
     | int
     | char
     | string
-    | '(' list_comma(expr) ')'
-    | '{' list_comma(attr_expr) '}'
-    | '{' list(stmt) option(expr) '}'
+    | '(' expr ')'
+    | '{' list_comma(field_expr) '}'
     | expr '.' int
     | expr '.' ident
     | expr '(' list_comma(expr) ')'
@@ -50,13 +47,14 @@ expr =
     | expr binop_4 expr
     | expr binop_5 expr
     | expr ':' type
+    | stmt ';' expr
     | 'if' expr 'then' expr 'else' expr
     | '(' list_comma(param_expr) ')' '->' expr
     | '[' list_comma(param_type) ']' '->' expr
 
 param_expr = ident option(':' type)
 
-attr_expr = ident '=' expr
+field_expr = option(ident '=') expr
 
 preop = '+' '-' '!'
 binop_1 = '*' '/' '%'
@@ -66,53 +64,44 @@ binop_4 = '==' '!=' '<' '>' '<=' '>='
 binop_5 = '|' '&'
 
 stmt =
-    | 'var' ident option(':' type) '=' expr ';'
-    | expr ';'
+    | 'var' ident option(':' type) '=' expr
+    | expr
 ```
 
-## Notable conflicts
+## Conflicts
 
-Type ascription and operators that are valid for both on expressions and types (type application and '|' / '&').
-Example: `expr : ident | ident`
-I think the type should take precedecence.
+Currently, there are two conflicts with lambdas and expression groups:
 
-It is hard to differentiate between tuples and function types in return type annotations.
-Example: `() : () -> ident -> expr`
-A solution (which is currently used) is to use different arrows for function types and return expressions (such as `->` and `=>`).
+The first conflict occurs at this point: `(a)`
+While parsing `)`, the parser does not know whether to reduce `a` into a parameter or an expression. This is solved by hacking the lexer to lex a right parenthesis followed by an arrow (`) ->`) as a unique token so that no lookahead is needed.
 
-Tuples and functions
-Example: `( ident: type ) ->`
-It is not possible to know whether what is left of the arrow is a tuple with a type ascription or a parameter group before advancing to the arrow symbol. This problem also exists with a return type annotation.
+The second conflict occurs at this point: `(a:`
+While parsing `:`, the parser does not know whether to parse `a` to a parameter or an expression. This is currently solved by Menhir by giving priority to the parameter. I don't think this conflict can be solved in LR(1), except by forbidding type ascriptions in groups.
 
-Records and blocks
-Example: `{ ident = expr }`
-It is not possible to know whether a production is a block or a record before advancing to the equal symbol, which is problematic to reduce an empty statement list in LR(1).
-Also, it is not possible to know whether `{}` is an empty record or block.
+Also the precedences of the lowest-predecence expressions (ifs, applications statements) should be reviewed.
 
-Blocks and statements
-Example: `{ expr; expr }`
-It is not possible to know whether the next expression is a final expression or a statement before advancing to the end of the block, which is problematic to reduce the statement list in LR(1).
+This grammar also has the disadvantage of not differentiating empty records and tuples. I am also not against using an identation-sensitive grammar in the future although I need more experience in that area.
 
 ## Future ideas
 
 Various ideas for future extensions:
 
 Bodyless type and expression definitions
-- `type' ident option('=' type) ';'`
-- `def' ident option(':' type) option('=' type) ';'`
+- `type' ident option('=' type)`
+- `def' ident option(':' type) option('=' type)`
 This would allow to declare primitives
 This would also allow to split expression definitions type and body
 
 Syntactic sugar for generic type definitions
-`'type' ident '[' list_comma(param_type)' ]' '=' type ';'` for `'type' ident '=' '[' list_comma(param_type)' ]' type ';'`
+`'type' ident '[' list_comma(param_type)' ]' '=' type` for `'type' ident '=' '[' list_comma(param_type)' ]' type`
 
 Syntactic sugar for function definitions
-`'def' ident '(' list_comma(param_expr) ')' option(':' type) '=' expr ';'` for `'def' ident '=' '(' list_comma(param_expr) ')' option(':' type) '->' expr ';'`
+`'def' ident '(' list_comma(param_expr) ')' option(':' type) '=' expr` for `'def' ident '=' '(' list_comma(param_expr) ')' option(':' type) '->' expr`
 
 Syntactic sugar for generic expression definitions and generic function definitions
 
 Syntactic sugar for expression attributes
-- New alternative `'=' ident` in `attr_expr`
+- New alternative `'=' ident` in `field_expr`, shordhand for `ident = ident` (where the second `ident` is an expression)
 
 Pattern matching expression
 - New alternative `expr 'is' pat` in `expr`

@@ -13,7 +13,6 @@
 %token AND
 %token ARROW
 %token ASSIGN
-%token AT
 %token BRACE_LEFT
 %token BRACE_RIGHT
 %token COLON
@@ -83,12 +82,10 @@ let type_2 :=
 let type_1 :=
   | name = IDENT;
     { $startpos, TypeIdent name }
-  | LT; type_ = type_; GT;
+  | PARENTHESIS_LEFT; type_ = type_; PARENTHESIS_RIGHT;
     { type_ }
-  | PARENTHESIS_LEFT; types = list_comma(type_); PARENTHESIS_RIGHT;
-    { $startpos, TypeTuple types }
-  | BRACE_LEFT; attrs = list_comma(attr_type); BRACE_RIGHT;
-    { $startpos, TypeRecord attrs }
+  | BRACE_LEFT; fields = list_comma(field_type); BRACE_RIGHT;
+    { $startpos, TypeProduct fields }
   | type_ = type_1; CROTCHET_LEFT; args = list_comma(type_); CROTCHET_RIGHT;
     { $startpos, TypeApp (type_, args) }
 
@@ -158,10 +155,10 @@ let expr_1 :=
     { $startpos, ExprString string }
   | name = IDENT;
     { $startpos, ExprBind name }
-  | AT; PARENTHESIS_LEFT; exprs = list_comma(expr); PARENTHESIS_RIGHT;
-    { $startpos, ExprTuple exprs }
-  | BRACE_LEFT; attrs = list_comma(attr_expr); BRACE_RIGHT;
-    { $startpos, ExprRecord (attrs) }
+  | PARENTHESIS_LEFT; expr = expr; PARENTHESIS_RIGHT;
+    { expr }
+  | BRACE_LEFT; fields = list_comma(field_expr); BRACE_RIGHT;
+    { $startpos, ExprProduct (fields) }
   | expr = expr_1; DOT; index = INT;
     { $startpos, ExprElem (expr, index) }
   | expr = expr_1; DOT; name = IDENT;
@@ -175,13 +172,17 @@ let param :=
   | name = IDENT; type_ = option(COLON; type_);
     { { pos = $startpos; name; type' = type_ } }
 
-let attr_type :=
+let field_type :=
   | name = IDENT; COLON; type_ = type_;
-    { { pos = $startpos; name; type' = type_ } }
+    { { pos = $startpos; name = Some name; type' = type_ } }
+  | type_ = type_;
+    { { pos = $startpos; name = None; type' = type_ } }
 
-let attr_expr :=
+let field_expr :=
   | name = IDENT; ASSIGN; expr = expr;
-    { { pos = $startpos; name; expr } }
+    { { pos = $startpos; name = Some name; expr } }
+  | expr = expr;
+    { { pos = $startpos; name = None; expr }}
 
 let stmt :=
   | VAR; name = IDENT; type_ = option(COLON; type_); ASSIGN; expr = expr_7;
