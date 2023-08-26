@@ -1,6 +1,6 @@
 # What is this ?
 
-This is Clam ! A small statically typed functional language with several interesting type features.
+This is Clam ! A small statically typed functional language with many interesting type features.
 
 I developped this interpreter while my master's thesis was being evaluated. I made it to learn OCaml, practice functional programming, and apply some of the knowledge I gained about types and type theory.
 
