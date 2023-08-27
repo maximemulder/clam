@@ -13,11 +13,11 @@ let rec is_subtype (type': type') (other: type') =
   | (_, TypeInter inter) ->
     let* left = is_subtype type' inter.left in
     let* right = is_subtype type' inter.right in
-    return (left && right)
+    return (left || right)
   | (TypeInter inter, _) ->
     let* left = is_subtype inter.left other in
     let* right = is_subtype inter.right other in
-    return (left || right)
+    return (left && right)
   | (TypeUnion union, _) ->
     let* left = is_subtype union.left other in
     let* right = is_subtype union.right other in
