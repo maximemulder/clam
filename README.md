@@ -1,14 +1,14 @@
 # What is this ?
 
-This is Clam ! A small statically typed functional language with many interesting type features.
+This is  Clam ! A small statically typed functional programming language with many classic but interesting type features.
 
-I developped this interpreter while my master's thesis was being evaluated. I made it to learn OCaml, practice functional programming, and apply some of the knowledge I gained about types and type theory.
+# Example
 
-# Examples
+A Clam program is a sequence of type and expression definitions, declared respectively with the keywords `type` and `def`. The order of these definitions is unimportant.
 
-A Clam program is a sequence of type definitions (declared with `type`) and expression definitions (declared with `def`). The order of these definitions is unimportant.
+When a program is executed, the `main` expression definition is evaluated.
 
-When a program is executed, the `main` expression definition is evaluated. Printing can be done through the `print` function, which can be chained with other expressions in a block.
+Printing is done through the (impure) `print` function, which can be chained with other expressions using a semicolon.
 
 ```
 def fibonacci: (Int) -> Int = (n) ->
@@ -27,38 +27,39 @@ More examples of Clam code can be found in the `tests` directory.
 
 # How to build
 
-You can build this project on Linux using Dune !
+You can build this project on Linux using Dune.
 
-Simply enter `dune build` to build to build the project or `dune exec main example.clam` to run the interpreter with the code file `example.clam` as an input.
+In a terminal, enter `dune build` to build the project or `dune exec main example.clam` to run the interpreter with the code file `example.clam` as an input.
 
 # Features
 
 Most of the interesting things about Clam are in its type system, which while not very original, incorporates many ideas notably of System $F^ω_{<:}$.
 
-## Structural typing
+## Product types
 
-Clam features a structural type system, meaning that two structurally equivalent types are considered the same.
-
-```
-type A = {Int, Int}
-type B = {Int, Int}
-
-def main =
-    var a: A = {0, 0};
-    var b: B = a;
-    unit
-```
-
-## Subtyping
-
-Clam features subtyping, meaning that a value may belong to several types and that some types may be considered to be more specific versions of other types.
+Product types and values in Clam are defined with curly braces, and can either be tuples or records. Tuple fields are indexed by their order and record fields are indexed by their labels. Fields are accessed using the dot operator `.` and the empty product `{}` is considered to be a record.
 
 ```
-type A = {x: Int, y: Int}
+type Tuple = {Int, Int}
+type Record = {x: Int, y: Int}
 
-def main =
-    var a: A = {x = 0, y = 0, z = 0};
-    unit
+def tuple: Tuple = {0, 1}
+def record: Record = {x = 2, y = 3}
+
+def zero = tuple.1
+def two = record.x
+```
+
+## Structural subtyping
+
+Clam features structural subtyping, meaning that two structurally equivalent types are considered to be equal. Records are considered extensible by subtyping while tuples are not.
+
+```
+type 2D = {x = Int, y = Int}
+type 3D = {x = Int, y = Int, z = Int}
+
+def 3d: 3D = {x = 0, y = 0, z = 0}
+def 2d: 2D = 3d
 ```
 
 ## Unit type
@@ -96,37 +97,34 @@ Clam features type operators, which allow to abstract over a type using other ty
 ```
 type Pair = [T] => {T, T}
 
-def main =
-    var a: Pair[Int] = {0, 0};
-    unit
+def pair: Pair[Int] = {0, 0}
 ```
-
-Type parameters cannot be of a higher kind yet.
 
 ## Universal types
 
 Clam features universal types, which allow to abstract over an expression using types.
 
 ```
-def map_pair = [T, U] -> (p: (T, T), f: (T) -> U) ->
-    {f(p.0), f(p.1)}
+def map_pair
+    : [T, U] -> ((T, T), (T) -> U) -> (U, U)
+    = [T, U] -> (p, f) -> {f(p.0), f(p.1)}
 
-def main =
-    var pair = {2, 3};
-    var double = map_pair[Int, Int](pair, (x) -> x * 2);
-    unit
+def pair = {1, 2}
+def double = map_pair[Int, Int](pair, (x) -> x * 2)
 ```
 
 ## Union and intersection types
 
-Clam features union and intersection types.
+Clam features union and intersection types, with integrated distribution, joins and meets.
 
 ```
-type A = {a: Int} | {a: String}
-type B = {a: Int} & {b: String}
+type Union = {foo: Int} | {foo: String}
+type Inter = {bar: Int} & {baz: String}
 
-def a: A = {a = 1}
-def b: B = {a = 2, b = "World"}
+def union: Union = {foo = 1}
+def inter: Inter = {bar = 2, baz = "World"}
+
+def foo: Int | String = union.foo
 
 def distributivity = [A, B, C] -> (developed: (A & B) | (A & C)) ->
     var factorized: A & (B | C) = developed;
@@ -138,8 +136,7 @@ def distributivity = [A, B, C] -> (developed: (A & B) | (A & C)) ->
 Clam features bidirectional type inference, which allows to eliminate many type annotations when they are not needed.
 
 ```
-type Pair = [T] => {T, T}
-type Make = [T] -> (T) -> Pair[T]
+type Make = [T] -> (T) -> {T, T}
 
 def make: Make = [T] -> (p) -> {p, p}
 
@@ -150,10 +147,21 @@ def main =
 
 ## Recursive types
 
-Clam does not feature recursive types yet, which is kind of a bummer.
+Clam does not feature recursive types yet, which is quite limiting.
+
+# Roadmap
+
+Here are a few features I would like to eventually work on in the future:
+1. Finish unions, intersections and the bottom type
+2. Improve code quality (monadic error handling and better testing)
+3. Add higher-order types
+4. Add recursive types
+5. Add negation types
+6. Add pattern matching using types
+7. Add function totality checking
 
 # Notes
 
-Clam is not intended to be a usable programming language. It is just a pet project of mine.
+Clam is simply a pet project of mine, it is not intended to be a full-blown programming language. I created it during my master's thesis evaluation to learn OCaml, practice functional programming and apply some of the knowledge I had gained on types and type theory.
 
-Although the examples provided should work, some features are not yet complete, notably unions and intersections and the bottom type. I want to finish them and improve my testing framework before adding new features.
+As said in the roadmap, some features are not complete yet, although the examples should work.
