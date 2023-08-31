@@ -1,6 +1,6 @@
 (test
   (name test)
-  (libraries clam)
+  (libraries alcotest clam)
   (deps (source_tree ../../tests)))
 
 (env
