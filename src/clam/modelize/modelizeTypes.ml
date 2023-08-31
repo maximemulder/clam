@@ -132,15 +132,24 @@ and modelize_param param =
   return { Model.name = param.name; Model.type' = type' }
 
 and modelize_product type' fields =
-  if (List.length fields) == 0 then
+  let fields = List.partition_map partition_field fields in
+  match fields with
+  | ([], []) ->
     return (Model.TypeRecord { pos = fst type'; attrs = NameMap.empty })
-  else if List.for_all (fun (field: Ast.field_type) -> Option.is_some field.name) fields then
+  | (fields, []) ->
+    let* elems = map_list modelize_tuple_elem fields in
+    return (Model.TypeTuple { pos = fst type'; elems })
+  | ([], fields) ->
     let* attrs = map_list modelize_record_attr fields in
     let attrs = make_attrs attrs in
     return (Model.TypeRecord { pos = fst type'; attrs })
-  else
-    let* elems = map_list modelize_tuple_elem fields in
-    return (Model.TypeTuple { pos = fst type'; elems })
+  | _ ->
+    ModelizeErrors.raise_type_product type'
+
+and partition_field field =
+  match field with
+  | Ast.FieldTypeElem elem -> Either.Left elem
+  | Ast.FieldTypeAttr attr -> Either.Right attr
 
 and modelize_tuple_elem field =
   modelize_type field.type'
@@ -149,7 +158,7 @@ and modelize_record_attr field =
   let* type' = modelize_type field.type' in
   return {
     Model.pos = field.pos;
-    Model.name = Option.get field.name;
+    Model.name = field.name;
     Model.type' = type'
   }
 

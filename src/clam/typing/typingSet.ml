@@ -29,6 +29,7 @@ and make_union types =
   match types with
   | [type'] -> type'
   | left :: rights ->
+    (* TypingJoin.join left (make_union rights) *)
     TypeUnion { pos = type_pos left; left; right = make_union rights }
   | _ ->
     invalid_arg "TypingSort.make_union"
@@ -37,6 +38,7 @@ and make_inter types =
   match types with
   | [type'] -> type'
   | left :: rights ->
+    (* TypingMeet.meet left (make_inter rights) *)
     TypeInter { pos = type_pos left; left; right = make_inter rights }
   | _ ->
     invalid_arg "TypingSort.make_inter"

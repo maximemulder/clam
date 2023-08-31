@@ -188,21 +188,30 @@ and modelize_tuple expr elems =
   return (Model.ExprTuple { pos = fst expr; elems })
 
 and modelize_product expr fields =
-  if (List.length fields) == 0 then
+  let fields = List.partition_map partition_field fields in
+  match fields with
+  | ([], []) ->
     return (Model.ExprRecord { pos = fst expr; attrs = [] })
-  else if List.for_all (fun (field: Ast.field_expr) -> Option.is_some field.name) fields then
-    let* attrs = map_list modelize_record_attr fields in
-    return (Model.ExprRecord { pos = fst expr; attrs })
-  else
+  | (fields, []) ->
     let* elems = map_list modelize_tuple_elem fields in
     return (Model.ExprTuple { pos = fst expr; elems })
+  | ([], fields) ->
+    let* attrs = map_list modelize_record_attr fields in
+    return (Model.ExprRecord { pos = fst expr; attrs })
+  | _ ->
+    ModelizeErrors.raise_expr_product expr
+
+and partition_field field =
+  match field with
+  | Ast.FieldExprElem elem -> Either.Left elem
+  | Ast.FieldExprAttr attr -> Either.Right attr
 
 and modelize_tuple_elem field =
-  modelize_expr field.expr
+  modelize_expr field.Ast.expr
 
 and modelize_record_attr field =
   let* expr = modelize_expr field.expr in
-  return { Model.pos = field.pos; Model.name = Option.get field.name; Model.expr = expr }
+  return { Model.pos = field.pos; Model.name = field.Ast.name; Model.expr = expr }
 
 and modelize_elem expr index =
   let* expr2 = modelize_expr expr in

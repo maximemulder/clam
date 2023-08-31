@@ -173,16 +173,16 @@ let param :=
     { { pos = $startpos; name; type' = type_ } }
 
 let field_type :=
-  | name = IDENT; COLON; type_ = type_;
-    { { pos = $startpos; name = Some name; type' = type_ } }
   | type_ = type_;
-    { { pos = $startpos; name = None; type' = type_ } }
+    { FieldTypeElem { pos = $startpos; type' = type_ } }
+  | name = IDENT; COLON; type_ = type_;
+    { FieldTypeAttr { pos = $startpos; name; type' = type_ } }
 
 let field_expr :=
-  | name = IDENT; ASSIGN; expr = expr;
-    { { pos = $startpos; name = Some name; expr } }
   | expr = expr;
-    { { pos = $startpos; name = None; expr }}
+    { FieldExprElem { pos = $startpos; expr }}
+  | name = IDENT; ASSIGN; expr = expr;
+    { FieldExprAttr { pos = $startpos; name; expr } }
 
 let stmt :=
   | VAR; name = IDENT; type_ = option(COLON; type_); ASSIGN; expr = expr_7;

@@ -1,21 +1,14 @@
 let rec is_type (type': Model.type') (other: Model.type') =
-  let type' = TypingBool.normalize type' in
-  let other = TypingBool.normalize other in
+  let type' = TypingSet.normalize type' in
+  let other = TypingSet.normalize other in
   match (type', other) with
-  | (TypeTop _, TypeTop _) ->
-    true
-  | (TypeBot _, TypeBot _) ->
-    true
-  | (TypeUnit _, TypeUnit _) ->
-    true
-  | (TypeBool _, TypeBool _) ->
-    true
-  | (TypeInt _, TypeInt _) ->
-    true
-  | (TypeChar _, TypeChar _) ->
-    true
-  | (TypeString _, TypeString _) ->
-    true
+  | (TypeTop    _, TypeTop    _) -> true
+  | (TypeBot    _, TypeBot    _) -> true
+  | (TypeUnit   _, TypeUnit   _) -> true
+  | (TypeBool   _, TypeBool   _) -> true
+  | (TypeInt    _, TypeInt    _) -> true
+  | (TypeChar   _, TypeChar   _) -> true
+  | (TypeString _, TypeString _) -> true
   | (TypeVar var, TypeVar other_var) ->
     var.param = other_var.param
   | (TypeTuple tuple, TypeTuple other_tuple) ->

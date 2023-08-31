@@ -16,6 +16,9 @@ type attr =
   | AOption of node option
   | AString of string
 
+let node_type type' = ANode (Type type')
+let node_expr expr  = ANode (Expr expr)
+
 let node_name node =
   match node with
   | Prog _ -> "program"
@@ -52,8 +55,12 @@ let node_name node =
     | ExprTypeAbs _ -> "type_abs"
     | ExprTypeApp _ -> "type_app"
     | ExprStmt    _ -> "stmt")
-  | FieldType _ -> "field_type"
-  | FieldExpr _ -> "field_expr"
+  | FieldType field -> "field_type." ^ (match field with
+    | FieldTypeElem _ -> "elem"
+    | FieldTypeAttr _ -> "attr")
+  | FieldExpr field -> "field_expr" ^ (match field with
+    | FieldExprElem _ -> "elem"
+    | FieldExprAttr _ -> "attr")
   | Param _ -> "param"
   | Stmt stmt -> "stmt." ^ (match stmt with
     | StmtVar  _ -> "var"
@@ -64,26 +71,26 @@ let node_attrs node =
   | Prog { defs } -> [("defs", AList (List.map (fun def -> Def def) defs))]
   | Def def -> (match def with
     | Ast.DefType type' ->
-      [("name", AString type'.name); ("type", ANode (Type type'.type'))]
+      [("name", AString type'.name); ("type", node_type type'.type')]
     | Ast.DefExpr { name; type'; expr; _ } ->
-      [("name", AString name); ("type", AOption (Option.map (fun type' -> Type type') type')); ("expr", ANode (Expr expr))])
+      [("name", AString name); ("type", AOption (Option.map (fun type' -> Type type') type')); ("expr", node_expr expr)])
   | Type type' -> (match snd type' with
     | TypeIdent name ->
       [("name", AString name)]
     | TypeAbsExpr (params, return) ->
-      [("params", AList (List.map (fun param -> Type param) params)); ("expr", ANode (Type return))]
+      [("params", AList (List.map (fun param -> Type param) params)); ("expr", node_type return)]
     | TypeAbsExprType (params, return) ->
-      [("params", AList (List.map (fun param -> Param param) params)); ("expr", ANode (Type return))]
+      [("params", AList (List.map (fun param -> Param param) params)); ("expr", node_type return)]
     | TypeProduct fields ->
       [("fields", AList (List.map (fun field -> FieldType field) fields))]
     | TypeInter (left, right) ->
-      [("left", ANode (Type left)); ("right", ANode (Type right))]
+      [("left", node_type left); ("right", node_type right)]
     | TypeUnion (left, right) ->
-      [("left", ANode (Type left)); ("right", ANode (Type right))]
+      [("left", node_type left); ("right", node_type right)]
     | TypeAbs (params, return) ->
-      [("params", AList (List.map (fun param -> Param param) params)); ("type", ANode (Type return))]
+      [("params", AList (List.map (fun param -> Param param) params)); ("type", node_type return)]
     | TypeApp (type', args) ->
-      [("type", ANode (Type type')); ("args", AList (List.map (fun arg -> Type arg) args))])
+      [("type", node_type type'); ("args", AList (List.map (fun arg -> Type arg) args))])
   | Expr expr -> (match snd expr with
     | ExprUnit -> []
     | ExprTrue -> []
@@ -101,38 +108,44 @@ let node_attrs node =
     | ExprProduct fields ->
       [("fields", AList (List.map (fun field -> FieldExpr field) fields))]
     | ExprElem (expr, index) ->
-      [("expr", ANode (Expr expr)); ("index", AString index)]
+      [("expr", node_expr expr); ("index", AString index)]
     | ExprAttr (expr, attr) ->
-      [("expr", ANode (Expr expr)); ("attr", AString attr)]
+      [("expr", node_expr expr); ("attr", AString attr)]
     | ExprPreop (op, expr) ->
-      [("op", AString op); ("expr", ANode (Expr expr))]
+      [("op", AString op); ("expr", node_expr expr)]
     | ExprBinop (left, op, right) ->
-      [("left", ANode (Expr left)); ("op", AString op); ("right", ANode (Expr right))]
+      [("left", node_expr left); ("op", AString op); ("right", node_expr right)]
     | ExprAscr (expr, type') ->
-      [("expr", ANode (Expr expr)); ("type", ANode (Type type'))]
+      [("expr", node_expr expr); ("type", node_type type')]
     | ExprIf (cond, then', else') ->
-      [("cond", ANode (Expr cond)); ("then", ANode (Expr then')); ("else", ANode (Expr else'))]
+      [("cond", node_expr cond); ("then", node_expr then'); ("else", node_expr else')]
     | ExprAbs (params, expr) ->
-      [("params", AList (List.map (fun param -> Param param) params)); ("expr", ANode (Expr expr))]
+      [("params", AList (List.map (fun param -> Param param) params)); ("expr", node_expr expr)]
     | ExprApp (expr, args) ->
-      [("expr", ANode (Expr expr)); ("args", AList (List.map (fun arg -> Expr arg) args))]
+      [("expr", node_expr expr); ("args", AList (List.map (fun arg -> Expr arg) args))]
     | ExprTypeAbs (params, expr) ->
-      [("params", AList (List.map (fun param -> Param param) params)); ("expr", ANode (Expr expr))]
+      [("params", AList (List.map (fun param -> Param param) params)); ("expr", node_expr expr)]
     | ExprTypeApp (expr, args) ->
-      [("expr", ANode (Expr expr)); ("args", AList (List.map (fun arg -> Type arg) args))]
+      [("expr", node_expr expr); ("args", AList (List.map (fun arg -> Type arg) args))]
     | ExprStmt (stmt, expr) ->
-      [("stmt", ANode (Stmt stmt)); ("expr", ANode (Expr expr))])
-  | FieldType { type'; _ } ->
-    [("type", ANode (Type type'))]
-  | FieldExpr { expr; _ } ->
-    [("expr", ANode (Expr expr))]
+      [("stmt", ANode (Stmt stmt)); ("expr", node_expr expr)])
+  | FieldType field -> (match field with
+    | FieldTypeElem field ->
+      [("type", node_type field.type')]
+    | FieldTypeAttr field ->
+      [("name", AString field.name); ("type", node_type field.type')])
+  | FieldExpr field -> (match field with
+    | FieldExprElem field ->
+      [("expr", node_expr field.expr)]
+    | FieldExprAttr field ->
+      [("name", AString field.name); ("expr", node_expr field.expr)])
   | Param { name; type'; _ } ->
     [("name", AString name); ("type", AOption (Option.map (fun type' -> Type type') type'))]
   | Stmt stmt -> (match stmt with
     | StmtVar (name, type', expr) ->
-      [("name", AString name); ("type", AOption (Option.map (fun type' -> Type type') type')); ("expr", ANode (Expr expr))]
+      [("name", AString name); ("type", AOption (Option.map (fun type' -> Type type') type')); ("expr", node_expr expr)]
     | StmtExpr expr ->
-      [("expr", ANode (Expr expr))])
+      [("expr", node_expr expr)])
 
 let rec indent tab =
   if tab == 0

@@ -14,20 +14,13 @@ open Monad.Monad(Monad.ReaderMonad(Reader))
 
 let rec apply (type': type') =
   match type' with
-  | TypeTop _ ->
-    return type'
-  | TypeBot _ ->
-    return type'
-  | TypeUnit _ ->
-    return type'
-  | TypeBool _ ->
-    return type'
-  | TypeInt _ ->
-    return type'
-  | TypeChar _ ->
-    return type'
-  | TypeString _ ->
-    return type'
+  | TypeTop    _ -> return type'
+  | TypeBot    _ -> return type'
+  | TypeUnit   _ -> return type'
+  | TypeBool   _ -> return type'
+  | TypeInt    _ -> return type'
+  | TypeChar   _ -> return type'
+  | TypeString _ -> return type'
   | TypeVar var ->
     apply_var var
   | TypeTuple tuple ->

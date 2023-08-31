@@ -57,15 +57,33 @@ and expr_data =
   | ExprTypeApp of expr * (type' list)
   | ExprStmt    of stmt * expr
 
-and field_type = {
+and field_type =
+| FieldTypeElem of field_type_elem
+| FieldTypeAttr of field_type_attr
+
+and field_type_elem = {
   pos: pos;
-  name: string option;
   type': type';
 }
 
-and field_expr = {
+and field_type_attr = {
   pos: pos;
-  name: string option;
+  name: string;
+  type': type';
+}
+
+and field_expr =
+| FieldExprElem of field_expr_elem
+| FieldExprAttr of field_expr_attr
+
+and field_expr_elem = {
+  pos: pos;
+  expr: expr;
+}
+
+and field_expr_attr = {
+  pos: pos;
+  name: string;
   expr: expr;
 }
 
