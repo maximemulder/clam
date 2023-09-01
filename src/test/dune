@@ -2,7 +2,3 @@
   (name test)
   (libraries alcotest clam)
   (deps (source_tree ../../tests)))
-
-(env
-  (dev
-    (flags (:standard -w -A))))

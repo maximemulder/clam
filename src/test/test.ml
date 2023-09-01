@@ -1,4 +1,3 @@
-open Sub
 open Files
 
 let test_directory = "../../../../tests/"
@@ -17,6 +16,11 @@ let test file_name =
     )
   else
     ()
+
+let () =  Alcotest.run "clam" [
+  "set", Sub.tests;
+  "display", Display.tests;
+]
 
 let () =
   let tests = Files.list test_directory "clam" in

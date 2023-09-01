@@ -11,6 +11,14 @@ let union left right =
 let inter left right =
   TypeInter { pos; left; right }
 
+let prim_top    = prim_top
+let prim_bot    = prim_bot
+let prim_unit   = prim_unit
+let prim_bool   = prim_bool
+let prim_int    = prim_int
+let prim_char   = prim_char
+let prim_string = prim_string
+
 let a = var "A"
 let b = var "B"
 let c = var "C"

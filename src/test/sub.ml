@@ -1,12 +1,12 @@
 open Vars
 
-let test_sub name sub sup _ =
+let test_sub name sub sup (_: unit) =
   let result = Clam.TypingSub.is_subtype sub sup Clam.TypingContext.context_empty in
-  Alcotest.(check bool) name result true
+  Alcotest.(check bool) name true result
 
 let case_sub name sub sup =
   let test = test_sub name sub sup in
-  Alcotest.test_case name Alcotest.(`Quick) test
+  Alcotest.test_case name `Quick test
 
 let tests = [
   case_sub "A : A"
@@ -21,8 +21,4 @@ let tests = [
     (union (inter a b) (inter a c)) (inter a (union b c));
   case_sub "A & (B | C) : (A & B) | (A & C)"
     (inter a (union b c)) (union (inter a b) (inter a c));
-];;
-
-Alcotest.run "clam" [
-  "sets", tests
 ]
