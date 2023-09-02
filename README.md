@@ -55,8 +55,8 @@ def two = record.x
 Clam features structural subtyping, meaning that two structurally equivalent types are considered to be equal. Records are considered extensible by subtyping while tuples are not.
 
 ```
-type 2D = {x = Int, y = Int}
-type 3D = {x = Int, y = Int, z = Int}
+type 2D = {x: Int, y: Int}
+type 3D = {x: Int, y: Int, z: Int}
 
 def 3d: 3D = {x = 0, y = 0, z = 0}
 def 2d: 2D = 3d
