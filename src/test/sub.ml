@@ -16,7 +16,7 @@ let tests = [
   case_sub "A | B : A | B"
     (union a b) (union a b);
   case_sub "A & B : A & B"
-    (inter a b) (union b a);
+    (inter a b) (inter b a);
   case_sub "(A & B) | (A & C) : A & (B | C)"
     (union (inter a b) (inter a c)) (inter a (union b c));
   case_sub "A & (B | C) : (A & B) | (A & C)"
