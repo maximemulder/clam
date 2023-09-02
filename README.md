@@ -46,7 +46,7 @@ type Record = {x: Int, y: Int}
 def tuple: Tuple = {0, 1}
 def record: Record = {x = 2, y = 3}
 
-def zero = tuple.1
+def zero = tuple.0
 def two = record.x
 ```
 
