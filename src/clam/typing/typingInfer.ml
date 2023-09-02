@@ -142,7 +142,7 @@ let rec check expr constr =
 and check_infer expr constr =
   let* type' = infer_none expr in
   let* context = get_context in
-  if Bool.not (TypingSub.is_subtype type' constr context) then
+  if Bool.not (TypingSub.isa type' constr context) then
     TypingErrors.raise_expr_constraint expr type' constr
   else
     return ()
@@ -236,7 +236,7 @@ and check_type_abs_params abs constr constr_params =
 
 and check_type_abs_param expr constr param constr_param state =
   let (_, state) = validate param.type' state in
-  if TypingEqual.is_type param.type' constr_param.type' then
+  if Typing.is param.type' constr_param.type' then
     (() ,state)
   else
     check_error expr constr state
@@ -348,7 +348,7 @@ and infer_elem_type type' index context =
     let left = infer_elem_type union.left index context in
     let right = infer_elem_type union.right index context in
     Utils.map_option2 left right
-      (fun left right -> TypingJoin.join left right)
+      (fun left right -> Typing.join left right)
   | TypeInter inter ->
     let left = infer_elem_type inter.left index context in
     let right = infer_elem_type inter.right index context in
@@ -377,7 +377,7 @@ and infer_attr_type type' name context =
     let left = infer_attr_type union.left name context in
     let right = infer_attr_type union.right name context in
     Utils.map_option2 left right
-      (fun left right -> TypingJoin.join left right)
+      (fun left right -> Typing.join left right)
   | TypeInter inter ->
     let left = infer_attr_type inter.left name context in
     let right = infer_attr_type inter.right name context in
@@ -448,7 +448,7 @@ and infer_if if' returner =
   let* _ = check if'.cond prim_bool in
   let* then' = infer_none if'.then' in
   let* else' = infer_none if'.else' in
-  returner (TypingJoin.join then' else')
+  returner (Typing.join then' else')
 
 and infer_abs abs returner =
   let* params = infer_abs_params abs.params in

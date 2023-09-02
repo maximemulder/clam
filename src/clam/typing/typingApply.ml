@@ -76,6 +76,15 @@ let apply_app (app: type_app) =
     if List.compare_lengths abs.params app.args != 0 then
       TypingErrors.raise_unexpected ()
     else
-    let pairs = List.combine abs.params app.args in
-    apply abs.body pairs
+    let entries = List.combine abs.params app.args in
+    apply abs.body entries
+  | _ -> TypingErrors.raise_unexpected ()
+
+let app_entries (app: type_app) =
+  match app.type' with
+  | TypeAbs abs ->
+    if List.compare_lengths abs.params app.args != 0 then
+      TypingErrors.raise_unexpected ()
+    else
+    List.combine abs.params app.args
   | _ -> TypingErrors.raise_unexpected ()

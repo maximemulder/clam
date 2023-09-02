@@ -6,9 +6,9 @@ end
 
 open Monad.Monad(Monad.ReaderMonad(Reader))
 
-let rec is_subtype (sub: type') (sup: type') =
-  let sub = TypingSet.normalize sub in
-  let sup = TypingSet.normalize sup in
+let rec isa (sub: type') (sup: type') =
+  let sub = Typing.normalize sub in
+  let sup = Typing.normalize sup in
   match (sub, sup) with
   | (           _, TypeTop    _) -> return true
   | (TypeBot    _,            _) -> return true
@@ -18,52 +18,60 @@ let rec is_subtype (sub: type') (sup: type') =
   | (TypeChar   _, TypeChar   _) -> return true
   | (TypeString _, TypeString _) -> return true
   | (_, TypeInter sup_inter) ->
-    let* left = is_subtype sub sup_inter.left in
-    let* right = is_subtype sub sup_inter.right in
+    let* left = isa sub sup_inter.left in
+    let* right = isa sub sup_inter.right in
     return (left || right)
   | (TypeInter sub_inter, _) ->
-    let* left = is_subtype sub_inter.left sup in
-    let* right = is_subtype sub_inter.right sup in
+    let* left = isa sub_inter.left sup in
+    let* right = isa sub_inter.right sup in
     return (left && right)
   | (TypeUnion sub_union, _) ->
-    let* left = is_subtype sub_union.left sup in
-    let* right = is_subtype sub_union.right sup in
+    let* left = isa sub_union.left sup in
+    let* right = isa sub_union.right sup in
     return (left && right)
   | (_, TypeUnion sup_union) ->
-    let* left = is_subtype sub sup_union.left in
-    let* right = is_subtype sub sup_union.right in
+    let* left = isa sub sup_union.left in
+    let* right = isa sub sup_union.right in
     return (left || right)
   | (TypeVar sub_var, _) ->
-    is_subtype_var sub_var sup
+    isa_var sub_var sup
   | (TypeTuple sub_tuple, TypeTuple sup_tuple) ->
-    compare_list2 is_subtype sub_tuple.elems sup_tuple.elems
+    isa_tuple sub_tuple sup_tuple
   | (TypeRecord sub_record, TypeRecord sup_record) ->
-    is_subtype_record sub_record sup_record
+    isa_record sub_record sup_record
   | (TypeAbsExpr sub_abs, TypeAbsExpr sup_abs) ->
-    let* params = compare_list2 is_subtype sup_abs.params sub_abs.params in
-    let* body = is_subtype sub_abs.body sup_abs.body in
+    let* params = compare_list2 isa sup_abs.params sub_abs.params in
+    let* body = isa sub_abs.body sup_abs.body in
     return (params && body)
   | (TypeAbsExprType sub_abs, TypeAbsExprType sup_abs) ->
-    let params = Utils.compare_lists TypingEqual.is_type_param sub_abs.params sup_abs.params in
-    let* ret = is_subtype sub_abs.body sup_abs.body in
+    let params = Utils.compare_lists Typing.is_param sub_abs.params sup_abs.params in
+    let* ret = isa sub_abs.body sup_abs.body in
     return (params && ret)
   | (TypeAbs sub_abs, TypeAbs sup_abs) ->
-    let params = Utils.compare_lists TypingEqual.is_type_param sub_abs.params sup_abs.params in
-    let* body = is_subtype sub_abs.body sup_abs.body in
+    let params = Utils.compare_lists Typing.is_param sub_abs.params sup_abs.params in
+    let* body = isa sub_abs.body sup_abs.body in
     return (params && body)
   | (TypeApp sub_app, _) ->
-    let sub = TypingApply.apply_app sub_app in
-    is_subtype sub sup
+    isa_app_left sub_app sup
   | (_, TypeApp sup_app) ->
-    let sup = TypingApply.apply_app sup_app in
-    is_subtype sub sup
+    isa_app_right sub sup_app
   | _ ->
     return false
 
-and is_subtype_var var sup =
+and isa_app_left sub_app sup context =
+  let entries = TypingApply.app_entries sub_app in
+  let context = TypingContext.context_child context entries in
+  isa sub_app.type' sup context
+
+and isa_app_right sub sup_app context =
+  let entries = TypingApply.app_entries sup_app in
+  let context = TypingContext.context_child context entries in
+  isa sub sup_app.type' context
+
+and isa_var var sup =
   let* arg = TypingContext.find_arg var.param in
   match arg with
-  | Some arg -> is_subtype arg sup
+  | Some arg -> isa arg sup
   | None ->
   match sup with
   | TypeVar sup_var ->
@@ -71,12 +79,15 @@ and is_subtype_var var sup =
   | _ ->
     return false
 
-and is_subtype_record record other context =
-  Utils.NameMap.for_all (fun _ other -> is_subtype_attr other record context) other.attrs
+and isa_tuple sub_tuple sup_tuple =
+  compare_list2 isa sub_tuple.elems sup_tuple.elems
 
-and is_subtype_attr other record =
-  match Utils.NameMap.find_opt other.name record.attrs with
-    | Some attr ->
-      is_subtype attr.type' other.type'
+and isa_record sub_record sup_record context =
+  Utils.NameMap.for_all (fun _ sup_attr -> isa_record_attr sub_record sup_attr context) sup_record.attrs
+
+and isa_record_attr sub_record sup_attr =
+  match Utils.NameMap.find_opt sup_attr.name sub_record.attrs with
+    | Some sub_attr ->
+      isa sub_attr.type' sup_attr.type'
     | None ->
       return false
