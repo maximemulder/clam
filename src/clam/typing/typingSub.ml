@@ -17,14 +17,6 @@ let rec isa (sub: type') (sup: type') =
   | (TypeInt    _, TypeInt    _) -> return true
   | (TypeChar   _, TypeChar   _) -> return true
   | (TypeString _, TypeString _) -> return true
-  | (_, TypeInter sup_inter) ->
-    let* left = isa sub sup_inter.left in
-    let* right = isa sub sup_inter.right in
-    return (left || right)
-  | (TypeInter sub_inter, _) ->
-    let* left = isa sub_inter.left sup in
-    let* right = isa sub_inter.right sup in
-    return (left && right)
   | (TypeUnion sub_union, _) ->
     let* left = isa sub_union.left sup in
     let* right = isa sub_union.right sup in
@@ -32,6 +24,14 @@ let rec isa (sub: type') (sup: type') =
   | (_, TypeUnion sup_union) ->
     let* left = isa sub sup_union.left in
     let* right = isa sub sup_union.right in
+    return (left || right)
+  | (_, TypeInter sup_inter) ->
+    let* left = isa sub sup_inter.left in
+    let* right = isa sub sup_inter.right in
+    return (left && right)
+  | (TypeInter sub_inter, _) ->
+    let* left = isa sub_inter.left sup in
+    let* right = isa sub_inter.right sup in
     return (left || right)
   | (TypeVar sub_var, _) ->
     isa_var sub_var sup
@@ -57,6 +57,22 @@ let rec isa (sub: type') (sup: type') =
     isa_app_right sub sup_app
   | _ ->
     return false
+
+(* uncomment the following code to debug subtyping *)
+
+(* and indent = ref 0
+
+and repeat s n =
+  if n = 0 then "" else s ^ repeat s (n - 1)
+
+and isa l r c =
+  indent := indent.contents + 1;
+  let res = isa2 l r c in
+  indent := indent.contents - 1;
+  let tab = repeat "  " indent.contents in
+  print_endline(tab ^ (TypingDisplay.display (Typing.normalize l)) ^ " : " ^ (TypingDisplay.display (Typing.normalize r)));
+  print_endline(tab ^ (TypingDisplay.display l) ^ " : " ^ (TypingDisplay.display r) ^ "   " ^ (string_of_bool res));
+  res *)
 
 and isa_app_left sub_app sup context =
   let entries = TypingApply.app_entries sub_app in

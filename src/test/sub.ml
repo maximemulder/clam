@@ -13,22 +13,32 @@ let tests = [
     a a;
   case_sub "A : A | B"
     a (union a b);
+  case_sub "A : B | A"
+    a (union b a);
+  case_sub "A & B : A"
+    (inter a b) a;
+  case_sub "A & B : B"
+    (inter b a) b;
   case_sub "A | B : A | B"
     (union a b) (union a b);
+  case_sub "A | B : B | A"
+    (union a b) (union b a);
   case_sub "A & B : A & B"
+    (inter a b) (inter a b);
+  case_sub "A & B : B & A"
     (inter a b) (inter b a);
   case_sub "(A & B) | (A & C) : A & (B | C)"
     (union (inter a b) (inter a c)) (inter a (union b c));
   case_sub "A & (B | C) : (A & B) | (A & C)"
     (inter a (union b c)) (union (inter a b) (inter a c));
-  case_sub "((A) -> B) | ((A) -> C) : (A) -> (B | C)"
-    (union (abs_expr [a] b) (abs_expr [a] c)) (abs_expr [a] (union b c));
-  case_sub "(A) -> (B | C) : ((A) -> B) | ((A) -> C)"
-    (abs_expr [a] (union b c)) (union (abs_expr [a] b) (abs_expr [a] c));
-  case_sub "((A) -> C) | ((B) -> C) : (A | B) -> C"
-    (union (abs_expr [a] b) (abs_expr [a] c)) (abs_expr [a] (union b c));
-  case_sub "(A | B) -> C : ((A) -> C) | ((B) -> C)"
-    (abs_expr [(union a b)] c) (union (abs_expr [a] c) (abs_expr [b] c));
-  case_sub "((A) -> C) | ((B) -> D) : (A | B) -> (C | D)"
-    (union (abs_expr [a] c) (abs_expr [b] d)) (abs_expr [(union a b)] (union c d));
+  case_sub "((A) -> B) & ((A) -> C) : (A) -> (B & C)"
+    (inter (abs_expr [a] b) (abs_expr [a] c)) (abs_expr [a] (inter b c));
+  case_sub "(A) -> (B & C) : ((A) -> B) & ((A) -> C)"
+    (abs_expr [a] (inter b c)) (inter (abs_expr [a] b) (abs_expr [a] c));
+  case_sub "((A) -> C) & ((B) -> C) : (A & B) -> C"
+    (inter (abs_expr [a] b) (abs_expr [a] c)) (abs_expr [a] (inter b c));
+  case_sub "(A & B) -> C : ((A) -> C) & ((B) -> C)"
+    (abs_expr [(inter a b)] c) (inter (abs_expr [a] c) (abs_expr [b] c));
+  case_sub "((A) -> C) & ((B) -> D) : (A & B) -> (C & D)"
+    (inter (abs_expr [a] c) (abs_expr [b] d)) (abs_expr [(inter a b)] (inter c d));
 ]

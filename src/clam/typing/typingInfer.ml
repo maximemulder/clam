@@ -353,7 +353,7 @@ and infer_elem_type type' index context =
     let left = infer_elem_type inter.left index context in
     let right = infer_elem_type inter.right index context in
     Utils.join_option2 left right
-      (fun left right -> TypingMeet.meet left right)
+      (fun left right -> Typing.meet left right)
   | _ -> None
 
 and infer_attr attr returner =
@@ -382,7 +382,7 @@ and infer_attr_type type' name context =
     let left = infer_attr_type inter.left name context in
     let right = infer_attr_type inter.right name context in
     Utils.join_option2 left right
-      (fun left right -> TypingMeet.meet left right)
+      (fun left right -> Typing.meet left right)
   | _ -> None
 
 and infer_app app returner =

@@ -88,7 +88,7 @@ and make_inter types =
   match types with
   | [type'] -> type'
   | left :: rights ->
-    TypingMeet.meet left (make_inter rights)
+    meet left (make_inter rights)
   | _ ->
     invalid_arg "Typing.make_inter"
 
@@ -114,24 +114,41 @@ and join left right =
   | (_, TypeUnion right_union) ->
     let union = join right_union.left right_union.right in
     join left union
-  | (TypeAbsExpr left_abs, TypeAbsExpr right_abs) ->
-    join_abs_expr left_abs right_abs
   | (_, _) ->
     TypeUnion { pos; left; right }
 
-and join_abs_expr left_abs right_abs =
-  let pos = left_abs.pos in
-  let params = Utils.compare_lists is left_abs.params right_abs.params in
-  let body = is left_abs.body right_abs.body in
-  match (params, body) with
-  | (true, true) ->
-    TypeAbsExpr { pos; params = left_abs.params; body = left_abs.body }
-  | (true, false) ->
-    let body = join left_abs.body right_abs.body in
-    TypeAbsExpr { pos; params = left_abs.params; body }
-  | (false, true) ->
-    let params = List.combine left_abs.params right_abs.params in
-    let params = List.map (fun (left_param, right_param) -> join left_param right_param) params in
-    TypeAbsExpr { pos; params; body = left_abs.body }
-  | (false, false) ->
-    TypeUnion { pos; left = TypeAbsExpr left_abs; right = TypeAbsExpr right_abs}
+(* TYPE MEET *)
+
+and meet left right =
+  let pos = type_pos left in
+  match (left, right) with
+  | (TypeTop    _, right       ) -> right
+  | (left        , TypeTop    _) -> left
+  | (TypeBot    _,            _) -> TypeBot    { pos }
+  | (           _, TypeBot    _) -> TypeBot    { pos }
+  | (TypeUnit   _, TypeUnit   _) -> TypeUnit   { pos }
+  | (TypeBool   _, TypeBool   _) -> TypeBool   { pos }
+  | (TypeInt    _, TypeInt    _) -> TypeInt    { pos }
+  | (TypeChar   _, TypeChar   _) -> TypeChar   { pos }
+  | (TypeString _, TypeString _) -> TypeString { pos }
+  | (TypeVar param, TypeVar other) when param = other ->
+    TypeVar param
+  | (TypeInter other, _) ->
+    let inter = meet other.left other.right in
+    meet inter right
+  | (_, TypeInter other) ->
+    let inter = meet other.left other.right in
+    meet left inter
+  | (TypeAbsExpr left_abs, TypeAbsExpr right_abs) ->
+    meet_abs_expr left_abs right_abs
+  | (_, _) ->
+    TypeInter { pos; left; right }
+
+and meet_abs_expr left_abs right_abs =
+  if List.compare_lengths left_abs.params right_abs.params != 0 then
+    prim_bot
+  else
+  let params = List.combine left_abs.params right_abs.params in
+  let params = List.map (fun (left_param, right_param) -> meet left_param right_param) params in
+  let body = meet left_abs.body right_abs.body in
+  TypeAbsExpr { pos = left_abs.pos; params; body }
