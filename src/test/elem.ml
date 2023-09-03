@@ -53,7 +53,7 @@ let tests = [
   case (inter top top) 0 None;
   case (inter (tuple [a]) top) 0 (Some a);
   case (inter (tuple []) (tuple [])) 0 None;
-  case (inter (tuple [a]) (tuple [])) 0 (Some a);
+  case (inter (tuple [a]) (tuple [])) 0 (Some bot);
   case (inter (tuple [a]) (tuple [a])) 0 (Some a);
   case (inter (tuple [a]) (tuple [b])) 0 (Some (inter a b));
   case (inter bot top) 0 (Some bot);

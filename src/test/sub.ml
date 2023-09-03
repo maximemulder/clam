@@ -12,17 +12,39 @@ let case sub sup =
   Alcotest.test_case name `Quick test
 
 let tests = [
+  (* bottom *)
+  case bot top;
+  case bot bot;
+  case bot unit;
+
+  case (var "A" bot) top;
+  case (var "A" bot) bot;
+  case (var "A" bot) unit;
+  case (var "A" bot) (var "B" bot);
+
+  (* variables *)
   case a a;
+  case (var "A" top) top;
+  case (var "A" unit) top;
+  case (var "A" unit) unit;
+
+  (* unions *)
   case a (union a b);
   case a (union b a);
-  case (inter a b) a;
-  case (inter b a) b;
   case (union a b) (union a b);
   case (union a b) (union b a);
+
+  (* intersections *)
+  case (inter a b) a;
+  case (inter b a) b;
   case (inter a b) (inter a b);
   case (inter a b) (inter b a);
+
+  (* distributivity *)
   case (union (inter a b) (inter a c)) (inter a (union b c));
   case (inter a (union b c)) (union (inter a b) (inter a c));
+
+  (* meets *)
   case (inter (abs_expr [a] b) (abs_expr [a] c)) (abs_expr [a] (inter b c));
   case (abs_expr [(inter a b)] c) (inter (abs_expr [a] c) (abs_expr [b] c));
   case (inter (abs_expr [a] b) (abs_expr [a] c)) (abs_expr [a] (inter b c));

@@ -68,16 +68,19 @@ and isa_app_right sub sup_app context =
   let context = TypingContext.context_child context entries in
   isa sub sup_app.type' context
 
-and isa_var var sup =
-  let* arg = TypingContext.find_arg var.param in
-  match arg with
-  | Some arg -> isa arg sup
+and isa_var sub_var sup =
+  let* sub_type = TypingContext.find_arg sub_var.param in
+  match sub_type with
+  | Some sub_type -> isa sub_type sup
   | None ->
+  if Typing.var_is_bot sub_var then
+    return true
+  else
   match sup with
   | TypeVar sup_var ->
-    return (var.param = sup_var.param)
+    return (sub_var.param = sup_var.param)
   | _ ->
-    return false
+    isa sub_var.param.type' sup
 
 and isa_tuple sub_tuple sup_tuple =
   compare_list2 isa sub_tuple.elems sup_tuple.elems

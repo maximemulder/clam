@@ -1,20 +1,30 @@
 open Model
 
+(* UTILITIES *)
+
+let rec var_is_bot var =
+  type_is_bot var.param.type'
+
+and type_is_bot type' =
+  match type' with
+  | TypeBot _ -> true
+  | TypeVar var -> var_is_bot var
+  | _ -> false
+
 (* TYPE EQUIVALENCE *)
 
 let rec is left right =
-  let left = normalize left in
+  let left  = normalize left  in
   let right = normalize right in
   match (left, right) with
   | (TypeTop    _, TypeTop    _) -> true
-  | (TypeBot    _, TypeBot    _) -> true
+  | (TypeBot    _,            _) -> type_is_bot right
   | (TypeUnit   _, TypeUnit   _) -> true
   | (TypeBool   _, TypeBool   _) -> true
   | (TypeInt    _, TypeInt    _) -> true
   | (TypeChar   _, TypeChar   _) -> true
   | (TypeString _, TypeString _) -> true
-  | (TypeVar left_var, TypeVar right_var) ->
-    left_var.param = right_var.param
+  | (TypeVar left_var,        _) -> is_var left_var right
   | (TypeTuple left_tuple, TypeTuple right_tuple) ->
     Utils.compare_lists is left_tuple.elems right_tuple.elems
   | (TypeRecord left_record, TypeRecord right_record) ->
@@ -38,6 +48,14 @@ let rec is left right =
     is (TypingApply.apply_app left_app) right
   | (_, TypeApp right_app) ->
     is left (TypingApply.apply_app right_app)
+  | _ -> false
+  (* TODO: Check this function for unions and intersections *)
+
+and is_var left_var right =
+  if var_is_bot left_var && type_is_bot right then
+    true
+  else match right with
+  | TypeVar right_var -> left_var.param = right_var.param
   | _ -> false
 
 and is_param param other =

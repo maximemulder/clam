@@ -335,6 +335,7 @@ and infer_elem elem returner =
   | None -> TypingErrors.raise_expr_elem elem type'
 
 and infer_elem_type type' index context =
+  let type' = Typing.normalize type' in
   match type' with
   | TypeBot _ ->
     Some Model.prim_bot
@@ -365,6 +366,7 @@ and infer_attr attr returner =
   | None -> TypingErrors.raise_expr_attr attr type'
 
 and infer_attr_type type' name context =
+  let type' = Typing.normalize type' in
   match type' with
   | TypeBot _ ->
     Some Model.prim_bot
