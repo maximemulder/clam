@@ -2,16 +2,26 @@ open Clam.Model
 
 let pos = prim_pos
 
-let prim_top    = prim_top
-let prim_bot    = prim_bot
-let prim_unit   = prim_unit
-let prim_bool   = prim_bool
-let prim_int    = prim_int
-let prim_char   = prim_char
-let prim_string = prim_string
+let top    = prim_top
+let bot    = prim_bot
+let unit   = prim_unit
+let bool   = prim_bool
+let int    = prim_int
+let char   = prim_char
+let string = prim_string
 
-let var name =
-  TypeVar { pos; param = { name; type' = Clam.Model.prim_top  }}
+let var name type' =
+  TypeVar { pos; param = { name; type'  }}
+
+let tuple elems =
+  TypeTuple { pos; elems }
+
+let record attrs =
+  let attrs = attrs
+    |> List.map (fun (name, type') -> (name, { pos; name; type' }))
+    |> List.to_seq
+    |> Clam.Utils.NameMap.of_seq in
+  TypeRecord { pos; attrs }
 
 let union left right =
   TypeUnion { pos; left; right }
@@ -22,7 +32,7 @@ let inter left right =
 let abs_expr params body =
   TypeAbsExpr { pos; params; body }
 
-let a = var "A"
-let b = var "B"
-let c = var "C"
-let d = var "D"
+let a = var "A" top
+let b = var "B" top
+let c = var "C" top
+let d = var "D" top

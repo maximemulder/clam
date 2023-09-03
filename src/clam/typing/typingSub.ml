@@ -58,22 +58,6 @@ let rec isa (sub: type') (sup: type') =
   | _ ->
     return false
 
-(* uncomment the following code to debug subtyping *)
-
-(* and indent = ref 0
-
-and repeat s n =
-  if n = 0 then "" else s ^ repeat s (n - 1)
-
-and isa l r c =
-  indent := indent.contents + 1;
-  let res = isa2 l r c in
-  indent := indent.contents - 1;
-  let tab = repeat "  " indent.contents in
-  print_endline(tab ^ (TypingDisplay.display (Typing.normalize l)) ^ " : " ^ (TypingDisplay.display (Typing.normalize r)));
-  print_endline(tab ^ (TypingDisplay.display l) ^ " : " ^ (TypingDisplay.display r) ^ "   " ^ (string_of_bool res));
-  res *)
-
 and isa_app_left sub_app sup context =
   let entries = TypingApply.app_entries sub_app in
   let context = TypingContext.context_child context entries in

@@ -1,34 +1,34 @@
 open Vars
 
-let test_display name type' (_: unit) =
+let test name type' (_: unit) =
   let result = Clam.TypingDisplay.display type' in
   Alcotest.(check string) name name result
 
-let case_display name type' =
-  let test = test_display name type' in
+let case name type' =
+  let test = test name type' in
   Alcotest.test_case name `Quick test
 
 let tests = [
-  case_display "Top"
-    prim_top;
-  case_display "Bot"
-    prim_bot;
-  case_display "Unit"
-    prim_unit;
-  case_display "Bool"
-    prim_bool;
-  case_display "Int"
-    prim_int;
-  case_display "Char"
-    prim_char;
-  case_display "String"
-    prim_string;
-  case_display "A"
+  case "Top"
+    top;
+  case "Bot"
+    bot;
+  case "Unit"
+    unit;
+  case "Bool"
+    bool;
+  case "Int"
+    int;
+  case "Char"
+    char;
+  case "String"
+    string;
+  case "A"
     a;
-  case_display "A & B"
+  case "A & B"
     (inter a b);
-  case_display "A | B"
+  case "A | B"
     (union a b);
-  case_display "A & (B | C)"
+  case "A & (B | C)"
     (inter a (union b c))
 ]

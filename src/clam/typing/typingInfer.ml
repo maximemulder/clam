@@ -336,6 +336,8 @@ and infer_elem elem returner =
 
 and infer_elem_type type' index context =
   match type' with
+  | TypeBot _ ->
+    Some Model.prim_bot
   | TypeTuple tuple ->
     List.nth_opt tuple.elems index
   | TypeVar var ->
@@ -347,17 +349,16 @@ and infer_elem_type type' index context =
   | TypeUnion union ->
     let left = infer_elem_type union.left index context in
     let right = infer_elem_type union.right index context in
-    Utils.map_option2 left right
-      (fun left right -> Typing.join left right)
+    Utils.map_option2 left right Typing.join
   | TypeInter inter ->
     let left = infer_elem_type inter.left index context in
     let right = infer_elem_type inter.right index context in
-    Utils.join_option2 left right
-      (fun left right -> Typing.meet left right)
+    Utils.join_option2 left right Typing.meet
   | _ -> None
 
 and infer_attr attr returner =
   let* type' = infer_none attr.expr in
+
   let* context = get_context in
   match infer_attr_type type' attr.name context with
   | Some type' -> returner type'
@@ -365,6 +366,8 @@ and infer_attr attr returner =
 
 and infer_attr_type type' name context =
   match type' with
+  | TypeBot _ ->
+    Some Model.prim_bot
   | TypeRecord record ->
     Option.map (fun (attr: attr_type) -> attr.type') (NameMap.find_opt name record.attrs)
   | TypeVar var ->
@@ -376,13 +379,11 @@ and infer_attr_type type' name context =
   | TypeUnion union ->
     let left = infer_attr_type union.left name context in
     let right = infer_attr_type union.right name context in
-    Utils.map_option2 left right
-      (fun left right -> Typing.join left right)
+    Utils.map_option2 left right Typing.join
   | TypeInter inter ->
     let left = infer_attr_type inter.left name context in
     let right = infer_attr_type inter.right name context in
-    Utils.join_option2 left right
-      (fun left right -> Typing.meet left right)
+    Utils.join_option2 left right Typing.meet
   | _ -> None
 
 and infer_app app returner =

@@ -18,8 +18,11 @@ let test file_name =
     ()
 
 let () =  Alcotest.run "clam" [
-  "set", Sub.tests;
   "display", Display.tests;
+  "meet"   , Meet.tests;
+  "sub"    , Sub.tests;
+  "elem"   , Elem.tests;
+  "attr"   , Attr.tests;
 ]
 
 let () =

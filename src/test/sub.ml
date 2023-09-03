@@ -1,44 +1,32 @@
 open Vars
 
-let test_sub name sub sup (_: unit) =
+let test name sub sup (_: unit) =
   let result = Clam.TypingSub.isa sub sup Clam.TypingContext.context_empty in
   Alcotest.(check bool) name true result
 
-let case_sub name sub sup =
-  let test = test_sub name sub sup in
+let case sub sup =
+  let name_sub = Clam.TypingDisplay.display sub in
+  let name_sup = Clam.TypingDisplay.display sup in
+  let name = "isa `" ^ name_sub ^ "` `" ^ name_sup ^ "`" in
+  let test = test name sub sup in
   Alcotest.test_case name `Quick test
 
 let tests = [
-  case_sub "A : A"
-    a a;
-  case_sub "A : A | B"
-    a (union a b);
-  case_sub "A : B | A"
-    a (union b a);
-  case_sub "A & B : A"
-    (inter a b) a;
-  case_sub "A & B : B"
-    (inter b a) b;
-  case_sub "A | B : A | B"
-    (union a b) (union a b);
-  case_sub "A | B : B | A"
-    (union a b) (union b a);
-  case_sub "A & B : A & B"
-    (inter a b) (inter a b);
-  case_sub "A & B : B & A"
-    (inter a b) (inter b a);
-  case_sub "(A & B) | (A & C) : A & (B | C)"
-    (union (inter a b) (inter a c)) (inter a (union b c));
-  case_sub "A & (B | C) : (A & B) | (A & C)"
-    (inter a (union b c)) (union (inter a b) (inter a c));
-  case_sub "((A) -> B) & ((A) -> C) : (A) -> (B & C)"
-    (inter (abs_expr [a] b) (abs_expr [a] c)) (abs_expr [a] (inter b c));
-  case_sub "(A) -> (B & C) : ((A) -> B) & ((A) -> C)"
-    (abs_expr [a] (inter b c)) (inter (abs_expr [a] b) (abs_expr [a] c));
-  case_sub "((A) -> C) & ((B) -> C) : (A & B) -> C"
-    (inter (abs_expr [a] b) (abs_expr [a] c)) (abs_expr [a] (inter b c));
-  case_sub "(A & B) -> C : ((A) -> C) & ((B) -> C)"
-    (abs_expr [(inter a b)] c) (inter (abs_expr [a] c) (abs_expr [b] c));
-  case_sub "((A) -> C) & ((B) -> D) : (A & B) -> (C & D)"
-    (inter (abs_expr [a] c) (abs_expr [b] d)) (abs_expr [(inter a b)] (inter c d));
+  case a a;
+  case a (union a b);
+  case a (union b a);
+  case (inter a b) a;
+  case (inter b a) b;
+  case (union a b) (union a b);
+  case (union a b) (union b a);
+  case (inter a b) (inter a b);
+  case (inter a b) (inter b a);
+  case (union (inter a b) (inter a c)) (inter a (union b c));
+  case (inter a (union b c)) (union (inter a b) (inter a c));
+  case (inter (abs_expr [a] b) (abs_expr [a] c)) (abs_expr [a] (inter b c));
+  case (abs_expr [(inter a b)] c) (inter (abs_expr [a] c) (abs_expr [b] c));
+  case (inter (abs_expr [a] b) (abs_expr [a] c)) (abs_expr [a] (inter b c));
+  case (abs_expr [a] (inter b c)) (inter (abs_expr [a] b) (abs_expr [a] c));
+  case (inter (abs_expr [a] c) (abs_expr [b] d)) (abs_expr [(inter a b)] (inter c d));
+  case (abs_expr [(inter a b)] (inter c d)) (inter (abs_expr [a] c) (abs_expr [b] d));
 ]

@@ -133,6 +133,10 @@ and meet left right =
   | (TypeString _, TypeString _) -> TypeString { pos }
   | (TypeVar param, TypeVar other) when param = other ->
     TypeVar param
+  | (TypeTuple left_tuple, TypeTuple right_tuple) ->
+    meet_tuple left_tuple right_tuple
+  | (TypeRecord left_record, TypeRecord right_record) ->
+    meet_record left_record right_record
   | (TypeInter other, _) ->
     let inter = meet other.left other.right in
     meet inter right
@@ -141,14 +145,46 @@ and meet left right =
     meet left inter
   | (TypeAbsExpr left_abs, TypeAbsExpr right_abs) ->
     meet_abs_expr left_abs right_abs
+  | (TypeAbsExprType left_abs, TypeAbsExprType right_abs) ->
+    meet_abs_expr_type left_abs right_abs
   | (_, _) ->
     TypeInter { pos; left; right }
+  (* TODO: Treat remaining cases and return `Bot` if no case is matched *)
+
+and meet_tuple left_tuple right_tuple =
+  if List.compare_lengths left_tuple.elems right_tuple.elems != 0 then
+    prim_bot
+  else
+  let elems = List.map2 meet left_tuple.elems right_tuple.elems in
+  TypeTuple { pos = left_tuple.pos; elems }
+
+and meet_record left_record right_record =
+  let attrs = Utils.NameMap.merge meet_record_attr left_record.attrs right_record.attrs in
+  TypeRecord { pos =left_record.pos; attrs }
+
+and meet_record_attr name left_attr right_attr =
+  match (left_attr, right_attr) with
+  | (Some left_attr, Some right_attr) ->
+    let type' = meet left_attr.type' right_attr.type' in
+    Some { pos = left_attr.pos; name; type' }
+  | (Some left_attr, None) ->
+    Some left_attr
+  | (None, Some right_attr) ->
+    Some right_attr
+  | (None, None) ->
+    None
 
 and meet_abs_expr left_abs right_abs =
   if List.compare_lengths left_abs.params right_abs.params != 0 then
     prim_bot
   else
-  let params = List.combine left_abs.params right_abs.params in
-  let params = List.map (fun (left_param, right_param) -> meet left_param right_param) params in
+  let params = List.map2 meet left_abs.params right_abs.params in
   let body = meet left_abs.body right_abs.body in
   TypeAbsExpr { pos = left_abs.pos; params; body }
+
+and meet_abs_expr_type left_abs right_abs =
+  if List.compare_lengths left_abs.params right_abs.params != 0 then
+    prim_bot
+  else
+  (* TODO: Finish this *)
+  TypeInter { pos = left_abs.pos; left = TypeAbsExprType left_abs; right = TypeAbsExprType right_abs }
