@@ -203,6 +203,16 @@ and meet_abs_expr left_abs right_abs =
 and meet_abs_expr_type left_abs right_abs =
   if List.compare_lengths left_abs.params right_abs.params != 0 then
     prim_bot
+  else if not (List.for_all2 meet_abs_expr_type_param left_abs.params right_abs.params) then
+    prim_bot
   else
-  (* TODO: Finish this *)
-  TypeInter { pos = left_abs.pos; left = TypeAbsExprType left_abs; right = TypeAbsExprType right_abs }
+  let vars = List.map (meet_abs_expr_type_var left_abs) right_abs.params in
+  let right_body = TypingApply.substitute right_abs.body right_abs.params vars in
+  let body = meet left_abs.body right_body in
+  TypeAbsExprType { pos = left_abs.pos; params = left_abs.params; body }
+
+and meet_abs_expr_type_param left_param right_param =
+  is left_param.type' right_param.type'
+
+and meet_abs_expr_type_var abs param =
+  TypeVar { pos = abs.pos; param }

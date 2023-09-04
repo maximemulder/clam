@@ -490,8 +490,7 @@ and infer_type_app_abs app abs returner =
     TypingErrors.raise_expr_type_app_arity app params
   else
   let* _ = iter_list2 (fun (param: param_type) arg -> validate_subtype arg param.type') params args in
-  let entries = List.combine params args in
-  let body = TypingApply.apply abs.body entries in
+  let body = TypingApply.substitute abs.body params args in
   returner body
 
 and infer_stmt stmt returner =

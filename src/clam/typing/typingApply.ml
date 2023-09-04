@@ -88,3 +88,7 @@ let app_entries (app: type_app) =
     else
     List.combine abs.params app.args
   | _ -> TypingErrors.raise_unexpected ()
+
+let substitute type' vars others =
+  let entries = List.combine vars others in
+  apply type' entries

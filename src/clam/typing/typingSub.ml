@@ -52,21 +52,13 @@ let rec isa (sub: type') (sup: type') =
     let* body = isa sub_abs.body sup_abs.body in
     return (params && body)
   | (TypeApp sub_app, _) ->
-    isa_app_left sub_app sup
+    let sub = TypingApply.apply_app sub_app in
+    isa sub sup
   | (_, TypeApp sup_app) ->
-    isa_app_right sub sup_app
+    let sup = TypingApply.apply_app sup_app in
+    isa sub sup
   | _ ->
     return false
-
-and isa_app_left sub_app sup context =
-  let entries = TypingApply.app_entries sub_app in
-  let context = TypingContext.context_child context entries in
-  isa sub_app.type' sup context
-
-and isa_app_right sub sup_app context =
-  let entries = TypingApply.app_entries sup_app in
-  let context = TypingContext.context_child context entries in
-  isa sub sup_app.type' context
 
 and isa_var sub_var sup =
   let* sub_type = TypingContext.find_arg sub_var.param in

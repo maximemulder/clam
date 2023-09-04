@@ -21,6 +21,7 @@ let tests = [
   case (var "A" bot) bot;
   case (var "A" bot) unit;
   case (var "A" bot) (var "B" bot);
+  case (var "A" (var "B" bot)) bot;
 
   (* variables *)
   case a a;

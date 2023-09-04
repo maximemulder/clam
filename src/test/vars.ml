@@ -11,7 +11,7 @@ let char   = prim_char
 let string = prim_string
 
 let var name type' =
-  TypeVar { pos; param = { name; type'  }}
+  TypeVar { pos; param = { name; type' }}
 
 let tuple elems =
   TypeTuple { pos; elems }
@@ -31,6 +31,10 @@ let inter left right =
 
 let abs_expr params body =
   TypeAbsExpr { pos; params; body }
+
+let abs_expr_type params body =
+  let params = List.map (fun (name, type') -> { name; type' }) params in
+  TypeAbsExprType { pos; params; body }
 
 let a = var "A" top
 let b = var "B" top

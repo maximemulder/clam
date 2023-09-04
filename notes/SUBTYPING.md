@@ -36,3 +36,4 @@ and isa l r c =
 - Finish `meet` function, check if `join` is complete
 - Type variables with `Bot` as a bound should act similar to `Bot`.
 - More testing (calls and above improvements)
+- Subtyping uses substitution for type applications, but what if it simply added variables to the context ?
