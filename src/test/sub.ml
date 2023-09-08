@@ -52,4 +52,6 @@ let tests = [
   case (abs_expr [a] (inter b c)) (inter (abs_expr [a] b) (abs_expr [a] c));
   case (inter (abs_expr [a] c) (abs_expr [b] d)) (abs_expr [(inter a b)] (inter c d));
   case (abs_expr [(inter a b)] (inter c d)) (inter (abs_expr [a] c) (abs_expr [b] d));
+
+  case (abs_expr_type [("A", top)] (fun vars -> (List.nth vars 0))) (abs_expr_type [("B", top)] (fun vars -> (List.nth vars 0)));
 ]

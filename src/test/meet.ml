@@ -56,11 +56,11 @@ let tests = [
   case (abs_expr [a] c) (abs_expr [b] d) (abs_expr [(inter a b)] (inter c d));
 
   (* type to expression abstractions *)
-  case (abs_expr_type [] a) (abs_expr_type [] a) (abs_expr_type [] a);
-  case (abs_expr_type [] a) (abs_expr_type [] b) (abs_expr_type [] (inter a b));
-  case (abs_expr_type [("A", top)] a) (abs_expr_type [("B", top)] b) (abs_expr_type [("A", top)] (inter a b));
-  case (abs_expr_type [("A", top)] a) (abs_expr_type [] b) bot;
-  case (abs_expr_type [] a) (abs_expr_type [("B", top)] b) bot;
-  case (abs_expr_type [("A", unit)] a) (abs_expr_type [("B", top)] b) bot;
-  case (abs_expr_type [("A", top)] a) (abs_expr_type [("B", unit)] b) bot;
+  case (abs_expr_type [] (inline a)) (abs_expr_type [] (inline a)) (abs_expr_type [] (inline a));
+  case (abs_expr_type [] (inline a)) (abs_expr_type [] (inline b)) (abs_expr_type [] (inline (inter a b)));
+  case (abs_expr_type [("A", top)] (inline a)) (abs_expr_type [("B", top)] (inline b)) (abs_expr_type [("A", top)] (inline ((inter a b))));
+  case (abs_expr_type [("A", top)] (inline a)) (abs_expr_type [] (inline b)) bot;
+  case (abs_expr_type [] (inline a)) (abs_expr_type [("B", top)] (inline b)) bot;
+  case (abs_expr_type [("A", unit)] (inline a)) (abs_expr_type [("B", top)] (inline b)) bot;
+  case (abs_expr_type [("A", top)] (inline a)) (abs_expr_type [("B", unit)] (inline b)) bot;
 ]

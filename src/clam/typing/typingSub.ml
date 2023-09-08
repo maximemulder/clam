@@ -44,9 +44,7 @@ let rec isa (sub: type') (sup: type') =
     let* body = isa sub_abs.body sup_abs.body in
     return (params && body)
   | (TypeAbsExprType sub_abs, TypeAbsExprType sup_abs) ->
-    let params = Utils.compare_lists Typing.is_param sub_abs.params sup_abs.params in
-    let* ret = isa sub_abs.body sup_abs.body in
-    return (params && ret)
+    isa_abs_expr_type sub_abs sup_abs
   | (TypeAbs sub_abs, TypeAbs sup_abs) ->
     let params = Utils.compare_lists Typing.is_param sub_abs.params sup_abs.params in
     let* body = isa sub_abs.body sup_abs.body in
@@ -86,3 +84,11 @@ and isa_record_attr sub_record sup_attr =
       isa sub_attr.type' sup_attr.type'
     | None ->
       return false
+
+and isa_abs_expr_type sub_abs sup_abs =
+  if not (Utils.compare_lists Typing.is_param sub_abs.params sup_abs.params) then
+    return false
+  else
+  let entries = List.map2(fun sub_param sup_param -> (sub_param, TypeVar { pos = sub_abs.pos; param = sup_param })) sub_abs.params sup_abs.params in
+  let sub_body = TypingApply.apply sub_abs.body entries in
+  isa sub_body sup_abs.body

@@ -1,0 +1,7 @@
+def id = [T] -> (p: T) -> p
+
+def iter: [T] -> (Int, T, (T) -> T) -> T = [T] -> (n, v, f) ->
+    if n == 0 then
+        v
+    else
+        iter[T](n - 1, f(v), f)

@@ -22,4 +22,8 @@ let read_file file_name =
 let () =
   let file_name = read_file_name () in
   let file_text = read_file file_name in
-  Clam.Lib.run file_name file_text print_endline
+  try
+    Clam.Lib.run file_name file_text print_endline
+  with Clam.Error.Error message ->
+    print_endline message;
+    exit(-1)

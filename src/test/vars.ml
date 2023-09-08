@@ -10,6 +10,8 @@ let int    = prim_int
 let char   = prim_char
 let string = prim_string
 
+let inline type' _ = type'
+
 let var name type' =
   TypeVar { pos; param = { name; type' }}
 
@@ -34,7 +36,8 @@ let abs_expr params body =
 
 let abs_expr_type params body =
   let params = List.map (fun (name, type') -> { name; type' }) params in
-  TypeAbsExprType { pos; params; body }
+  let vars = List.map (fun param -> TypeVar { pos; param }) params in
+  TypeAbsExprType { pos; params; body = body vars }
 
 let a = var "A" top
 let b = var "B" top

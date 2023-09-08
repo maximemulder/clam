@@ -1,8 +1,9 @@
 open Lexing
 
+exception Error of string
+
 let raise error message =
-  print_endline (error ^ ": " ^ message);
-  exit(-1)
+  raise (Error (error ^ ": " ^ message))
 
 let display_pos pos =
   let filename = pos.pos_fname in

@@ -1,17 +1,22 @@
-type buffer = {
-  mutable string: string;
-}
+let directory = "../../../../tests/"
 
-let make_buffer () =
-  { string = "" }
+let rec list_files path =
+  let full_path = directory ^ path in
+  if Sys.is_directory full_path then
+    Sys.readdir full_path
+    |> Array.to_list
+    |> List.map (Filename.concat path)
+    |> List.map (fun path -> list_files path)
+    |> List.flatten
+  else if Filename.extension full_path = ".clam" then
+    [path]
+  else
+    []
 
-let write_buffer buffer message =
-  buffer.string <- buffer.string ^ message ^ "\n"
-
-let read file_name =
+let read_file file_name =
   let input =
   try
-    open_in file_name
+    open_in (directory ^ file_name)
   with _ ->
     Clam.Error.raise_file_open file_name
   in
@@ -23,38 +28,41 @@ let read file_name =
     close_in input;
     Clam.Error.raise_file_read file_name
 
-let rec list path extension =
-  if Sys.is_directory path then
-    Sys.readdir path
-    |> Array.to_list
-    |> List.map (Filename.concat path)
-    |> List.map (fun path -> list path extension)
-    |> List.flatten
-  else if Filename.extension path = "." ^ extension then
-    [path]
-  else
-    []
+type buffer = {
+  mutable string: string;
+}
 
-let test_directory = "../../../../tests/"
+let make_buffer () =
+  { string = "" }
+
+let write_buffer buffer message =
+  buffer.string <- buffer.string ^ message ^ "\n"
 
 let test file_name =
-  let file_text = read file_name in
-  let output_buffer = make_buffer () in
-  Clam.Lib.run file_name file_text (write_buffer output_buffer);
-  let output = output_buffer.string in
-  let expected_output = read (file_name ^ ".out") in
-  if output <> expected_output then (
+  let file_text = read_file file_name in
+  let out_buffer = make_buffer () in
+  let err_result = try
+    Clam.Lib.run file_name file_text (write_buffer out_buffer);
+    ""
+  with Clam.Error.Error message ->
+    message
+  in
+  let out_result = out_buffer.string in
+  let out_expect = read_file (file_name ^ ".out") in
+  if out_result <> out_expect then (
     print_endline "TEST ERROR:";
-    print_endline ("Expected output \"" ^ (String.escaped expected_output) ^ "\"");
-    print_endline ("Found output:   \"" ^ (String.escaped output) ^ "\"");
+    print_endline ("Expected output \"" ^ (String.escaped out_expect) ^ "\"");
+    print_endline ("Found output:   \"" ^ (String.escaped out_result) ^ "\"");
     false
   )
+  else if String.length err_result != 0 then
+    false
   else
     true
 
-
-let map_file name =
-  let test = fun (_: unit) -> Alcotest.(check bool) name true (test name) in
+let file_to_test file_name =
+  let name = "full `" ^ file_name ^ "`" in
+  let test = fun (_: unit) -> Alcotest.(check bool) name true (test file_name) in
   Alcotest.test_case name `Quick test
 
-let tests = List.map map_file (list test_directory "clam")
+let tests = List.map file_to_test (list_files "")
