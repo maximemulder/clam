@@ -1,7 +1,7 @@
 let () =  Alcotest.run "clam" [
   "display", Display.tests;
   "meet"   , Meet.tests;
-  "sub"    , Sub.tests;
+  "isa"    , Isa.tests;
   "elem"   , Elem.tests;
   "attr"   , Attr.tests;
   "full"   , Full.tests;

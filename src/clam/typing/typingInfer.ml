@@ -142,7 +142,7 @@ let rec check expr constr =
 and check_infer expr constr =
   let* type' = infer_none expr in
   let* context = get_context in
-  if Bool.not (TypingSub.isa type' constr context) then
+  if Bool.not (TypingIsa.isa type' constr context) then
     TypingErrors.raise_expr_constraint expr type' constr
   else
     return ()

@@ -37,3 +37,5 @@ and isa l r c =
 - Type variables with `Bot` as a bound should act similar to `Bot`.
 - More testing (calls and above improvements)
 - Subtyping uses substitution for type applications, but what if it simply added variables to the context ?
+- Check the interactions of a type variable bound to a parameter whose name is overriden by another parameter.
+- Check this case `case (abs_expr_type_1 ("A", top) (fun a -> (inter a int))) (abs_expr_type_1 ("B", top) (fun b -> b)) (abs_expr_type_1 ("A", top) (fun a -> (inter a int)));`

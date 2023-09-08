@@ -8,7 +8,7 @@ open Monad.Monad(Monad.ReaderMonad(Reader))
 
 let rec validate_subtype type' constr =
   let* () = validate type' in
-  let* sub = TypingSub.isa type' constr in
+  let* sub = TypingIsa.isa type' constr in
   if Bool.not sub then
     TypingErrors.raise_type_constraint type' constr
   else

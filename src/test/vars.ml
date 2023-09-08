@@ -34,10 +34,13 @@ let inter left right =
 let abs_expr params body =
   TypeAbsExpr { pos; params; body }
 
-let abs_expr_type params body =
-  let params = List.map (fun (name, type') -> { name; type' }) params in
-  let vars = List.map (fun param -> TypeVar { pos; param }) params in
-  TypeAbsExprType { pos; params; body = body vars }
+let abs_expr_type_0 body =
+  TypeAbsExprType { pos; params = []; body = body }
+
+let abs_expr_type_1 (name, type') body =
+  let param = { name; type' } in
+  let var = TypeVar { pos; param } in
+  TypeAbsExprType { pos; params = [param]; body = body var }
 
 let a = var "A" top
 let b = var "B" top

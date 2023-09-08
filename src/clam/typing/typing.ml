@@ -58,11 +58,11 @@ and is_var left_var right =
   | TypeVar right_var -> left_var.param = right_var.param
   | _ -> false
 
-and is_param param other =
-  is param.type' other.type'
+and is_param left_param right_param =
+  is left_param.type' right_param.type'
 
-and is_attr attr other =
-  is attr.type' other.type'
+and is_attr left_attr right_attr =
+  is left_attr.type' right_attr.type'
 
 (* TYPE NORMALIZATION *)
 
@@ -203,16 +203,10 @@ and meet_abs_expr left_abs right_abs =
 and meet_abs_expr_type left_abs right_abs =
   if List.compare_lengths left_abs.params right_abs.params != 0 then
     prim_bot
-  else if not (List.for_all2 meet_abs_expr_type_param left_abs.params right_abs.params) then
+  else if not (List.for_all2 is_param left_abs.params right_abs.params) then
     prim_bot
   else
-  let vars = List.map (meet_abs_expr_type_var left_abs) right_abs.params in
-  let right_body = TypingApply.substitute right_abs.body right_abs.params vars in
+  let entries = List.map2(fun left_param right_param -> (right_param, TypeVar { pos = right_abs.pos; param = left_param })) left_abs.params right_abs.params in
+  let right_body = TypingApply.apply right_abs.body entries in
   let body = meet left_abs.body right_body in
   TypeAbsExprType { pos = left_abs.pos; params = left_abs.params; body }
-
-and meet_abs_expr_type_param left_param right_param =
-  is left_param.type' right_param.type'
-
-and meet_abs_expr_type_var abs param =
-  TypeVar { pos = abs.pos; param }

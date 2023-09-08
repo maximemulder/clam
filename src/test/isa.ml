@@ -1,7 +1,7 @@
 open Vars
 
 let test name sub sup (_: unit) =
-  let result = Clam.TypingSub.isa sub sup Clam.TypingContext.context_empty in
+  let result = Clam.TypingIsa.isa sub sup Clam.TypingContext.context_empty in
   Alcotest.(check bool) name true result
 
 let case sub sup =
@@ -53,5 +53,6 @@ let tests = [
   case (inter (abs_expr [a] c) (abs_expr [b] d)) (abs_expr [(inter a b)] (inter c d));
   case (abs_expr [(inter a b)] (inter c d)) (inter (abs_expr [a] c) (abs_expr [b] d));
 
-  case (abs_expr_type [("A", top)] (fun vars -> (List.nth vars 0))) (abs_expr_type [("B", top)] (fun vars -> (List.nth vars 0)));
+  case (abs_expr_type_1 ("A", top) (fun a -> a)) (abs_expr_type_1 ("A", top) (fun a -> a));
+  case (abs_expr_type_1 ("A", top) (fun a -> a)) (abs_expr_type_1 ("B", top) (fun b -> b));
 ]
