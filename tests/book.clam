@@ -5,3 +5,11 @@ def iter: [T] -> (Int, T, (T) -> T) -> T = [T] -> (n, v, f) ->
         v
     else
         iter[T](n - 1, f(v), f)
+
+def main =
+    print(id[Int](0));
+    print(id[Int](id[Int](1)));
+    print(iter[Int](0, 1, (i) -> i * 2));
+    print(iter[Int](1, 1, (i) -> i * 2));
+    print(iter[Int](2, 1, (i) -> i * 2));
+    unit

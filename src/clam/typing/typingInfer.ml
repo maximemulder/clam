@@ -220,7 +220,9 @@ and check_type_abs abs constr =
   match constr with
   | TypeAbsExprType constr_abs ->
     let* _ = check_type_abs_params abs constr constr_abs.params in
-    let* _ = check abs.body constr_abs.body in
+    let entries = List.map2(fun abs_param constr_param -> (constr_param, TypeVar { pos = abs.pos; param = abs_param })) abs.params constr_abs.params in
+    let constr_body = TypingApply.apply constr_abs.body entries in
+    let* _ = check abs.body constr_body in
     return ()
   | _ ->
     check_error expr constr
