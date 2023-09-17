@@ -50,10 +50,10 @@ let rec isa (sub: type') (sup: type') =
     let* body = isa sub_abs.body sup_abs.body in
     return (params && body)
   | (TypeApp sub_app, _) ->
-    let sub = TypingApply.apply_app sub_app in
+    let sub = TypingApp.apply_app sub_app in
     isa sub sup
   | (_, TypeApp sup_app) ->
-    let sup = TypingApply.apply_app sup_app in
+    let sup = TypingApp.apply_app sup_app in
     isa sub sup
   | _ ->
     return false
@@ -89,6 +89,6 @@ and isa_abs_expr_type sub_abs sup_abs =
   if not (Utils.compare_lists Typing.is_param sub_abs.params sup_abs.params) then
     return false
   else
-  let entries = List.map2(fun sub_param sup_param -> (sup_param, TypeVar { pos = sup_abs.pos; param = sub_param })) sub_abs.params sup_abs.params in
-  let sup_body = TypingApply.apply sup_abs.body entries in
+  let entries = TypingApp.merge_params sub_abs.params sup_abs.params sup_abs.pos in
+  let sup_body = TypingApp.apply sup_abs.body entries in
   isa sub_abs.body sup_body

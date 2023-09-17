@@ -19,7 +19,7 @@ and validate_proper (type': type') =
   match type' with
   | TypeAbs _ -> TypingErrors.raise_type_proper type'
   | TypeApp app ->
-    let type' = TypingApply.apply_app app in
+    let type' = TypingApp.apply_app app in
     validate_proper type'
   | _ ->
     return ()

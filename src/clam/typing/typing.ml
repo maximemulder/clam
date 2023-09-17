@@ -45,9 +45,9 @@ let rec is left right =
     Utils.compare_lists is_param left_abs.params right_abs.params
     && is left_abs.body right_abs.body
   | (TypeApp left_app, _) ->
-    is (TypingApply.apply_app left_app) right
+    is (TypingApp.apply_app left_app) right
   | (_, TypeApp right_app) ->
-    is left (TypingApply.apply_app right_app)
+    is left (TypingApp.apply_app right_app)
   | _ -> false
   (* TODO: Check this function for unions and intersections *)
 
@@ -206,7 +206,7 @@ and meet_abs_expr_type left_abs right_abs =
   else if not (List.for_all2 is_param left_abs.params right_abs.params) then
     prim_bot
   else
-  let entries = List.map2(fun left_param right_param -> (right_param, TypeVar { pos = right_abs.pos; param = left_param })) left_abs.params right_abs.params in
-  let right_body = TypingApply.apply right_abs.body entries in
+  let entries = TypingApp.merge_params left_abs.params right_abs.params right_abs.pos in
+  let right_body = TypingApp.apply right_abs.body entries in
   let body = meet left_abs.body right_body in
   TypeAbsExprType { pos = left_abs.pos; params = left_abs.params; body }

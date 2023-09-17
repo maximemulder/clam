@@ -122,7 +122,7 @@ let rec check expr constr =
   | TypeUnion _ | TypeInter _ ->
     check_infer expr constr
   | TypeApp app ->
-    let constr = TypingApply.apply_app app in
+    let constr = TypingApp.apply_app app in
     check expr constr
   | _ ->
   match expr with
@@ -220,8 +220,8 @@ and check_type_abs abs constr =
   match constr with
   | TypeAbsExprType constr_abs ->
     let* _ = check_type_abs_params abs constr constr_abs.params in
-    let entries = List.map2(fun abs_param constr_param -> (constr_param, TypeVar { pos = abs.pos; param = abs_param })) abs.params constr_abs.params in
-    let constr_body = TypingApply.apply constr_abs.body entries in
+    let entries = TypingApp.merge_params abs.params constr_abs.params constr_abs.pos in
+    let constr_body = TypingApp.apply constr_abs.body entries in
     let* _ = check abs.body constr_body in
     return ()
   | _ ->
@@ -347,7 +347,7 @@ and infer_elem_type type' index context =
     let type' = TypingPromote.promote_var var in
     infer_elem_type type' index context
   | TypeApp app ->
-    let type' = TypingApply.apply_app app in
+    let type' = TypingApp.apply_app app in
     infer_elem_type type' index context
   | TypeUnion union ->
     let left = infer_elem_type union.left index context in
@@ -378,7 +378,7 @@ and infer_attr_type type' name context =
     let type' = TypingPromote.promote_var var in
     infer_attr_type type' name context
   | TypeApp app ->
-    let type' = TypingApply.apply_app app in
+    let type' = TypingApp.apply_app app in
     infer_attr_type type' name context
   | TypeUnion union ->
     let left = infer_attr_type union.left name context in
@@ -403,7 +403,7 @@ and infer_app_type app type' context =
     let type' = TypingPromote.promote_var var in
     infer_app_type app type' context
   | TypeApp type_app ->
-    let type' = TypingApply.apply_app type_app in
+    let type' = TypingApp.apply_app type_app in
     infer_app_type app type' context
   | TypeAbsExpr abs ->
     Some abs
@@ -486,14 +486,16 @@ and infer_type_app app returner =
   | _ -> TypingErrors.raise_expr_type_app_kind app type'
 
 and infer_type_app_abs app abs returner =
-  let params = abs.params in
-  let args = app.args in
-  if List.compare_lengths params args != 0 then
-    TypingErrors.raise_expr_type_app_arity app params
+  if List.compare_lengths abs.params app.args != 0 then
+    TypingErrors.raise_expr_type_app_arity app abs.params
   else
-  let* _ = iter_list2 (fun (param: param_type) arg -> validate_subtype arg param.type') params args in
-  let body = TypingApply.substitute abs.body params args in
+  let* _ = iter_list2 infer_type_app_abs_param abs.params app.args in
+  let entries = List.combine abs.params app.args in
+  let body = TypingApp.apply abs.body entries in
   returner body
+
+and infer_type_app_abs_param param arg =
+  validate_subtype arg param.type'
 
 and infer_stmt stmt returner =
   let* _ = infer_stmt_body stmt.stmt in

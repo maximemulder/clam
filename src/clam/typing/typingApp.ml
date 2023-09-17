@@ -80,15 +80,5 @@ let apply_app (app: type_app) =
     apply abs.body entries
   | _ -> TypingErrors.raise_unexpected ()
 
-let app_entries (app: type_app) =
-  match app.type' with
-  | TypeAbs abs ->
-    if List.compare_lengths abs.params app.args != 0 then
-      TypingErrors.raise_unexpected ()
-    else
-    List.combine abs.params app.args
-  | _ -> TypingErrors.raise_unexpected ()
-
-let substitute type' vars others =
-  let entries = List.combine vars others in
-  apply type' entries
+let merge_params lefts rights pos =
+  List.map2 (fun left right -> (right, TypeVar { pos; param = left })) lefts rights
