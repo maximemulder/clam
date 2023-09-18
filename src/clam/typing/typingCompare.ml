@@ -24,17 +24,20 @@ let rec compare (left: Model.type') (right: Model.type') =
     && compare left_abs.body right_abs.body
   | (TypeAbsExprType left_abs, TypeAbsExprType right_abs) ->
     Utils.compare_lists compare_param left_abs.params right_abs.params
-    && compare left_abs.body right_abs.body
+    && let right_body = TypingApp.apply_abs_expr_params right_abs left_abs.params in
+    compare left_abs.body right_body
   | (TypeAbs left_abs, TypeAbs right_abs) ->
     Utils.compare_lists compare_param left_abs.params right_abs.params
-    && compare left_abs.body right_abs.body
+    && let right_body = TypingApp.apply_abs_params right_abs left_abs.params in
+    compare left_abs.body right_body
   | (TypeApp left_app, TypeApp right_app) ->
-    compare left_app.type' right_app.type' &&
-    Utils.compare_lists compare left_app.args right_app.args
+    compare left_app.type' right_app.type'
+    && Utils.compare_lists compare left_app.args right_app.args
   | _ -> false
 
 and compare_param left_param right_param =
-  compare left_param.type' right_param.type'
+  left_param.name == right_param.name
+  && compare left_param.type' right_param.type'
 
 and compare_attr left_attr right_attr =
   compare left_attr.type' right_attr.type'

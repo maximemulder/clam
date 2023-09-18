@@ -6,6 +6,9 @@ let find_arg param entries =
   let entry = List.find_opt (fun entry -> fst entry = param) entries in
   Option.map snd entry
 
+let params_entries lefts rights pos =
+  List.map2 (fun left right -> (right, TypeVar { pos; param = left })) lefts rights
+
 module Reader = struct
   type r = entries
 end
@@ -43,11 +46,13 @@ let rec apply (type': type') =
     return (TypeAbsExpr { abs with params; body })
   | TypeAbsExprType abs ->
     let* params = map_list apply_param abs.params in
-    let* body = apply abs.body in
+    let body = apply_abs_expr_params abs params in
+    let* body = apply body in
     return (TypeAbsExprType { abs with params; body })
   | TypeAbs abs ->
     let* params = map_list apply_param abs.params in
-    let* body = apply abs.body in
+    let body = apply_abs_params abs params in
+    let* body = apply body in
     return (TypeAbs { abs with params; body })
   | TypeApp app ->
     let* type' = apply app.type' in
@@ -70,6 +75,14 @@ and apply_attr attr =
   let* type' = apply attr.type' in
   return { attr with type' }
 
+and apply_abs_expr_params abs params =
+  let entries = params_entries params abs.params abs.pos in
+  apply abs.body entries
+
+and apply_abs_params abs params =
+  let entries = params_entries params abs.params abs.pos in
+  apply abs.body entries
+
 let apply_app (app: type_app) =
   match app.type' with
   | TypeAbs abs ->
@@ -79,6 +92,3 @@ let apply_app (app: type_app) =
     let entries = List.combine abs.params app.args in
     apply abs.body entries
   | _ -> TypingErrors.raise_unexpected ()
-
-let merge_params lefts rights pos =
-  List.map2 (fun left right -> (right, TypeVar { pos; param = left })) lefts rights

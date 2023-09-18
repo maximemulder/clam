@@ -89,6 +89,5 @@ and isa_abs_expr_type sub_abs sup_abs =
   if not (Utils.compare_lists Typing.is_param sub_abs.params sup_abs.params) then
     return false
   else
-  let entries = TypingApp.merge_params sub_abs.params sup_abs.params sup_abs.pos in
-  let sup_body = TypingApp.apply sup_abs.body entries in
+  let sup_body = TypingApp.apply_abs_expr_params sup_abs sub_abs.params in
   isa sub_abs.body sup_body

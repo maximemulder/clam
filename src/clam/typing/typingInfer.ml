@@ -220,8 +220,7 @@ and check_type_abs abs constr =
   match constr with
   | TypeAbsExprType constr_abs ->
     let* _ = check_type_abs_params abs constr constr_abs.params in
-    let entries = TypingApp.merge_params abs.params constr_abs.params constr_abs.pos in
-    let constr_body = TypingApp.apply constr_abs.body entries in
+    let constr_body = TypingApp.apply_abs_expr_params constr_abs abs.params in
     let* _ = check abs.body constr_body in
     return ()
   | _ ->

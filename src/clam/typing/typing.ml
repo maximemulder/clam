@@ -206,7 +206,6 @@ and meet_abs_expr_type left_abs right_abs =
   else if not (List.for_all2 is_param left_abs.params right_abs.params) then
     prim_bot
   else
-  let entries = TypingApp.merge_params left_abs.params right_abs.params right_abs.pos in
-  let right_body = TypingApp.apply right_abs.body entries in
+  let right_body = TypingApp.apply_abs_expr_params right_abs left_abs.params in
   let body = meet left_abs.body right_body in
   TypeAbsExprType { pos = left_abs.pos; params = left_abs.params; body }
