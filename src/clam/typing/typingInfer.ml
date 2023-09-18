@@ -422,9 +422,9 @@ and infer_preop preop returner =
   match entry with
   | Some (type_operand, type_result) ->
     let operand = preop.expr in
-    let* _ = returner type_result in
+    let* returned = returner type_result in
     let* _ = check operand type_operand in
-    return type_result
+    return returned
   | None ->
     TypingErrors.raise_unexpected
 
@@ -434,19 +434,19 @@ and infer_binop binop returner =
   | Some ((type_left, type_right), type_result) ->
     let left = binop.left in
     let right = binop.right in
-    let* _ = returner type_result in
+    let* returned = returner type_result in
     let* _ = check left type_left in
     let* _ = check right type_right in
-    return type_result
+    return returned
   | None ->
     TypingErrors.raise_unexpected
 
 and infer_ascr ascr returner =
   let type' = ascr.type' in
   let* () = validate type' in
-  let* _ = returner type' in
+  let* returned = returner type' in
   let* _ = check ascr.expr type' in
-  return type'
+  return returned
 
 and infer_if if' returner =
   let* _ = check if'.cond prim_bool in
@@ -457,8 +457,7 @@ and infer_if if' returner =
 and infer_abs abs returner =
   let* params = infer_abs_params abs.params in
   let returner = return_abs abs params returner in
-  let* body = infer abs.body returner in
-  return (TypeAbsExpr { pos = abs.pos; params; body })
+  infer abs.body returner
 
 and infer_abs_params params =
   let types = List.map (fun (param: param_expr) -> match param.type' with
