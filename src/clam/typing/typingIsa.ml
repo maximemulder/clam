@@ -80,10 +80,10 @@ and isa_record sub_record sup_record context =
 
 and isa_record_attr sub_record sup_attr =
   match Utils.NameMap.find_opt sup_attr.name sub_record.attrs with
-    | Some sub_attr ->
-      isa sub_attr.type' sup_attr.type'
-    | None ->
-      return false
+  | Some sub_attr ->
+    isa sub_attr.type' sup_attr.type'
+  | None ->
+    return false
 
 and isa_abs_expr_type sub_abs sup_abs =
   if not (Utils.compare_lists Typing.is_param sub_abs.params sup_abs.params) then
