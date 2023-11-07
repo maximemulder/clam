@@ -41,6 +41,8 @@ let tests = [
   case (union a (union b c)) (union a (union b c));
   case (union a (union b c)) (union (union a b) c);
   case (union (union a b) c) (union a (union b c));
+  case (union top a) top;
+  case top (union top a);
 
   (* intersections *)
   case a (inter a a);
@@ -48,6 +50,8 @@ let tests = [
   case (inter a a) (inter a a);
   case (inter a b) (inter a b);
   case (inter a b) (inter b a);
+  case (inter top a) a;
+  case a (inter top a);
 
   (* distributivity *)
   case (union (inter a b) (inter a c)) (inter a (union b c));
@@ -61,6 +65,9 @@ let tests = [
   case (inter (abs_expr [a] c) (abs_expr [b] d)) (abs_expr [(inter a b)] (inter c d));
   case (abs_expr [(inter a b)] (inter c d)) (inter (abs_expr [a] c) (abs_expr [b] d));
 
+  (* type to expression abstractions *)
+  case (abs_expr_type_0 a) (abs_expr_type_0 a);
+  case (abs_expr_type_1 ("A", top) (inline a)) (abs_expr_type_1 ("A", top) (inline a));
   case (abs_expr_type_1 ("A", top) (fun a -> a)) (abs_expr_type_1 ("A", top) (fun a -> a));
   case (abs_expr_type_1 ("A", top) (fun a -> a)) (abs_expr_type_1 ("B", top) (fun b -> b));
 ]
@@ -92,8 +99,16 @@ let tests_not = [
   (* unions *)
   case a (union a b);
   case (union a b) a;
+  case (union top a) a;
+  case a (union top a);
 
   (* interesections *)
   case a (inter a b);
   case (inter a b) a;
+  case (inter top a) top;
+  case top (inter top a);
+
+  (* ambiguous names *)
+  case (var "A" top) (var "A" top);
+  case (abs_expr_type_1 ("A", top) (fun a -> a)) (abs_expr_type_1 ("A", top) (inline a));
 ]

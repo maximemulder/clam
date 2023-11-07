@@ -19,12 +19,45 @@ and var_is_bot var =
 
 (* TYPE EQUIVALENCE *)
 
-let rec is left right =
+and is left right =
   let left  = normalize left  in
   let right = normalize right in
-  is_union left right ||
-  is_inter left right ||
-  is_type  left right
+  match (left, right) with
+  | (TypeTop    _, TypeTop    _) -> true
+  | (TypeBot    _,            _) -> type_is_bot right
+  | (TypeUnit   _, TypeUnit   _) -> true
+  | (TypeBool   _, TypeBool   _) -> true
+  | (TypeInt    _, TypeInt    _) -> true
+  | (TypeChar   _, TypeChar   _) -> true
+  | (TypeString _, TypeString _) -> true
+  | (TypeUnion _, _) ->
+    is_union left right
+  | (_, TypeUnion _) ->
+    is_union left right
+  | (_, TypeInter _) ->
+    is_inter left right
+  | (TypeInter _, _) ->
+    is_inter left right
+  | (TypeVar left_var, _) ->
+    is_var left_var right
+  | (TypeTuple left_tuple, TypeTuple right_tuple) ->
+    Utils.compare_lists is left_tuple.elems right_tuple.elems
+  | (TypeRecord left_record, TypeRecord right_record) ->
+    Utils.compare_maps is_attr left_record.attrs right_record.attrs
+  | (TypeAbsExpr left_abs, TypeAbsExpr right_abs) ->
+    Utils.compare_lists is left_abs.params right_abs.params
+    && is left_abs.body right_abs.body
+  | (TypeAbsExprType left_abs, TypeAbsExprType right_abs) ->
+    is_abs_expr_type left_abs right_abs
+  | (TypeAbs left_abs, TypeAbs right_abs) ->
+    Utils.compare_lists is_param left_abs.params right_abs.params
+    && is left_abs.body right_abs.body
+  | (TypeApp left_app, _) ->
+    is (TypingApp.apply_app left_app) right
+  | (_, TypeApp right_app) ->
+    is left (TypingApp.apply_app right_app)
+  | _ -> false
+  (* TODO: Adapt this function to type abstractions *)
 
 and is_union left right =
   let lefts  = collect_union left  in
@@ -38,47 +71,11 @@ and is_inter left right =
   List.for_all (fun left -> List.exists (fun right -> isa left right TypingContext.empty) rights) lefts &&
   List.for_all (fun right -> List.exists (fun left -> isa right left TypingContext.empty) lefts) rights
 
-and is_type left right =
-  match (left, right) with
-  | (TypeTop    _, TypeTop    _) -> true
-  | (TypeBot    _,            _) -> type_is_bot right
-  | (TypeUnit   _, TypeUnit   _) -> true
-  | (TypeBool   _, TypeBool   _) -> true
-  | (TypeInt    _, TypeInt    _) -> true
-  | (TypeChar   _, TypeChar   _) -> true
-  | (TypeString _, TypeString _) -> true
-  | (TypeVar left_var,        _) -> is_var left_var right
-  | (TypeTuple left_tuple, TypeTuple right_tuple) ->
-    Utils.compare_lists is left_tuple.elems right_tuple.elems
-  | (TypeRecord left_record, TypeRecord right_record) ->
-    Utils.compare_maps is_attr left_record.attrs right_record.attrs
-  | (TypeInter left_inter, TypeInter right_inter) ->
-    is left_inter.left right_inter.left
-    && is left_inter.right right_inter.right
-  | (TypeUnion left_union, TypeUnion right_union) ->
-    is left_union.left right_union.left
-    && is left_union.right right_union.right
-  | (TypeAbsExpr left_abs, TypeAbsExpr right_abs) ->
-    Utils.compare_lists is left_abs.params right_abs.params
-    && is left_abs.body right_abs.body
-  | (TypeAbsExprType left_abs, TypeAbsExprType right_abs) ->
-    Utils.compare_lists is_param left_abs.params right_abs.params
-    && is left_abs.body right_abs.body
-  | (TypeAbs left_abs, TypeAbs right_abs) ->
-    Utils.compare_lists is_param left_abs.params right_abs.params
-    && is left_abs.body right_abs.body
-  | (TypeApp left_app, _) ->
-    is (TypingApp.apply_app left_app) right
-  | (_, TypeApp right_app) ->
-    is left (TypingApp.apply_app right_app)
-  | _ -> false
-  (* TODO: Adapt this function to type abstractions *)
-
 and is_var left_var right =
   if var_is_bot left_var && type_is_bot right then
     true
   else match right with
-  | TypeVar right_var -> left_var.param = right_var.param
+  | TypeVar right_var -> left_var.param == right_var.param
   | _ -> false
 
 and is_param left_param right_param =
@@ -87,10 +84,15 @@ and is_param left_param right_param =
 and is_attr left_attr right_attr =
   is left_attr.type' right_attr.type'
 
+and is_abs_expr_type left_abs right_abs =
+  Utils.compare_lists is_param left_abs.params right_abs.params &&
+  let right_body = TypingApp.apply_abs_expr_params right_abs left_abs.params in
+  is left_abs.body right_body
+
 (* TYPE SUB *)
 
 (* TODO: Does isa really need a context ? Would it not be simpler to apply substitution ? *)
-and isa (sub: type') (sup: type') =
+and isa sub sup =
   let sub = normalize sub in
   let sup = normalize sup in
   match (sub, sup) with
@@ -180,7 +182,7 @@ and isa_abs_expr_type sub_abs sup_abs =
 (* TYPE NORMALIZATION *)
 
 and normalize type' =
-  join_many (distribute_unions type')
+  Utils.reduce_list join_type (distribute_unions type')
 
 and distribute_unions type' =
   match type' with
@@ -191,7 +193,7 @@ and distribute_unions type' =
   | TypeInter { left; right; _ } ->
     let lefts = distribute_inters_over_unions left in
     let rights = distribute_inters_over_unions right in
-    Utils.product_lists (fun left right -> meet_many (List.append left right)) lefts rights
+    Utils.product_lists (fun left right -> Utils.reduce_list meet (List.append left right)) lefts rights
   | _ -> [type']
 
 and distribute_inters_over_unions type' =
@@ -225,17 +227,13 @@ and collect_inter type' =
 
 (* TYPE JOIN *)
 
-and join_many types =
-  match types with
-  | [type'] ->
-    type'
-  | left :: rights ->
-    let right = join_many rights in
-    join left right
-  | _ ->
-    invalid_arg "Typing.join_many"
-
 and join left right =
+  let types = [] in
+  let types = List.append types (collect_union left)  in
+  let types = List.append types (collect_union right) in
+  Utils.reduce_list join_type types
+
+and join_type left right =
   if isa left right TypingContext.empty then
     right
   else
@@ -247,16 +245,13 @@ and join left right =
 
 (* TYPE MEET *)
 
-and meet_many types =
-  match types with
-  | [type'] ->
-    type'
-  | left :: rights ->
-    meet left (meet_many rights)
-  | _ ->
-    invalid_arg "Typing.meet_many"
-
 and meet left right =
+  let types = [] in
+  let types = List.append types (collect_inter left)  in
+  let types = List.append types (collect_inter right) in
+  Utils.reduce_list meet_type types
+
+and meet_type left right =
   let pos = type_pos left in
   match (left, right) with
   | (TypeTop    _, right       ) -> right

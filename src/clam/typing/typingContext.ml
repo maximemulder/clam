@@ -10,7 +10,7 @@ let empty = { parent = None; entries = [] }
 let child parent entries = { parent = Some parent; entries }
 
 let rec find_arg param context =
-  let entry = List.find_opt (fun entry -> fst entry = param) context.entries in
+  let entry = List.find_opt (fun entry -> fst entry == param) context.entries in
   match entry with
   | Some entry -> Some (snd entry)
   | None ->

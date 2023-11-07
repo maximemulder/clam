@@ -21,17 +21,17 @@ val isa : type' -> type' -> context -> bool
   form. *)
 val normalize : type' -> type'
 
-(** Combines two types into their simplified lowest common supertype, which is either the more
-  general input type, or the union of the input types. *)
+(** Decomposes two types and combines them into their simplified lowest common supertype, which
+  is either the more general input type, or the union of these types. *)
 val join : type' -> type' -> type'
 
-(** Combines several types into their simplified lowest common supertype. The input list must not
-  be empty. *)
-val join_many : type' list -> type'
+(** Combines two types into their simplified lowest common supertype, which is either the more
+  general input type, or the union of these types. *)
+val join_type : type' -> type' -> type'
 
-(** Combines two types into their simplified highest common subtype. *)
+(** Decomposes two tyeps and combines them simplified highest common subtype. *)
 val meet : type' -> type' -> type'
 
-(** Combines several types into their simplified highest common subtype. The input list must not be
-  empty. *)
-val meet_many : type' list -> type'
+(** Combines two types into their simplified highest common subtype. Input interesections are not
+  decomposed. *)
+val meet_type : type' -> type' -> type'

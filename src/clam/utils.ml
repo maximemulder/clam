@@ -27,6 +27,12 @@ let compare_maps compare map other =
     (fst entry) = (fst other_entry) && compare (snd entry) (snd other_entry)
   ) pairs
 
+let rec reduce_list f xs =
+  match xs with
+  | [x] -> x
+  | x :: xs -> f x (reduce_list f xs)
+  | _ -> invalid_arg "Utils.reduce_list"
+
 let map_option2 x y f =
   match (x, y) with
   | (Some x, Some y) -> Some (f x y)

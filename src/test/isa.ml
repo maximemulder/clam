@@ -56,6 +56,9 @@ let tests = [
   case (inter (abs_expr [a] c) (abs_expr [b] d)) (abs_expr [(inter a b)] (inter c d));
   case (abs_expr [(inter a b)] (inter c d)) (inter (abs_expr [a] c) (abs_expr [b] d));
 
+  (* type to expression abstractions *)
+  case (abs_expr_type_0 a) (abs_expr_type_0 a);
+  case (abs_expr_type_1 ("A", top) (inline a)) (abs_expr_type_1 ("A", top) (inline a));
   case (abs_expr_type_1 ("A", top) (fun a -> a)) (abs_expr_type_1 ("A", top) (fun a -> a));
   case (abs_expr_type_1 ("A", top) (fun a -> a)) (abs_expr_type_1 ("B", top) (fun b -> b));
 ]

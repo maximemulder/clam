@@ -3,7 +3,7 @@ open Model
 type entries = (param_type * type') list
 
 let find_arg param entries =
-  let entry = List.find_opt (fun entry -> fst entry = param) entries in
+  let entry = List.find_opt (fun entry -> fst entry == param) entries in
   Option.map snd entry
 
 let params_entries lefts rights pos =
