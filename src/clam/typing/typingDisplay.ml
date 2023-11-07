@@ -4,10 +4,10 @@ let add_surround string surround =
   else
     string
 
-let rec  display type' =
+let rec display type' =
   display_surround type' false
 
-and  display_surround (type': Model.type') (surround: bool) =
+and display_surround (type': Model.type') (surround: bool) =
   match type' with
   | TypeTop _    -> "Top"
   | TypeBot _    -> "Bot"
@@ -50,3 +50,6 @@ and display_attr_entry (name, attr) =
 
 and display_param param =
   param.name ^ ": " ^ display param.type'
+
+let display_inline type' =
+  "`" ^ (display type') ^ "`"

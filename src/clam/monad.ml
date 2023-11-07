@@ -72,7 +72,8 @@ module Monad (M: MONAD) = struct
       let* r = f x y in
       let* r2 = compare_list2 f xs ys in
       return (r && r2)
-    | _ -> invalid_arg "Monad.compare_list2"
+    | _ ->
+      return false
 
 end
 

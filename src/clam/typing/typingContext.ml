@@ -5,9 +5,9 @@ type context = {
   entries: (param_type * type') list;
 }
 
-let context_empty = { parent = None; entries = [] }
+let empty = { parent = None; entries = [] }
 
-let context_child parent entries = { parent = Some parent; entries }
+let child parent entries = { parent = Some parent; entries }
 
 let rec find_arg param context =
   let entry = List.find_opt (fun entry -> fst entry = param) context.entries in

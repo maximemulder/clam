@@ -1,7 +1,7 @@
 open Vars
 
 let test name type' elem expect (_: unit) =
-  let result = Clam.TypingInfer.infer_elem_type type' elem Clam.TypingContext.context_empty in
+  let result = Clam.TypingInfer.infer_elem_type type' elem Clam.TypingContext.empty in
   let result = match (result, expect) with
   | (Some result, Some expect) -> Clam.TypingCompare.compare result expect
   | (None, None) -> true

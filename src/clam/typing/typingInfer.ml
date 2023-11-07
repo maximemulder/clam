@@ -38,7 +38,7 @@ let make_progress defs =
   { remains; currents = DefSet.empty; dones = BindMap.empty }
 
 let make_state progress =
-  { progress; context = TypingContext.context_empty }
+  { progress; context = TypingContext.empty }
 
 let get_context state =
   (state.context, state)
@@ -59,7 +59,7 @@ let add_bind bind type' state =
 
 let with_entries call entries state =
   let parent = state.context in
-  let context = TypingContext.context_child parent entries in
+  let context = TypingContext.child parent entries in
   let state = { state with context } in
   let res = call state in
   (res, { state with context = parent })
@@ -142,7 +142,7 @@ let rec check expr constr =
 and check_infer expr constr =
   let* type' = infer_none expr in
   let* context = get_context in
-  if Bool.not (TypingIsa.isa type' constr context) then
+  if Bool.not (Typing.isa type' constr context) then
     TypingErrors.raise_expr_constraint expr type' constr
   else
     return ()
@@ -520,7 +520,7 @@ and check_def def progress =
   let progress = start_progress progress def in
   match def.type' with
   | Some type' ->
-    TypingValidate.validate_proper type' TypingContext.context_empty;
+    TypingValidate.validate_proper type' TypingContext.empty;
     let progress = end_progress progress def type' in
     let state = make_state progress in
     let (_, state) = check def.expr type' state in
@@ -541,4 +541,4 @@ let check_exprs defs =
   progress_defs (make_progress defs)
 
 let check_types types =
-  List.iter (fun type' -> TypingValidate.validate type' TypingContext.context_empty) types
+  List.iter (fun type' -> TypingValidate.validate type' TypingContext.empty) types
