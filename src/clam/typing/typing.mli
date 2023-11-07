@@ -29,7 +29,7 @@ val join : type' -> type' -> type'
   be empty. *)
 val join_many : type' list -> type'
 
-(** Combines two types into their simplified highest common subtype of two types. *)
+(** Combines two types into their simplified highest common subtype. *)
 val meet : type' -> type' -> type'
 
 (** Combines several types into their simplified highest common subtype. The input list must not be

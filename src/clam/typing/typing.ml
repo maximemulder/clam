@@ -72,7 +72,6 @@ and is_type left right =
   | (_, TypeApp right_app) ->
     is left (TypingApp.apply_app right_app)
   | _ -> false
-  (* TODO: Adapt this function to unions and intersections *)
   (* TODO: Adapt this function to type abstractions *)
 
 and is_var left_var right =

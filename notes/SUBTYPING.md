@@ -33,6 +33,7 @@ and isa l r c =
 
 ## TODO
 
+THIS LIST IS NOT UP-TO-DATE
 - Finish `meet` function, check if `join` is complete
 - Type variables with `Bot` as a bound should act similar to `Bot`.
 - More testing (calls and above improvements)
