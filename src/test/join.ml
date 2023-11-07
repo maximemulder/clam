@@ -37,6 +37,9 @@ let tests = [
   (* variables *)
   case2 a a a;
   case2 a b (union a b);
+  case2 a ea a;
+  case2 ea a a;
+  case2 ea fa (union ea fa);
 
   (* unions *)
   case2 a (union b c) (union a (union b c));

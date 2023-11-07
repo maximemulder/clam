@@ -152,8 +152,8 @@ and isa_var sub_var sup =
   | Some sub_type -> isa sub_type sup
   | None ->
   match sup with
-  | TypeVar sup_var ->
-    return (sub_var.param = sup_var.param)
+  | TypeVar sup_var when sub_var.param = sup_var.param ->
+    return true
   | _ ->
     isa sub_var.param.type' sup
 

@@ -15,18 +15,18 @@ The following code can be used to debug subtyping by printing the subtyping step
 and indent_n = ref 0
 
 and indent n =
-  if n = 0 then "" else "  " ^ repeat (n - 1)
+  if n = 0 then "" else "  " ^ indent (n - 1)
 
-and indent_with f
-  indent_n := indent.contents + 1;
-  let res = isa2 l r c in
-  indent_n := indent.contents - 1;
+and indent_with f =
+  indent_n := indent_n.contents + 1;
+  let res = f () in
+  indent_n := indent_n.contents - 1;
   res
 
 and isa l r c =
-  indent_with isa2 l r c in
+  let res = indent_with (fun _ -> isa2 l r c) in
   let tab = indent indent_n.contents in
-  print_endline(tab ^ (TypingDisplay.display (Typing.normalize l)) ^ " : " ^ (TypingDisplay.display (Typing.normalize r)));
+  print_endline(tab ^ (TypingDisplay.display (normalize l)) ^ " : " ^ (TypingDisplay.display (normalize r)));
   print_endline(tab ^ (TypingDisplay.display l) ^ " : " ^ (TypingDisplay.display r) ^ "   " ^ (string_of_bool res));
   res
 ```

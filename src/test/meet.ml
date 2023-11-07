@@ -37,6 +37,9 @@ let tests = [
   (* variables *)
   case2 a a a;
   case2 a b (inter a b);
+  case2 a ea ea;
+  case2 ea a ea;
+  case2 ea fa (inter ea fa);
 
   (* tuples *)
   case2 (tuple []) (tuple []) (tuple []);

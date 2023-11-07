@@ -25,6 +25,7 @@ let tests = [
 
   (* variables *)
   case a a;
+  case ea a;
   case (var "A" top) top;
   case (var "A" unit) top;
   case (var "A" unit) unit;

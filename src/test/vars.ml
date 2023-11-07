@@ -46,3 +46,6 @@ let a = var "A" top
 let b = var "B" top
 let c = var "C" top
 let d = var "D" top
+
+let ea = var "E" a
+let fa = var "F" a

@@ -53,8 +53,8 @@ let tests = [
   case (union (inter a b) (inter a c)) (inter a (union b c));
   case (inter a (union b c)) (union (inter a b) (inter a c));
 
-  (* (* meets *)
-  case (inter (abs_expr [a] b) (abs_expr [a] c)) (abs_expr [a] (inter b c));
+  (* meets *)
+  case (inter (abs_expr [a] c) (abs_expr [b] c)) (abs_expr [(inter a b)] c);
   case (abs_expr [(inter a b)] c) (inter (abs_expr [a] c) (abs_expr [b] c));
   case (inter (abs_expr [a] b) (abs_expr [a] c)) (abs_expr [a] (inter b c));
   case (abs_expr [a] (inter b c)) (inter (abs_expr [a] b) (abs_expr [a] c));
@@ -62,13 +62,38 @@ let tests = [
   case (abs_expr [(inter a b)] (inter c d)) (inter (abs_expr [a] c) (abs_expr [b] d));
 
   case (abs_expr_type_1 ("A", top) (fun a -> a)) (abs_expr_type_1 ("A", top) (fun a -> a));
-  case (abs_expr_type_1 ("A", top) (fun a -> a)) (abs_expr_type_1 ("B", top) (fun b -> b)); *)
+  case (abs_expr_type_1 ("A", top) (fun a -> a)) (abs_expr_type_1 ("B", top) (fun b -> b));
 ]
 
 let case left right = case_base left right false
 
 let tests_not = [
+  (* top and bot *)
+  case top bot;
+  case bot top;
+  case unit top;
+  case top unit;
+  case int bot;
+  case bot int;
+
+  (* primitives *)
+  case unit bool;
+  case bool int;
+  case int char;
+  case char string;
+  case string unit;
+
+  (* variables *)
+  case a b;
+  case ea a;
+  case a ea;
+  case ea fa;
+
   (* unions *)
   case a (union a b);
   case (union a b) a;
+
+  (* interesections *)
+  case a (inter a b);
+  case (inter a b) a;
 ]

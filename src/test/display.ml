@@ -9,26 +9,15 @@ let case name type' =
   Alcotest.test_case name `Quick test
 
 let tests = [
-  case "Top"
-    top;
-  case "Bot"
-    bot;
-  case "Unit"
-    unit;
-  case "Bool"
-    bool;
-  case "Int"
-    int;
-  case "Char"
-    char;
-  case "String"
-    string;
-  case "A"
-    a;
-  case "A & B"
-    (inter a b);
-  case "A | B"
-    (union a b);
-  case "A & (B | C)"
-    (inter a (union b c))
+  case "Top" top;
+  case "Bot" bot;
+  case "Unit" unit;
+  case "Bool" bool;
+  case "Int" int;
+  case "Char" char;
+  case "String" string;
+  case "A" a;
+  case "A & B" (inter a b);
+  case "A | B" (union a b);
+  case "A & (B | C)" (inter a (union b c))
 ]
