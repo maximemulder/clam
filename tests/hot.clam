@@ -1,0 +1,14 @@
+type Id = [T] => T
+
+type Pair = [T] => {T, T}
+type Apply = [T: [T] => Top, U] => T[U]
+
+def a: Apply[Id, Int] = 0
+def b: Apply[Pair, Int] = {0, 0}
+
+def main =
+    var a: Int = a;
+    var b: {Int, Int} = b;
+    print(a);
+    print(b);
+    unit

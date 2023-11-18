@@ -72,7 +72,7 @@ def u: Unit = unit
 
 ## Top type
 
-Clam has a top type named `Top`, which is a supertype of all types.
+Clam has a top type named `Top`, which is a supertype of all proper types.
 
 ```
 def a: Top = 0
@@ -90,9 +90,25 @@ def foo = (bot: Bot) ->
     unit
 ```
 
-## Type operators
+## Universal types
 
-Clam features type operators, which allow to abstract over a type using other types. Type parameters have a bound, which is `Top` by default.
+Clam features universal types, which allow to abstract over an expression using types.
+
+```
+type Iter = [T] -> (Int, T, (T) -> T) -> T
+
+def iter: Iter = [T] -> (n, v, f) ->
+    if n == 0 then
+        v
+    else
+        iter[T](n - 1, f(v), f)
+
+def eight = iter(3, 1, (i) -> i * 2)
+```
+
+## Type constructors
+
+Clam features type constructors, which allow to abstract over a type using other types. Type parameters have a bound, which is `Top` by default.
 
 ```
 type Pair = [T] => {T, T}
@@ -100,18 +116,19 @@ type Pair = [T] => {T, T}
 def pair: Pair[Int] = {0, 0}
 ```
 
-## Universal types
+## Higher-order types
 
-Clam features universal types, which allow to abstract over an expression using types.
+Clam features higher-order types, which allow type constructors to abstract over other type constructors.
 
 ```
-def map_pair
-    : [T, U] -> ((T, T), (T) -> U) -> (U, U)
-    = [T, U] -> (p, f) -> {f(p.0), f(p.1)}
+type ApplyInt = [T: [U] => Top] => T[Int]
 
-def pair = {1, 2}
-def double = map_pair[Int, Int](pair, (x) -> x * 2)
+type Pair = [T] => {T, T}
+
+def pair: ApplyInt[Pair] = {0, 0}
 ```
+
+NOTE: While some higher-order types already work, this feature is still a work in progress.
 
 ## Union and intersection types
 
@@ -164,4 +181,4 @@ Here are a few features I would like to eventually work on in the future:
 
 Clam is simply a pet project of mine, it is not intended to be a full-blown programming language. I created it during my master's thesis evaluation to learn OCaml, practice functional programming and apply some of the knowledge I had gained on types and type theory.
 
-As said in the roadmap, some features are not complete yet, although the examples should work.
+As said in the roadmap, some features are not complete yet, although the examples do work.

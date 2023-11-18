@@ -68,10 +68,20 @@ and validate_record record context =
   Utils.NameMap.iter (fun _ attr -> validate_attr attr context) record.attrs
 
 and validate_app app =
-  match app.type' with
-  | TypeAbs abs ->
+  match validate_app_type app.type' with
+  | Some abs ->
     valiate_app_abs app abs
-  | _ -> TypingErrors.raise_type_app_kind app.type'
+  | None ->
+    TypingErrors.raise_type_app_kind app.type'
+
+and validate_app_type type' =
+  match type' with
+  | TypeVar var ->
+    validate_app_type var.param.type'
+  | TypeAbs abs ->
+    Some abs
+  | _ ->
+    None
 
 and valiate_app_abs app abs =
   let params = abs.params in

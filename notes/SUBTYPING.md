@@ -40,3 +40,8 @@ THIS LIST IS NOT UP-TO-DATE
 - Subtyping uses substitution for type applications, but what if it simply added variables to the context ?
 - Check the interactions of a type variable bound to a parameter whose name is overriden by another parameter.
 - Check this case `case (abs_expr_type_1 ("A", top) (fun a -> (inter a int))) (abs_expr_type_1 ("B", top) (fun b -> b)) (abs_expr_type_1 ("A", top) (fun a -> (inter a int)));`
+
+UPTODATE ENTRIES:
+- `Top` should only be a supertype of first order types
+- Factorize type inference
+- Finish higher order subtyping

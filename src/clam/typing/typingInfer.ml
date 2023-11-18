@@ -392,18 +392,20 @@ and infer_attr_type type' name context =
 and infer_app app returner =
   let* type' = infer_none app.expr in
   let* context = get_context in
-  match infer_app_type app type' context with
-  | Some abs -> infer_app_abs app abs returner
-  | None -> TypingErrors.raise_expr_app_kind app type'
+  match infer_app_type type' context with
+  | Some abs ->
+    infer_app_abs app abs returner
+  | None ->
+    TypingErrors.raise_expr_app_kind app type'
 
-and infer_app_type app type' context =
+and infer_app_type type' context =
   match type' with
   | TypeVar var ->
     let type' = TypingPromote.promote_var var in
-    infer_app_type app type' context
+    infer_app_type type' context
   | TypeApp type_app ->
     let type' = TypingApp.apply_app type_app in
-    infer_app_type app type' context
+    infer_app_type type' context
   | TypeAbsExpr abs ->
     Some abs
   | _ -> None
@@ -478,10 +480,25 @@ and infer_type_abs abs returner =
 
 and infer_type_app app returner =
   let* type' = infer_none app.expr in
-  match type' with
-  | TypeAbsExprType abs ->
+  let* context = get_context in
+  match infer_type_app_type type' context with
+  | Some abs ->
     infer_type_app_abs app abs returner
-  | _ -> TypingErrors.raise_expr_type_app_kind app type'
+  | None ->
+    TypingErrors.raise_expr_type_app_kind app type'
+
+and infer_type_app_type type' context =
+  match type' with
+  | TypeVar var ->
+    let type' = TypingPromote.promote_var var in
+    infer_type_app_type type' context
+  | TypeApp type_app ->
+    let type' = TypingApp.apply_app type_app in
+    infer_type_app_type type' context
+  | TypeAbs abs ->
+    Some abs
+  | _ ->
+    None
 
 and infer_type_app_abs app abs returner =
   if List.compare_lengths abs.params app.args != 0 then

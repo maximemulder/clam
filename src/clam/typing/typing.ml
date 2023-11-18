@@ -50,8 +50,7 @@ and is left right =
   | (TypeAbsExprType left_abs, TypeAbsExprType right_abs) ->
     is_abs_expr_type left_abs right_abs
   | (TypeAbs left_abs, TypeAbs right_abs) ->
-    Utils.compare_lists is_param left_abs.params right_abs.params
-    && is left_abs.body right_abs.body
+    is_abs_type left_abs right_abs
   | (TypeApp left_app, _) ->
     is (TypingApp.apply_app left_app) right
   | (_, TypeApp right_app) ->
@@ -78,16 +77,21 @@ and is_var left_var right =
   | TypeVar right_var -> left_var.param == right_var.param
   | _ -> false
 
-and is_param left_param right_param =
-  is left_param.type' right_param.type'
-
-and is_attr left_attr right_attr =
-  is left_attr.type' right_attr.type'
-
 and is_abs_expr_type left_abs right_abs =
   Utils.compare_lists is_param left_abs.params right_abs.params &&
   let right_body = TypingApp.apply_abs_expr_params right_abs left_abs.params in
   is left_abs.body right_body
+
+and is_abs_type left_abs right_abs =
+  Utils.compare_lists is_param left_abs.params right_abs.params &&
+  let right_body = TypingApp.apply_abs_params right_abs left_abs.params in
+  is left_abs.body right_body
+
+and is_attr left_attr right_attr =
+  is left_attr.type' right_attr.type'
+
+and is_param left_param right_param =
+  is left_param.type' right_param.type'
 
 (* TYPE SUB *)
 
@@ -132,9 +136,7 @@ and isa sub sup =
   | (TypeAbsExprType sub_abs, TypeAbsExprType sup_abs) ->
     isa_abs_expr_type sub_abs sup_abs
   | (TypeAbs sub_abs, TypeAbs sup_abs) ->
-    let params = Utils.compare_lists is_param sub_abs.params sup_abs.params in
-    let* body = isa sub_abs.body sup_abs.body in
-    return (params && body)
+    isa_abs_type sub_abs sup_abs
   | (TypeApp sub_app, _) ->
     let sub = TypingApp.apply_app sub_app in
     isa sub sup
@@ -177,6 +179,13 @@ and isa_abs_expr_type sub_abs sup_abs =
     return false
   else
   let sup_body = TypingApp.apply_abs_expr_params sup_abs sub_abs.params in
+  isa sub_abs.body sup_body
+
+and isa_abs_type sub_abs sup_abs =
+  if not (Utils.compare_lists is_param sub_abs.params sup_abs.params) then
+    return false
+  else
+  let sup_body = TypingApp.apply_abs_params sup_abs sub_abs.params in
   isa sub_abs.body sup_body
 
 (* TYPE NORMALIZATION *)
