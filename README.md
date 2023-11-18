@@ -116,9 +116,9 @@ type Pair = [T] => {T, T}
 def pair: Pair[Int] = {0, 0}
 ```
 
-## Higher-order types
+## Higher-kinded types
 
-Clam features higher-order types, which allow type constructors to abstract over other type constructors.
+Clam features higher-kinded types, which allow type constructors to abstract over other type constructors.
 
 ```
 type ApplyInt = [T: [U] => Top] => T[Int]
@@ -128,7 +128,7 @@ type Pair = [T] => {T, T}
 def pair: ApplyInt[Pair] = {0, 0}
 ```
 
-NOTE: While some higher-order types already work, this feature is still a work in progress.
+NOTE: While some higher-kinded types already work, this feature is still a work in progress.
 
 ## Union and intersection types
 
