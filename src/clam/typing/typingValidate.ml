@@ -78,6 +78,8 @@ and validate_app_type type' =
   match type' with
   | TypeVar var ->
     validate_app_type var.param.type'
+  | TypeApp app ->
+    validate_app_type (TypingApp.apply_app app)
   | TypeAbs abs ->
     Some abs
   | _ ->

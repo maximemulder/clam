@@ -208,7 +208,7 @@ and check_abs_param param constr =
   let* type' = match param.type' with
   | Some type' ->
     let* () = validate_proper type' in
-    let* () = validate_subtype constr type' in
+    let* () = validate_subtype type' constr in
     return type'
   | None ->
     return constr

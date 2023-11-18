@@ -83,12 +83,23 @@ and apply_abs_params abs params =
   let entries = params_entries params abs.params abs.pos in
   apply abs.body entries
 
-let apply_app (app: type_app) =
-  match app.type' with
-  | TypeAbs abs ->
+let rec apply_app (app: type_app) =
+  match apply_app_type app.type' with
+  | Some abs ->
     if List.compare_lengths abs.params app.args != 0 then
       TypingErrors.raise_unexpected ()
     else
     let entries = List.combine abs.params app.args in
     apply abs.body entries
   | _ -> TypingErrors.raise_unexpected ()
+
+and apply_app_type (type': type'): type_abs option =
+  match type' with
+  | TypeVar var ->
+    apply_app_type var.param.type'
+  | TypeAbs abs ->
+    Some abs
+  | TypeApp app ->
+    apply_app_type (apply_app app)
+  | _ ->
+    None

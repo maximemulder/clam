@@ -121,14 +121,20 @@ def pair: Pair[Int] = {0, 0}
 Clam features higher-kinded types, which allow type constructors to abstract over other type constructors.
 
 ```
-type ApplyInt = [T: [U] => Top] => T[Int]
+type Monad = [M: [T] => Top, A] => {
+    return: (A) -> M[A],
+    bind: [B] -> (M[A], (A) -> M[B]) -> M[B]
+}
 
-type Pair = [T] => {T, T}
+type State = [S] => [T] => (S) -> {T, S}
 
-def pair: ApplyInt[Pair] = {0, 0}
+def state_monad: [S, A] -> Monad[State[S], A] = [S, A] -> {
+    return = (a: A) -> (s: S) -> {a, s},
+    bind = [B] -> (m: State[S][A], f: (A) -> State[S][B]) -> (s: S) ->
+        var bs = m(s);
+        f(bs.0)(bs.1)
+}
 ```
-
-NOTE: While some higher-kinded types already work, this feature is still a work in progress.
 
 ## Union and intersection types
 
@@ -169,9 +175,8 @@ Clam does not feature recursive types yet, which is quite limiting.
 # Roadmap
 
 Here are a few features I would like to eventually work on in the future:
-1. Finish unions, intersections and the bottom type
-2. Improve code quality (monadic error handling and better testing)
-3. Add higher-order types
+1. Finish higher-order types, double-check features and add more testing
+2. Better (monadic) error handling and reporting
 4. Add recursive types
 5. Add negation types
 6. Add pattern matching using types
