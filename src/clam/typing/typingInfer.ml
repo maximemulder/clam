@@ -117,6 +117,11 @@ let validate_subtype type' constr =
   let () = TypingValidate.validate_subtype type' constr context in
   return ()
 
+let validate_suptype type' constr =
+  let* context = get_context in
+  let () = TypingValidate.validate_suptype type' constr context in
+  return ()
+
 let rec check expr constr =
   match constr with
   | TypeUnion _ | TypeInter _ ->
@@ -208,7 +213,7 @@ and check_abs_param param constr =
   let* type' = match param.type' with
   | Some type' ->
     let* () = validate_proper type' in
-    let* () = validate_subtype type' constr in
+    let* () = validate_suptype type' constr in
     return type'
   | None ->
     return constr
@@ -495,7 +500,7 @@ and infer_type_app_type type' context =
   | TypeApp type_app ->
     let type' = TypingApp.apply_app type_app in
     infer_type_app_type type' context
-  | TypeAbs abs ->
+  | TypeAbsExprType abs ->
     Some abs
   | _ ->
     None

@@ -10,7 +10,15 @@ let rec validate_subtype type' constr =
   let* () = validate type' in
   let* sub = Typing.isa type' constr in
   if Bool.not sub then
-    TypingErrors.raise_type_constraint type' constr
+    TypingErrors.raise_subtype_constraint type' constr
+  else
+    return ()
+
+and validate_suptype type' constr =
+  let* () = validate type' in
+  let* sub = Typing.isa constr type' in
+  if Bool.not sub then
+    TypingErrors.raise_suptype_constraint type' constr
   else
     return ()
 
