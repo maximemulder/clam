@@ -140,8 +140,8 @@ type Monad = [M: [T] => Top, A] => {
 type State = [S, T] => (S) -> {T, S}
 
 def state_monad: [S, A] -> Monad[State[S], A] = [S, A] -> {
-    return = (a: A, s: S) -> {a, s},
-    bind = [B] -> (m: State[S, A], f: (A) -> State[S, B], s: S) ->
+    return = (a, s) -> {a, s},
+    bind = [B] -> (m, f, s) ->
         var bs = m(s);
         f(bs.0, bs.1)
 }
