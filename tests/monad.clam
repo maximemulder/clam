@@ -12,4 +12,26 @@ def state_monad: [S, A] -> Monad[State[S], A] = [S, A] -> {
         f(bs.0, bs.1)
 }
 
-def main = unit
+type S = [T] => State[Int, T]
+
+def sm = state_monad[Int]
+
+def new = (counter: Int) -> {unit, counter}
+
+def increment = [T] -> (v: T, s: Int) -> {v, s + 1}
+
+def log = [T] -> (v: T, s: Int) ->
+    print(s);
+    {v, s}
+
+def program = (m: S[Unit]) ->
+    var m = sm[Unit].bind[Unit](m, log[Unit]);
+    var m = sm[Unit].bind[Unit](m, increment[Unit]);
+    var m = sm[Unit].bind[Unit](m, log[Unit]);
+    var m = sm[Unit].bind[String](m, (u) -> sm[String].return("Hello world !"));
+    var m = sm[String].bind[String](m, increment[String]);
+    var m = sm[String].bind[Unit](m, (s) -> sm[Unit].return(print(s)));
+    var m = sm[Unit].bind[Unit](m, log[Unit]);
+    m
+
+def main = program(new)(0)
