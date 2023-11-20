@@ -75,26 +75,26 @@ and type_union = {
 
 and type_abs_expr = {
   pos: pos;
-  params: type' list;
+  param: type';
   body: type';
 }
 
 and type_abs_expr_type = {
   pos: pos;
-  params: param_type list;
+  param: param_type;
   body: type';
 }
 
 and type_abs = {
   pos: pos;
-  params: param_type list;
+  param: param_type;
   body: type';
 }
 
 and type_app = {
   pos: pos;
   type': type';
-  args: type' list;
+  arg: type';
 }
 
 and attr_type = {
@@ -242,26 +242,26 @@ and expr_if = {
 
 and expr_abs = {
   pos: pos;
-  params: param_expr list;
+  param: param_expr;
   body: expr;
 }
 
 and expr_app = {
   pos: pos;
   expr: expr;
-  args: expr list;
+  arg: expr;
 }
 
 and expr_type_abs = {
   pos: pos;
-  params: param_type list;
+  param: param_type;
   body: expr;
 }
 
 and expr_type_app = {
   pos: pos;
   expr: expr;
-  args: type' list;
+  arg: type';
 }
 
 and expr_stmt = {

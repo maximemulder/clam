@@ -29,6 +29,13 @@ and isa l r c =
   print_endline(tab ^ (TypingDisplay.display (normalize l)) ^ " : " ^ (TypingDisplay.display (normalize r)));
   print_endline(tab ^ (TypingDisplay.display l) ^ " : " ^ (TypingDisplay.display r) ^ "   " ^ (string_of_bool res));
   res
+
+and is l r =
+  let res = indent_with (fun _ -> is2 l r) in
+  let tab = indent indent_n.contents in
+  print_endline(tab ^ (TypingDisplay.display (normalize l)) ^ " = " ^ (TypingDisplay.display (normalize r)));
+  print_endline(tab ^ (TypingDisplay.display l) ^ " = " ^ (TypingDisplay.display r) ^ "   " ^ (string_of_bool res));
+  res
 ```
 
 ## TODO

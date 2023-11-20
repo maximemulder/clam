@@ -74,7 +74,6 @@ module Monad (M: MONAD) = struct
       return (r && r2)
     | _ ->
       return false
-
 end
 
 module type STATE = sig

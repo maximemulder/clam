@@ -95,13 +95,6 @@ and modelize_type (type': Ast.type') =
   match snd type' with
   | TypeIdent name ->
     modelize_name type' name
-  | TypeAbsExpr (params, ret) ->
-    let* params = map_list modelize_type params in
-    let* body = modelize_type ret in
-    return (Model.TypeAbsExpr { pos; params; body })
-  | TypeAbsExprType (params, body) ->
-    let* (params, body) = modelize_params params body in
-    return (Model.TypeAbsExprType { pos; params; body })
   | TypeProduct (fields) ->
     modelize_product type' fields
   | TypeInter (left, right) ->
@@ -112,21 +105,55 @@ and modelize_type (type': Ast.type') =
     let* left = modelize_type left in
     let* right = modelize_type right in
     return (Model.TypeUnion { pos; left; right })
+  | TypeAbsExpr (params, body) ->
+    modelize_abs_expr pos params body
+  | TypeAbsExprType (params, body) ->
+    modelize_abs_expr_type pos params body
   | TypeAbs (params, body) ->
-    let* (params, body) = modelize_params params body in
-    return (Model.TypeAbs { pos; params; body })
+    modelize_abs pos params body
   | TypeApp (type', args) ->
     let* type' = modelize_type type' in
-    let* args = map_list modelize_type args in
-    return (Model.TypeApp { pos; type'; args })
+    modelize_app pos type' args
 
-and modelize_params params type' =
-  let* params = map_list modelize_param params in
-  let types = List.map (fun (param: Model.param_type) -> (param.name, Model.TypeVar { pos = Model.type_pos param.type'; param })) params in
-  let* type' = with_scope (modelize_type type') types in
-  return (params, type')
+and modelize_abs_expr pos params body =
+  match params with
+  | [] ->
+    modelize_type body
+  | (param :: params) ->
+    let* param = modelize_type param in
+    let* body = modelize_abs_expr pos params body in
+    return (Model.TypeAbsExpr { pos; param; body })
 
-and modelize_param param =
+and modelize_abs_expr_type pos params body =
+  match params with
+  | [] ->
+    modelize_type body
+  | (param :: params) ->
+    let* param = modelize_param param in
+    let type' = (param.name, Model.TypeVar { pos = Model.type_pos param.type'; param }) in
+    let* body = with_scope (modelize_abs_expr_type pos params body) [type'] in
+    return (Model.TypeAbsExprType { pos; param; body })
+
+and modelize_abs pos params body =
+  match params with
+  | [] ->
+    modelize_type body
+  | (param :: params) ->
+    let* param = modelize_param param in
+    let type' = (param.name, Model.TypeVar { pos = Model.type_pos param.type'; param }) in
+    let* body = with_scope (modelize_abs pos params body) [type'] in
+    return (Model.TypeAbs { pos; param; body })
+
+and modelize_app pos type' args =
+  match args with
+  | [] ->
+    return type'
+  | (arg :: args) ->
+    let* arg = modelize_type arg in
+    let app = (Model.TypeApp { pos; type'; arg }) in
+    modelize_app pos app args
+
+and modelize_param (param: Ast.param ): Model.param_type t =
   let* type' = map_option modelize_type param.type' in
   let type' = Option.value type' ~default:(Model.TypeTop { pos = param.pos }) in
   return { Model.name = param.name; Model.type' = type' }
@@ -189,7 +216,7 @@ let modelize_program (program: Ast.program) =
   let state = modelize_defs state in
   (state.scope.dones, state.all)
 
-let modelize_abs params state =
-  let types = List.map (fun (param: Model.param_type) -> (param.name, Model.TypeVar { pos = Model.type_pos param.type'; param})) params in
-  let (_, state) = make_child types state in
+let modelize_abs (param: Model.param_type) state =
+  let type' = (param.name, Model.TypeVar { pos = Model.type_pos param.type'; param}) in
+  let (_, state) = make_child [type'] state in
   state.scope.dones

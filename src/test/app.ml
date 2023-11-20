@@ -54,6 +54,5 @@ let tests = [
   case_1 ("A", d) (fun a -> (union b a)) (union b d);
   case_1 ("A", d) (fun a -> (inter a b)) (inter d b);
   case_1 ("A", d) (fun a -> (inter b a)) (inter b d);
-  case_1 ("A", d) (fun a -> (abs_expr_type_0 a)) (abs_expr_type_0 d);
-  case_1 ("A", d) (fun a -> (abs_expr_type_1 ("B", a) (fun b -> b))) (abs_expr_type_1 ("B", d) (fun b -> b));
+  case_1 ("A", d) (fun a -> (abs_expr_type ("B", a) (fun b -> b))) (abs_expr_type ("B", d) (fun b -> b));
 ]

@@ -61,18 +61,12 @@ let tests = [
   case (record [("foo", a)]) (record [("bar", b)]) (union (record [("foo", a)]) (record [("bar", b)]));
 
   (* expression to expression abstractions *)
-  case (abs_expr [a] b) (abs_expr [a] b) (abs_expr [a] b);
-  case (abs_expr [top] b) (abs_expr [a] b) (abs_expr [a] b);
-  case (abs_expr [a] b) (abs_expr [top] b) (abs_expr [a] b);
-  case (abs_expr [a] top) (abs_expr [a] b) (abs_expr [a] top);
-  case (abs_expr [a] b) (abs_expr [a] top) (abs_expr [a] top);
-  case (abs_expr [a] c) (abs_expr [b] c) (union (abs_expr [a] c) (abs_expr [b] c));
-  case (abs_expr [a] b) (abs_expr [a] c) (union (abs_expr [a] b) (abs_expr [a] c));
-  case (abs_expr [a] b) (abs_expr [c] d) (union (abs_expr [a] b) (abs_expr [c] d));
-
-  (* type to expression abstractions *)
-  case (abs_expr_type_0 a) (abs_expr_type_0 a) (abs_expr_type_0 a);
-  case (abs_expr_type_0 a) (abs_expr_type_0 top) (abs_expr_type_0 top);
-  case (abs_expr_type_0 top) (abs_expr_type_0 a) (abs_expr_type_0 top);
-  case (abs_expr_type_0 a) (abs_expr_type_0 b) (union (abs_expr_type_0 a) (abs_expr_type_0 b));
+  case (abs_expr a b) (abs_expr a b) (abs_expr a b);
+  case (abs_expr top b) (abs_expr a b) (abs_expr a b);
+  case (abs_expr a b) (abs_expr top b) (abs_expr a b);
+  case (abs_expr a top) (abs_expr a b) (abs_expr a top);
+  case (abs_expr a b) (abs_expr a top) (abs_expr a top);
+  case (abs_expr a c) (abs_expr b c) (union (abs_expr a c) (abs_expr b c));
+  case (abs_expr a b) (abs_expr a c) (union (abs_expr a b) (abs_expr a c));
+  case (abs_expr a b) (abs_expr c d) (union (abs_expr a b) (abs_expr c d));
 ]

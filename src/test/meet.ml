@@ -58,25 +58,21 @@ let tests = [
   case (inter a b) c (inter a (inter b c));
 
   (* expression to expression abstractions *)
-  case (abs_expr [a] b) (abs_expr [a] b) (abs_expr [a] b);
-  case (abs_expr [a] c) (abs_expr [b] c) (abs_expr [(inter a b)] c);
-  case (abs_expr [a] b) (abs_expr [a] c) (abs_expr [a] (inter b c));
-  case (abs_expr [a] c) (abs_expr [b] d) (abs_expr [(inter a b)] (inter c d));
+  case (abs_expr a b) (abs_expr a b) (abs_expr a b);
+  case (abs_expr a c) (abs_expr b c) (abs_expr (inter a b) c);
+  case (abs_expr a b) (abs_expr a c) (abs_expr a (inter b c));
+  case (abs_expr a c) (abs_expr b d) (abs_expr (inter a b) (inter c d));
 
   (* type to expression abstractions *)
-  case (abs_expr_type_0 a) (abs_expr_type_0 a) (abs_expr_type_0 a);
-  case (abs_expr_type_0 a) (abs_expr_type_0 b) (abs_expr_type_0 (inter a b));
-  case (abs_expr_type_1 ("A", top) (inline c)) (abs_expr_type_1 ("B", top) (inline d)) (abs_expr_type_1 ("A", top) (inline ((inter c d))));
-  case (abs_expr_type_1 ("A", top) (inline a)) (abs_expr_type_0 b) bot;
-  case (abs_expr_type_0 a) (abs_expr_type_1 ("B", top) (inline b)) bot;
-  case (abs_expr_type_1 ("A", unit) (inline a)) (abs_expr_type_1 ("B", top) (inline b)) bot;
-  case (abs_expr_type_1 ("A", top) (inline a)) (abs_expr_type_1 ("B", unit) (inline b)) bot;
+  case (abs_expr_type ("A", top) (inline c)) (abs_expr_type ("B", top) (inline d)) (abs_expr_type ("A", top) (inline ((inter c d))));
+  case (abs_expr_type ("A", unit) (inline a)) (abs_expr_type ("B", top) (inline b)) bot;
+  case (abs_expr_type ("A", top) (inline a)) (abs_expr_type ("B", unit) (inline b)) bot;
 
-  case (abs_expr_type_1 ("A", top) (fun a -> a)) (abs_expr_type_1 ("A", top) (fun a -> a)) (abs_expr_type_1 ("A", top) (fun a -> a));
-  case (abs_expr_type_1 ("A", top) (fun a -> a)) (abs_expr_type_1 ("B", top) (fun b -> b)) (abs_expr_type_1 ("A", top) (fun a -> a));
-  case (abs_expr_type_1 ("A", top) (fun a -> (tuple [a]))) (abs_expr_type_1 ("B", top) (fun b -> (tuple [b]))) (abs_expr_type_1 ("A", top) (fun a -> tuple[a]));
+  case (abs_expr_type ("A", top) (fun a -> a)) (abs_expr_type ("A", top) (fun a -> a)) (abs_expr_type ("A", top) (fun a -> a));
+  case (abs_expr_type ("A", top) (fun a -> a)) (abs_expr_type ("B", top) (fun b -> b)) (abs_expr_type ("A", top) (fun a -> a));
+  case (abs_expr_type ("A", top) (fun a -> (tuple [a]))) (abs_expr_type ("B", top) (fun b -> (tuple [b]))) (abs_expr_type ("A", top) (fun a -> tuple[a]));
 
   (* TODO: Add these tests once duplicates are gone (either through sorting or exhaustive meet) *)
-  (* case (abs_expr_type_1 ("A", top) (fun a -> (inter int a))) (abs_expr_type_1 ("B", top) (fun b -> b)) (abs_expr_type_1 ("A", top) (fun a -> (inter int a)));
-  case (abs_expr_type_1 ("A", top) (fun a -> a)) (abs_expr_type_1 ("B", top) (fun b -> (inter b int))) (abs_expr_type_1 ("A", top) (fun a -> (inter int a))); *)
+  (* case (abs_expr_type ("A", top) (fun a -> (inter int a))) (abs_expr_type ("B", top) (fun b -> b)) (abs_expr_type ("A", top) (fun a -> (inter int a)));
+  case (abs_expr_type ("A", top) (fun a -> a)) (abs_expr_type ("B", top) (fun b -> (inter b int))) (abs_expr_type ("A", top) (fun a -> (inter int a))); *)
 ]

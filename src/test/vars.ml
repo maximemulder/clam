@@ -31,16 +31,13 @@ let union left right =
 let inter left right =
   TypeInter { pos; left; right }
 
-let abs_expr params body =
-  TypeAbsExpr { pos; params; body }
+let abs_expr param body =
+  TypeAbsExpr { pos; param; body }
 
-let abs_expr_type_0 body =
-  TypeAbsExprType { pos; params = []; body = body }
-
-let abs_expr_type_1 (name, type') body =
+let abs_expr_type (name, type') body =
   let param = { name; type' } in
-  let var = TypeVar { pos; param } in
-  TypeAbsExprType { pos; params = [param]; body = body var }
+  let body = body (TypeVar { pos; param }) in
+  TypeAbsExprType { pos; param; body }
 
 let a = var "A" top
 let b = var "B" top

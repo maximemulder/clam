@@ -1,6 +1,19 @@
 open Utils
 
-type value =
+module BindKey = struct
+  type t = Model.bind_expr
+
+  let compare x y  = Stdlib.compare (Model.bind_expr_id x) (Model.bind_expr_id y)
+end
+
+module BindMap = Map.Make(BindKey)
+
+type frame = {
+  parent: frame option;
+  binds: value BindMap.t;
+}
+
+and value =
 | VPrint
 | VUnit
 | VBool    of bool
@@ -9,8 +22,18 @@ type value =
 | VString  of string
 | VTuple   of value list
 | VRecord  of value NameMap.t
-| VExprAbs of Model.expr_abs
-| VTypeAbs of Model.expr_type_abs
+| VExprAbs of abs_expr
+| VTypeAbs of abs_type
+
+and abs_expr = {
+  abs: Model.expr_abs;
+  frame: frame;
+}
+
+and abs_type = {
+  abs: Model.expr_type_abs;
+  frame: frame;
+}
 
 let rec compare value other =
   match (value, other) with

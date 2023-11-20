@@ -51,10 +51,10 @@ and validate (type': type') =
   | TypeVar _ ->
     return ()
   | TypeAbsExpr abs ->
-    let* () = iter_list validate abs.params in
+    let* () = validate abs.param in
     validate abs.body;
   | TypeAbsExprType abs ->
-    let* () = iter_list validate_param abs.params in
+    let* () = validate_param abs.param in
     validate abs.body;
   | TypeTuple tuple ->
     iter_list validate tuple.elems
@@ -67,7 +67,7 @@ and validate (type': type') =
     let* () = validate union.left in
     validate union.right;
   | TypeAbs abs ->
-    let* () = iter_list validate_param abs.params in
+    let*() = validate_param abs.param in
     validate abs.body;
   | TypeApp app ->
     validate_app app;
@@ -94,21 +94,11 @@ and validate_app_type type' =
     None
 
 and valiate_app_abs app abs =
-  let params = abs.params in
-  let args = app.args in
-  let body = abs.body in
-  if List.compare_lengths params args != 0 then
-    TypingErrors.raise_type_app_arity app abs
-  else
-  let entries = List.combine params args in
-  let* () = iter_list validate_app_abs_entry entries in
-  validate body;
+  let* () = validate_subtype app.arg abs.param.type' in
+  validate abs.body
 
 and validate_attr attr =
   validate attr.type'
 
 and validate_param param =
   validate param.type'
-
-and validate_app_abs_entry (param, arg) =
-  validate_subtype arg param.type'

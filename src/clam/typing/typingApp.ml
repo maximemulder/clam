@@ -6,8 +6,8 @@ let find_arg param entries =
   let entry = List.find_opt (fun entry -> fst entry == param) entries in
   Option.map snd entry
 
-let params_entries lefts rights pos =
-  List.map2 (fun left right -> (right, TypeVar { pos; param = left })) lefts rights
+let param_entries (left: param_type) (right: param_type) pos =
+  [(right, TypeVar { pos; param = left })]
 
 module Reader = struct
   type r = entries
@@ -41,23 +41,23 @@ let rec apply (type': type') =
     let* right = apply union.right in
     return (TypeUnion { union with left; right })
   | TypeAbsExpr abs ->
-    let* params = map_list apply abs.params in
+    let* param = apply abs.param in
     let* body = apply abs.body in
-    return (TypeAbsExpr { abs with params; body })
+    return (TypeAbsExpr { abs with param; body })
   | TypeAbsExprType abs ->
-    let* params = map_list apply_param abs.params in
-    let body = apply_abs_expr_params abs params in
+    let* param = apply_param abs.param in
+    let body = apply_abs_expr_param abs param in
     let* body = apply body in
-    return (TypeAbsExprType { abs with params; body })
+    return (TypeAbsExprType { abs with param; body })
   | TypeAbs abs ->
-    let* params = map_list apply_param abs.params in
-    let body = apply_abs_params abs params in
+    let* param = apply_param abs.param in
+    let body = apply_abs_param abs param in
     let* body = apply body in
-    return (TypeAbs { abs with params; body })
+    return (TypeAbs { abs with param; body })
   | TypeApp app ->
     let* type' = apply app.type' in
-    let* args = map_list apply app.args in
-    return (TypeApp { app with type'; args })
+    let* arg = apply app.arg in
+    return (TypeApp { app with type'; arg })
 
 and apply_var var =
   let* arg = find_arg var.param in
@@ -75,21 +75,18 @@ and apply_attr attr =
   let* type' = apply attr.type' in
   return { attr with type' }
 
-and apply_abs_expr_params abs params =
-  let entries = params_entries params abs.params abs.pos in
+and apply_abs_expr_param abs param =
+  let entries = param_entries param abs.param abs.pos in
   apply abs.body entries
 
-and apply_abs_params abs params =
-  let entries = params_entries params abs.params abs.pos in
+and apply_abs_param abs param =
+  let entries = param_entries param abs.param abs.pos in
   apply abs.body entries
 
 let rec apply_app (app: type_app) =
   match apply_app_type app.type' with
   | Some abs ->
-    if List.compare_lengths abs.params app.args != 0 then
-      TypingErrors.raise_unexpected ()
-    else
-    let entries = List.combine abs.params app.args in
+    let entries = [(abs.param, app.arg)] in
     apply abs.body entries
   | _ -> TypingErrors.raise_unexpected ()
 

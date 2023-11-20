@@ -4,11 +4,11 @@ This is  Clam ! A small statically typed functional programming language with ma
 
 # Example
 
-A Clam program is a sequence of type and expression definitions, declared respectively with the keywords `type` and `def`. The order of these definitions is unimportant.
+A Clam program is a sequence of type and term definitions, declared respectively with the keywords `type` and `def`. The order of these definitions is unimportant.
 
-When a program is executed, the `main` expression definition is evaluated.
+When a program is executed, the `main` term definition is evaluated.
 
-Printing is done through the (impure) `print` function, which can be chained with other expressions using a semicolon.
+Printing is done through the (impure) `print` function, which can be chained with other terms using a semicolon.
 
 ```
 def fibonacci: (Int) -> Int = (n) ->
@@ -92,7 +92,7 @@ def foo = (bot: Bot) ->
 
 ## Universal types
 
-Clam features universal types, which allow to abstract over an expression using types.
+Clam features universal types, which allow to abstract over a term using types.
 
 ```
 type Iter = [T] -> (Int, T, (T) -> T) -> T
@@ -116,6 +116,17 @@ type Pair = [T] => {T, T}
 def pair: Pair[Int] = {0, 0}
 ```
 
+## Currying
+
+Clam features currying, which allows the partial application of type and term abstractions with multiple parameters. Currying is enabled by Clam's lambda-calculus-like core, where abstractions and applications are decomposed into their unary form.
+
+```
+def add = (a: Int, b: Int) -> a + b
+
+def step = add(1)
+def three = step(2)
+```
+
 ## Higher-kinded types
 
 Clam features higher-kinded types, which allow type constructors to abstract over other type constructors.
@@ -126,13 +137,13 @@ type Monad = [M: [T] => Top, A] => {
     bind: [B] -> (M[A], (A) -> M[B]) -> M[B]
 }
 
-type State = [S] => [T] => (S) -> {T, S}
+type State = [S, T] => (S) -> {T, S}
 
 def state_monad: [S, A] -> Monad[State[S], A] = [S, A] -> {
-    return = (a: A) -> (s: S) -> {a, s},
-    bind = [B] -> (m: State[S][A], f: (A) -> State[S][B]) -> (s: S) ->
+    return = (a: A, s: S) -> {a, s},
+    bind = [B] -> (m: State[S, A], f: (A) -> State[S, B], s: S) ->
         var bs = m(s);
-        f(bs.0)(bs.1)
+        f(bs.0, bs.1)
 }
 ```
 

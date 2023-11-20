@@ -58,18 +58,17 @@ let tests = [
   case (inter a (union b c)) (union (inter a b) (inter a c));
 
   (* meets *)
-  case (inter (abs_expr [a] c) (abs_expr [b] c)) (abs_expr [(inter a b)] c);
-  case (abs_expr [(inter a b)] c) (inter (abs_expr [a] c) (abs_expr [b] c));
-  case (inter (abs_expr [a] b) (abs_expr [a] c)) (abs_expr [a] (inter b c));
-  case (abs_expr [a] (inter b c)) (inter (abs_expr [a] b) (abs_expr [a] c));
-  case (inter (abs_expr [a] c) (abs_expr [b] d)) (abs_expr [(inter a b)] (inter c d));
-  case (abs_expr [(inter a b)] (inter c d)) (inter (abs_expr [a] c) (abs_expr [b] d));
+  case (inter (abs_expr a c) (abs_expr b c)) (abs_expr (inter a b) c);
+  case (abs_expr (inter a b) c) (inter (abs_expr a c) (abs_expr b c));
+  case (inter (abs_expr a b) (abs_expr a c)) (abs_expr a (inter b c));
+  case (abs_expr a (inter b c)) (inter (abs_expr a b) (abs_expr a c));
+  case (inter (abs_expr a c) (abs_expr b d)) (abs_expr (inter a b) (inter c d));
+  case (abs_expr (inter a b) (inter c d)) (inter (abs_expr a c) (abs_expr b d));
 
   (* type to expression abstractions *)
-  case (abs_expr_type_0 a) (abs_expr_type_0 a);
-  case (abs_expr_type_1 ("A", top) (inline a)) (abs_expr_type_1 ("A", top) (inline a));
-  case (abs_expr_type_1 ("A", top) (fun a -> a)) (abs_expr_type_1 ("A", top) (fun a -> a));
-  case (abs_expr_type_1 ("A", top) (fun a -> a)) (abs_expr_type_1 ("B", top) (fun b -> b));
+  case (abs_expr_type ("A", top) (inline a)) (abs_expr_type ("A", top) (inline a));
+  case (abs_expr_type ("A", top) (fun a -> a)) (abs_expr_type ("A", top) (fun a -> a));
+  case (abs_expr_type ("A", top) (fun a -> a)) (abs_expr_type ("B", top) (fun b -> b));
 ]
 
 let case left right = case_base left right false
@@ -110,5 +109,5 @@ let tests_not = [
 
   (* ambiguous names *)
   case (var "A" top) (var "A" top);
-  case (abs_expr_type_1 ("A", top) (fun a -> a)) (abs_expr_type_1 ("A", top) (inline a));
+  case (abs_expr_type ("A", top) (fun a -> a)) (abs_expr_type ("A", top) (inline a));
 ]

@@ -45,7 +45,7 @@ and is left right =
   | (TypeRecord left_record, TypeRecord right_record) ->
     Utils.compare_maps is_attr left_record.attrs right_record.attrs
   | (TypeAbsExpr left_abs, TypeAbsExpr right_abs) ->
-    Utils.compare_lists is left_abs.params right_abs.params
+    is left_abs.param right_abs.param
     && is left_abs.body right_abs.body
   | (TypeAbsExprType left_abs, TypeAbsExprType right_abs) ->
     is_abs_expr_type left_abs right_abs
@@ -78,13 +78,13 @@ and is_var left_var right =
   | _ -> false
 
 and is_abs_expr_type left_abs right_abs =
-  Utils.compare_lists is_param left_abs.params right_abs.params &&
-  let right_body = TypingApp.apply_abs_expr_params right_abs left_abs.params in
+  is_param left_abs.param right_abs.param
+  && let right_body = TypingApp.apply_abs_expr_param right_abs left_abs.param in
   is left_abs.body right_body
 
 and is_abs_type left_abs right_abs =
-  Utils.compare_lists is_param left_abs.params right_abs.params &&
-  let right_body = TypingApp.apply_abs_params right_abs left_abs.params in
+  is_param left_abs.param right_abs.param
+  && let right_body = TypingApp.apply_abs_param right_abs left_abs.param in
   is left_abs.body right_body
 
 and is_attr left_attr right_attr =
@@ -130,7 +130,7 @@ and isa sub sup =
   | (TypeRecord sub_record, TypeRecord sup_record) ->
     isa_record sub_record sup_record
   | (TypeAbsExpr sub_abs, TypeAbsExpr sup_abs) ->
-    let* params = compare_list2 isa sup_abs.params sub_abs.params in
+    let* params = isa sup_abs.param sub_abs.param in
     let* body = isa sub_abs.body sup_abs.body in
     return (params && body)
   | (TypeAbsExprType sub_abs, TypeAbsExprType sup_abs) ->
@@ -175,17 +175,17 @@ and isa_record_attr sub_record sup_attr =
     return false
 
 and isa_abs_expr_type sub_abs sup_abs =
-  if not (Utils.compare_lists is_param sub_abs.params sup_abs.params) then
+  if not (is_param sub_abs.param sup_abs.param) then
     return false
   else
-  let sup_body = TypingApp.apply_abs_expr_params sup_abs sub_abs.params in
+  let sup_body = TypingApp.apply_abs_expr_param sup_abs sub_abs.param in
   isa sub_abs.body sup_body
 
 and isa_abs_type sub_abs sup_abs =
-  if not (Utils.compare_lists is_param sub_abs.params sup_abs.params) then
+  if not (is_param sub_abs.param sup_abs.param) then
     return false
   else
-  let sup_body = TypingApp.apply_abs_params sup_abs sub_abs.params in
+  let sup_body = TypingApp.apply_abs_param sup_abs sub_abs.param in
   isa sub_abs.body sup_body
 
 (* TYPE NORMALIZATION *)
@@ -335,29 +335,22 @@ and meet_record_attr name left_attr right_attr =
     None
 
 and meet_abs_expr left_abs right_abs =
-  if List.compare_lengths left_abs.params right_abs.params != 0 then
-    prim_bot
-  else
-  let params = List.map2 meet left_abs.params right_abs.params in
+  let param = meet left_abs.param right_abs.param in
   let body = meet left_abs.body right_abs.body in
-  TypeAbsExpr { pos = left_abs.pos; params; body }
+  TypeAbsExpr { pos = left_abs.pos; param; body }
 
 and meet_abs_expr_type left_abs right_abs =
-  if List.compare_lengths left_abs.params right_abs.params != 0 then
-    prim_bot
-  else if not (List.for_all2 is_param left_abs.params right_abs.params) then
+  if not (is_param left_abs.param right_abs.param) then
     prim_bot
   else
-  let right_body = TypingApp.apply_abs_expr_params right_abs left_abs.params in
+  let right_body = TypingApp.apply_abs_expr_param right_abs left_abs.param in
   let body = meet left_abs.body right_body in
-  TypeAbsExprType { pos = left_abs.pos; params = left_abs.params; body }
+  TypeAbsExprType { pos = left_abs.pos; param = left_abs.param; body }
 
 and meet_abs left_abs right_abs =
-  if List.compare_lengths left_abs.params right_abs.params != 0 then
-    prim_bot
-  else if not (List.for_all2 is_param left_abs.params right_abs.params) then
+  if not (is_param left_abs.param right_abs.param) then
     prim_bot
   else
-  let right_body = TypingApp.apply_abs_params right_abs left_abs.params in
+  let right_body = TypingApp.apply_abs_param right_abs left_abs.param in
   let body = meet left_abs.body right_body in
-  TypeAbs { pos = left_abs.pos; params = left_abs.params; body }
+  TypeAbs { pos = left_abs.pos; param = left_abs.param; body }

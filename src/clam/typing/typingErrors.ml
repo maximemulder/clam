@@ -35,24 +35,10 @@ let raise_expr_app_kind (app: expr_app) type' =
     ("expected expression abstraction but found expression of type `" ^ type' ^ "`")
     app.pos
 
-let raise_expr_app_arity (app: expr_app) params =
-  let length_params = string_of_int (List.length params) in
-  let length_args = string_of_int (List.length app.args) in
-  raise
-    ("expected " ^ length_params ^ " arguments but found " ^ length_args ^ " arguments")
-    app.pos
-
 let raise_expr_type_app_kind (app: expr_type_app) type' =
   let type' = display type' in
   raise
     ("expected type to expression abstraction but found type `" ^ type' ^ "`")
-    app.pos
-
-let raise_expr_type_app_arity app params =
-  let length_params = string_of_int (List.length params) in
-  let length_args = string_of_int (List.length app.args) in
-  raise
-    ("expected " ^ length_params ^ " arguments but found " ^ length_args ^ " arguments")
     app.pos
 
 let raise_param (param: param_expr) =
@@ -82,13 +68,6 @@ let raise_type_app_kind type' =
   raise
     ("expected type abstraction but found type `" ^ type' ^ "`")
     pos
-
-let raise_type_app_arity (app: type_app) (abs: type_abs) =
-  let length_params = string_of_int (List.length abs.params) in
-  let length_args = string_of_int (List.length app.args) in
-  raise
-    ("expected " ^ length_params ^ " arguments but found " ^ length_args ^ " arguments")
-    app.pos
 
 let raise_type_proper type' =
   let pos = type_pos type' in

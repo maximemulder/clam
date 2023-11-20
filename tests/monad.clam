@@ -1,0 +1,15 @@
+type Monad = [M: [T] => Top, A] => {
+    return: (A) -> M[A],
+    bind: [B] -> (M[A], (A) -> M[B]) -> M[B]
+}
+
+type State = [S, T] => (S) -> {T, S}
+
+def state_monad: [S, A] -> Monad[State[S], A] = [S, A] -> {
+    return = (a: A, s: S) -> {a, s},
+    bind = [B] -> (m: State[S, A], f: (A) -> State[S, B], s: S) ->
+        var bs = m(s);
+        f(bs.0, bs.1)
+}
+
+def main = unit

@@ -1,0 +1,10 @@
+def add = (a: Int, b: Int) -> a + b
+
+def step = add(1)
+def three = step(2)
+def four = step(three)
+
+def main =
+    print(three);
+    print(four);
+    unit

@@ -18,12 +18,10 @@ and display_surround (type': Model.type') (surround: bool) =
   | TypeString _ -> "String"
   | TypeVar var -> var.param.name
   | TypeAbsExpr abs ->
-    let params = List.map display abs.params in
-    let type' = "(" ^ (String.concat ", " params) ^ ") -> " ^ (display_surround abs.body true) in
+    let type' = "(" ^ (display abs.param) ^ ") -> " ^ (display_surround abs.body true) in
     add_surround type' surround
   | TypeAbsExprType abs ->
-    let params = List.map display_param abs.params in
-    "[" ^ (String.concat ", " params) ^ "] -> " ^ (display_surround abs.body true)
+    "[" ^ (display_param abs.param) ^ "] -> " ^ (display_surround abs.body true)
   | TypeTuple tuple ->
     let types = List.map display tuple.elems in
     "(" ^ (String.concat ", " types) ^ ")"
@@ -37,12 +35,10 @@ and display_surround (type': Model.type') (surround: bool) =
     let type' = (display_surround union.left true) ^ " | " ^ (display_surround union.right true) in
     add_surround type' surround
   | TypeAbs abs ->
-    let params = List.map display_param abs.params in
-    let type' = "[" ^ (String.concat ", " params) ^ "] => " ^ (display_surround abs.body true) in
+    let type' = "[" ^ (display_param abs.param) ^ "] => " ^ (display_surround abs.body true) in
     add_surround type' surround
   | TypeApp app ->
-    let args = List.map display app.args in
-    let type' = (display_surround app.type' true) ^ "[" ^ (String.concat ", " args) ^ "]" in
+    let type' = (display_surround app.type' true) ^ "[" ^ (display app.arg) ^ "]" in
     add_surround type' surround
 
 and display_attr_entry (name, attr) =
