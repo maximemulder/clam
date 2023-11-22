@@ -6,7 +6,17 @@ end
 
 open Monad.Monad(Monad.ReaderMonad(Reader))
 
-(* UTILITIES *)
+(* TYPE PROMOTION *)
+
+let rec promote (type': type') =
+  match type' with
+  | TypeVar var -> promote_var var
+  | _ -> type'
+
+and promote_var var =
+  promote var.param.type'
+
+(* BOTTOM EQUIVALENCE *)
 
 let rec type_is_bot type' =
   match type' with

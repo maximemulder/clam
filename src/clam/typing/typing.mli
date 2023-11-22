@@ -1,6 +1,9 @@
 open Model
 open TypingContext
 
+(** Promotes a type to its least supertype that is not a type variable. *)
+val promote : type' -> type'
+
 (** Determines if a type is equivalent to the bottom type. *)
 val type_is_bot : type' -> bool
 
@@ -29,7 +32,7 @@ val join : type' -> type' -> type'
   general input type, or the union of these types. *)
 val join_type : type' -> type' -> type'
 
-(** Decomposes two tyeps and combines them simplified highest common subtype. *)
+(** Decomposes two types and combines them simplified highest common subtype. *)
 val meet : type' -> type' -> type'
 
 (** Combines two types into their simplified highest common subtype. Input interesections are not

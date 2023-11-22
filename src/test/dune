@@ -2,3 +2,5 @@
   (name test)
   (libraries alcotest clam)
   (deps (source_tree ../../tests)))
+
+(include_subdirs unqualified)

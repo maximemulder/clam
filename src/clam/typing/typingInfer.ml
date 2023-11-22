@@ -322,15 +322,13 @@ and infer_elem elem returner =
   | None -> TypingErrors.raise_expr_elem elem type'
 
 and infer_elem_type type' index context =
+  let type' = Typing.promote type' in
   let type' = Typing.normalize type' in
   match type' with
   | TypeBot _ ->
     Some Model.prim_bot
   | TypeTuple tuple ->
     List.nth_opt tuple.elems index
-  | TypeVar var ->
-    let type' = TypingPromote.promote_var var in
-    infer_elem_type type' index context
   | TypeApp app ->
     let type' = TypingApp.apply_app app in
     infer_elem_type type' index context
@@ -353,15 +351,13 @@ and infer_attr attr returner =
   | None -> TypingErrors.raise_expr_attr attr type'
 
 and infer_attr_type type' name context =
+  let type' = Typing.promote type' in
   let type' = Typing.normalize type' in
   match type' with
   | TypeBot _ ->
     Some Model.prim_bot
   | TypeRecord record ->
     Option.map (fun (attr: attr_type) -> attr.type') (NameMap.find_opt name record.attrs)
-  | TypeVar var ->
-    let type' = TypingPromote.promote_var var in
-    infer_attr_type type' name context
   | TypeApp app ->
     let type' = TypingApp.apply_app app in
     infer_attr_type type' name context
@@ -386,25 +382,14 @@ and infer_app app returner =
     TypingErrors.raise_expr_app_kind app type'
 
 and infer_app_type type' context: type_abs_expr option =
+  let type' = Typing.promote type' in
   match type' with
-  | TypeVar var ->
-    let type' = TypingPromote.promote_var var in
-    infer_app_type type' context
   | TypeApp type_app ->
     let type' = TypingApp.apply_app type_app in
     infer_app_type type' context
   | TypeAbsExpr abs ->
     Some abs
   | _ -> None
-(*
-and infer_app_abs app abs returner =
-  let params = abs.params in
-  let args = app.args in
-  if List.compare_lengths params args != 0 then
-    TypingErrors.raise_expr_app_arity app params
-  else
-  let* _ = map_list2 check args params in
-  returner abs.body *)
 
 and infer_preop preop returner =
   let entry = NameMap.find_opt preop.op preop_types in
@@ -472,10 +457,8 @@ and infer_type_app app returner =
     TypingErrors.raise_expr_type_app_kind app type'
 
 and infer_type_app_type type' context =
+  let type' = Typing.promote type' in
   match type' with
-  | TypeVar var ->
-    let type' = TypingPromote.promote_var var in
-    infer_type_app_type type' context
   | TypeApp type_app ->
     let type' = TypingApp.apply_app type_app in
     infer_type_app_type type' context
