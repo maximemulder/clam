@@ -24,9 +24,9 @@ let case pair type' expect =
 
 let tests = [
   (* primitives *)
-  case ("A", top) (fun _ -> unit) unit;
-  case ("A", bot) (fun _ -> unit) unit;
-  case ("A", z) (fun _ -> unit) unit;
+  case ("A", top) (inline unit) unit;
+  case ("A", bot) (inline unit) unit;
+  case ("A", z) (inline unit) unit;
   case ("A", top) id top;
   case ("A", bot) id bot;
   case ("A", z) id z;
@@ -45,7 +45,7 @@ let tests = [
   (* abstractions and applications *)
   case ("A", z) (fun a -> (abs_expr a b)) (abs_expr z b);
   case ("A", z) (fun a -> (abs_expr b a)) (abs_expr b z);
-  case ("A", z) (fun a -> (abs_expr_type ("B", top) (fun _ -> a))) (abs_expr_type ("B", top) (fun _ -> z));
+  case ("A", z) (fun a -> (abs_expr_type ("B", top) (inline a))) (abs_expr_type ("B", top) (inline z));
   case ("A", z) (fun a -> (abs_expr_type ("B", a) id)) (abs_expr_type ("B", z) (fun b -> b));
   case ("A", z) (fun a -> (abs_expr_type ("B", a) (fun b -> (tuple [a; b])))) (abs_expr_type ("B", z) (fun b -> (tuple [z; b])));
 
