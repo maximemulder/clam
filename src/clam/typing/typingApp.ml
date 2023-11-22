@@ -1,29 +1,44 @@
 open Model
 
-type entries = (param_type * type') list
+type entry = {
+  param: param_type;
+  type': type';
+}
 
-let find_arg param entries =
-  let entry = List.find_opt (fun entry -> fst entry == param) entries in
-  Option.map snd entry
+let find_arg param entry =
+  if entry.param == param then
+    Some entry.type'
+  else
+    None
 
-let param_entries (left: param_type) (right: param_type) pos =
-  [(right, TypeVar { pos; param = left })]
+let entry param type' =
+  { param; type' }
+
+let entry_param left right pos =
+  entry right (TypeVar { pos; param = left })
 
 module Reader = struct
-  type r = entries
+  type r = entry
 end
 
 open Monad.Monad(Monad.ReaderMonad(Reader))
 
 let rec apply (type': type') =
   match type' with
-  | TypeTop    _ -> return type'
-  | TypeBot    _ -> return type'
-  | TypeUnit   _ -> return type'
-  | TypeBool   _ -> return type'
-  | TypeInt    _ -> return type'
-  | TypeChar   _ -> return type'
-  | TypeString _ -> return type'
+  | TypeTop    _ ->
+    return type'
+  | TypeBot    _ ->
+    return type'
+  | TypeUnit   _ ->
+    return type'
+  | TypeBool   _ ->
+    return type'
+  | TypeInt    _ ->
+    return type'
+  | TypeChar   _ ->
+    return type'
+  | TypeString _ ->
+    return type'
   | TypeVar var ->
     apply_var var
   | TypeTuple tuple ->
@@ -76,18 +91,18 @@ and apply_attr attr =
   return { attr with type' }
 
 and apply_abs_expr_param abs param =
-  let entries = param_entries param abs.param abs.pos in
-  apply abs.body entries
+  let entry = entry_param param abs.param abs.pos in
+  apply abs.body entry
 
 and apply_abs_param abs param =
-  let entries = param_entries param abs.param abs.pos in
-  apply abs.body entries
+  let entry = entry_param param abs.param abs.pos in
+  apply abs.body entry
 
 let rec apply_app (app: type_app) =
   match apply_app_type app.type' with
   | Some abs ->
-    let entries = [(abs.param, app.arg)] in
-    apply abs.body entries
+    let entry = entry abs.param app.arg in
+    apply abs.body entry
   | _ -> TypingErrors.raise_unexpected ()
 
 and apply_app_type (type': type'): type_abs option =

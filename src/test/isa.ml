@@ -1,13 +1,17 @@
+open Clam
 open Vars
 
 let test name sub sup (_: unit) =
-  let result = Clam.Typing.isa sub sup Clam.TypingContext.empty in
+  let result = Typing.isa sub sup TypingContext.empty in
   Alcotest.(check bool) name true result
 
+let name sub sup =
+  let sub = TypingDisplay.display sub in
+  let sup = TypingDisplay.display sup in
+  "isa `" ^ sub ^ "` `" ^ sup ^ "`"
+
 let case sub sup =
-  let name_sub = Clam.TypingDisplay.display sub in
-  let name_sup = Clam.TypingDisplay.display sup in
-  let name = "isa `" ^ name_sub ^ "` `" ^ name_sup ^ "`" in
+  let name = name sub sup in
   let test = test name sub sup in
   Alcotest.test_case name `Quick test
 

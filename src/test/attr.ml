@@ -1,21 +1,24 @@
+open Clam
 open Vars
 
 let test name type' attr expect (_: unit) =
-  let result = Clam.TypingInfer.infer_attr_type type' attr Clam.TypingContext.empty in
+  let result = TypingInfer.infer_attr_type type' attr TypingContext.empty in
   let result = match (result, expect) with
-  | (Some result, Some expect) -> Clam.TypingCompare.compare result expect
+  | (Some result, Some expect) -> TypingCompare.compare result expect
   | (None, None) -> true
   | (_, _) -> false
   in
   Alcotest.(check bool) name true result
 
+let name type' attr expect =
+  let type' = TypingDisplay.display type' in
+  let expect = match expect with
+  | Some expect -> TypingDisplay.display expect
+  | None -> "" in
+  "attr `" ^ type' ^ "` `" ^ attr ^ "` `" ^ expect ^ "`"
+
 let case type' attr expect =
-  let name_type = Clam.TypingDisplay.display type' in
-  let name_expect = match expect with
-  | Some expect -> Clam.TypingDisplay.display expect
-  | None -> ""
-  in
-  let name = "attr `" ^ name_type ^ "` `" ^ attr ^ "` `" ^ name_expect ^ "`" in
+  let name = name type' attr expect in
   let test = test name type' attr expect in
   Alcotest.test_case name `Quick test
 

@@ -1,15 +1,19 @@
+open Clam
 open Vars
 
-let test name left right res (_: unit) =
-  let result = Clam.Typing.is left right in
-  Alcotest.(check bool) name res result
+let test name left right expect (_: unit) =
+  let result = Typing.is left right in
+  Alcotest.(check bool) name result expect
 
-let case_base left right res =
-  let name_left  = Clam.TypingDisplay.display left in
-  let name_right = Clam.TypingDisplay.display right in
-  let name_suffix = if res then "" else "!" in
-  let name = "is" ^ name_suffix ^ " `" ^ name_left ^ "` `" ^ name_right ^ "`" in
-  let test = test name left right res in
+let name left right expect =
+  let left  = TypingDisplay.display left in
+  let right = TypingDisplay.display right in
+  let suffix = if expect then "" else "!" in
+  "is" ^ suffix ^ " `" ^ left ^ "` `" ^ right ^ "`"
+
+let case_base left right expect =
+  let name = name left right expect in
+  let test = test name left right expect in
   Alcotest.test_case name `Quick test
 
 let case left right = case_base left right true

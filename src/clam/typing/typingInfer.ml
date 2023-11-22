@@ -486,7 +486,8 @@ and infer_type_app_type type' context =
 
 and infer_type_app_abs app abs returner =
   let* _ = infer_type_app_abs_param abs.param app.arg in
-  let body = TypingApp.apply abs.body [(abs.param, app.arg)] in
+  let entry = TypingApp.entry abs.param app.arg in
+  let body = TypingApp.apply abs.body entry in
   returner body
 
 and infer_type_app_abs_param param arg =

@@ -46,6 +46,3 @@ and display_attr_entry (name, attr) =
 
 and display_param param =
   param.name ^ ": " ^ display param.type'
-
-let display_inline type' =
-  "`" ^ (display type') ^ "`"
