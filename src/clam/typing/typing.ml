@@ -8,7 +8,7 @@ open Monad.Monad(Monad.ReaderMonad(Reader))
 
 (* TYPE PROMOTION *)
 
-let rec promote (type': type') =
+let rec promote type' =
   match type' with
   | TypeVar var -> promote_var var
   | _ -> type'

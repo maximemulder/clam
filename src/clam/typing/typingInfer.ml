@@ -373,20 +373,19 @@ and infer_attr_type type' name context =
 
 and infer_app app returner =
   let* type' = infer_none app.expr in
-  let* context = get_context in
-  match infer_app_type type' context with
+  match infer_app_type type' with
   | Some abs ->
     let* () = check app.arg abs.param in
     returner abs.body
   | None ->
     TypingErrors.raise_expr_app_kind app type'
 
-and infer_app_type type' context: type_abs_expr option =
+and infer_app_type type': type_abs_expr option =
   let type' = Typing.promote type' in
   match type' with
   | TypeApp type_app ->
     let type' = TypingApp.apply_app type_app in
-    infer_app_type type' context
+    infer_app_type type'
   | TypeAbsExpr abs ->
     Some abs
   | _ -> None
