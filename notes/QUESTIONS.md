@@ -1,0 +1,2 @@
+- Is the bottom type only of the proper kind, or can it be of all kinds ?
+- What are the tradeoffs of using substitution versus context ?

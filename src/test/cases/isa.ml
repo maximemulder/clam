@@ -2,7 +2,7 @@ open Clam
 open Vars
 
 let test name sub sup (_: unit) =
-  let result = Typing.isa sub sup TypingContext.empty in
+  let result = Typing.isa sub sup in
   Alcotest.(check bool) name true result
 
 let name sub sup =

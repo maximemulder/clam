@@ -1,11 +1,5 @@
 open Model
 
-module Reader = struct
-  type r = TypingContext.context
-end
-
-open Monad.Monad(Monad.ReaderMonad(Reader))
-
 (* TYPE PROMOTION *)
 
 let rec promote type' =
@@ -71,14 +65,14 @@ let rec is left right =
 and is_union left right =
   let lefts  = collect_union left  in
   let rights = collect_union right in
-  List.for_all (fun left -> List.exists (fun right -> isa left right TypingContext.empty) rights) lefts &&
-  List.for_all (fun right -> List.exists (fun left -> isa right left TypingContext.empty) lefts) rights
+  List.for_all (fun left -> List.exists (fun right -> isa left right) rights) lefts &&
+  List.for_all (fun right -> List.exists (fun left -> isa right left) lefts) rights
 
 and is_inter left right =
   let lefts =  collect_inter left  in
   let rights = collect_inter right in
-  List.for_all (fun left -> List.exists (fun right -> isa left right TypingContext.empty) rights) lefts &&
-  List.for_all (fun right -> List.exists (fun left -> isa right left TypingContext.empty) lefts) rights
+  List.for_all (fun left -> List.exists (fun right -> isa left right) rights) lefts &&
+  List.for_all (fun right -> List.exists (fun left -> isa right left) lefts) rights
 
 and is_var left_var right =
   if var_is_bot left_var && type_is_bot right then
@@ -105,34 +99,33 @@ and is_param left_param right_param =
 
 (* TYPE SUB *)
 
-(* TODO: Does isa really need a context ? Would it not be simpler to apply substitution ? *)
-and isa sub sup =
+and isa sub sup: bool =
   let sub = normalize sub in
   let sup = normalize sup in
   match (sub, sup) with
-  | (           _, TypeTop    _) -> return true
-  | (TypeBot    _,            _) -> return true
-  | (TypeUnit   _, TypeUnit   _) -> return true
-  | (TypeBool   _, TypeBool   _) -> return true
-  | (TypeInt    _, TypeInt    _) -> return true
-  | (TypeChar   _, TypeChar   _) -> return true
-  | (TypeString _, TypeString _) -> return true
+  | (           _, TypeTop    _) -> true
+  | (TypeBot    _,            _) -> true
+  | (TypeUnit   _, TypeUnit   _) -> true
+  | (TypeBool   _, TypeBool   _) -> true
+  | (TypeInt    _, TypeInt    _) -> true
+  | (TypeChar   _, TypeChar   _) -> true
+  | (TypeString _, TypeString _) -> true
   | (TypeUnion sub_union, _) ->
-    let* left  = isa sub_union.left sup  in
-    let* right = isa sub_union.right sup in
-    return (left && right)
+    let left  = isa sub_union.left sup  in
+    let right = isa sub_union.right sup in
+    left && right
   | (_, TypeUnion sup_union) ->
-    let* left  = isa sub sup_union.left  in
-    let* right = isa sub sup_union.right in
-    return (left || right)
+    let left  = isa sub sup_union.left  in
+    let right = isa sub sup_union.right in
+    left || right
   | (_, TypeInter sup_inter) ->
-    let* left  = isa sub sup_inter.left  in
-    let* right = isa sub sup_inter.right in
-    return (left && right)
+    let left  = isa sub sup_inter.left  in
+    let right = isa sub sup_inter.right in
+    left && right
   | (TypeInter sub_inter, _) ->
-    let* left  = isa sub_inter.left sup  in
-    let* right = isa sub_inter.right sup in
-    return (left || right)
+    let left  = isa sub_inter.left sup  in
+    let right = isa sub_inter.right sup in
+    left || right
   | (TypeVar sub_var, _) ->
     isa_var sub_var sup
   | (TypeTuple sub_tuple, TypeTuple sup_tuple) ->
@@ -140,9 +133,9 @@ and isa sub sup =
   | (TypeRecord sub_record, TypeRecord sup_record) ->
     isa_record sub_record sup_record
   | (TypeAbsExpr sub_abs, TypeAbsExpr sup_abs) ->
-    let* params = isa sup_abs.param sub_abs.param in
-    let* body = isa sub_abs.body sup_abs.body in
-    return (params && body)
+    let params = isa sup_abs.param sub_abs.param in
+    let body = isa sub_abs.body sup_abs.body in
+    params && body
   | (TypeAbsExprType sub_abs, TypeAbsExprType sup_abs) ->
     isa_abs_expr_type sub_abs sup_abs
   | (TypeAbs sub_abs, TypeAbs sup_abs) ->
@@ -154,48 +147,38 @@ and isa sub sup =
     let sup = TypingApp.apply_app sup_app in
     isa sub sup
   | _ ->
-    return false
+    false
     (* TODO: Adapt this function to type abstractions *)
 
 and isa_var sub_var sup =
-  if var_is_bot sub_var then
-    return true
-  else
-  let* sub_type = TypingContext.find_arg sub_var.param in
-  match sub_type with
-  | Some sub_type -> isa sub_type sup
-  | None ->
-  match sup with
+  var_is_bot sub_var
+  || match sup with
   | TypeVar sup_var when sub_var.param = sup_var.param ->
-    return true
+    true
   | _ ->
     isa sub_var.param.type' sup
 
 and isa_tuple sub_tuple sup_tuple =
-  compare_list2 isa sub_tuple.elems sup_tuple.elems
+  List.equal isa sub_tuple.elems sup_tuple.elems
 
-and isa_record sub_record sup_record context =
-  Utils.NameMap.for_all (fun _ sup_attr -> isa_record_attr sub_record sup_attr context) sup_record.attrs
+and isa_record sub_record sup_record =
+  Utils.NameMap.for_all (fun _ sup_attr -> isa_record_attr sub_record sup_attr) sup_record.attrs
 
 and isa_record_attr sub_record sup_attr =
   match Utils.NameMap.find_opt sup_attr.name sub_record.attrs with
   | Some sub_attr ->
     isa sub_attr.type' sup_attr.type'
   | None ->
-    return false
+    false
 
 and isa_abs_expr_type sub_abs sup_abs =
-  if not (is_param sub_abs.param sup_abs.param) then
-    return false
-  else
-  let sup_body = TypingApp.apply_abs_expr_param sup_abs sub_abs.param in
+  is_param sub_abs.param sup_abs.param
+  && let sup_body = TypingApp.apply_abs_expr_param sup_abs sub_abs.param in
   isa sub_abs.body sup_body
 
 and isa_abs_type sub_abs sup_abs =
-  if not (is_param sub_abs.param sup_abs.param) then
-    return false
-  else
-  let sup_body = TypingApp.apply_abs_param sup_abs sub_abs.param in
+  is_param sub_abs.param sup_abs.param
+  && let sup_body = TypingApp.apply_abs_param sup_abs sub_abs.param in
   isa sub_abs.body sup_body
 
 (* TYPE NORMALIZATION *)
@@ -253,10 +236,10 @@ and join left right =
   Utils.reduce_list join_type types
 
 and join_type left right =
-  if isa left right TypingContext.empty then
+  if isa left right then
     right
   else
-  if isa right left TypingContext.empty then
+  if isa right left then
     left
   else
     let pos = type_pos left in
@@ -282,9 +265,9 @@ and meet_type left right =
   | (TypeInt    _, TypeInt    _) -> TypeInt    { pos }
   | (TypeChar   _, TypeChar   _) -> TypeChar   { pos }
   | (TypeString _, TypeString _) -> TypeString { pos }
-  | (TypeVar left_var, _) when isa_var left_var right TypingContext.empty ->
+  | (TypeVar left_var, _) when isa_var left_var right ->
     TypeVar left_var
-  | (_, TypeVar right_var) when isa_var right_var left TypingContext.empty ->
+  | (_, TypeVar right_var) when isa_var right_var left ->
     TypeVar right_var
   | (TypeVar _, _) ->
     TypeInter { pos; left; right }

@@ -1,5 +1,4 @@
 open Model
-open TypingContext
 
 (** Promotes a type to its least supertype that is not a type variable. *)
 val promote : type' -> type'
@@ -20,8 +19,8 @@ val is : type' -> type' -> bool
   ignored, only their bounds are checked invariantly. *)
 val is_param : param_type -> param_type -> bool
 
-(** Determines if the left input type is a subtype of the right input type in a given context. *)
-val isa : type' -> type' -> context -> bool
+(** Determines if the left type is a subtype of the right type. *)
+val isa : type' -> type' -> bool
 
 (** Normalizes a type by transforming its unions and intersections into their disjunctive normal
   form. *)

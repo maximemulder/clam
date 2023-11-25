@@ -24,7 +24,6 @@ type progress = {
 
 type state = {
   progress: progress;
-  context: TypingContext.context;
 }
 
 module State = struct
@@ -38,10 +37,7 @@ let make_progress defs =
   { remains; currents = DefSet.empty; dones = BindMap.empty }
 
 let make_state progress =
-  { progress; context = TypingContext.empty }
-
-let get_context state =
-  (state.context, state)
+  { progress }
 
 let start_progress progress def =
   let remains = DefSet.remove def progress.remains in
@@ -55,10 +51,10 @@ let end_progress progress def type' =
 
 let add_bind bind type' state =
   let dones = BindMap.add bind type' state.progress.dones in
-  ((), { state with progress = { state.progress with dones } })
+  ((), { progress = { state.progress with dones } })
 
 let return_def (def: def_expr) =
-  fun type' state -> (type', { state with progress = end_progress state.progress def type' })
+  fun type' state -> (type', { progress = end_progress state.progress def type' })
 
 let return_abs (abs: expr_abs) param returner =
   fun body -> returner (TypeAbsExpr { pos = abs.pos; param; body })
@@ -96,23 +92,19 @@ let print_type =
   TypeAbsExpr { pos = prim_pos; param = prim_top; body = prim_unit }
 
 let validate type' =
-  let* context = get_context in
-  let () = TypingValidate.validate type' context in
+  let () = TypingValidate.validate type' in
   return ()
 
 let validate_proper type' =
-  let* context = get_context in
-  let () = TypingValidate.validate_proper type' context in
+  let () = TypingValidate.validate_proper type' in
   return ()
 
 let validate_subtype type' constr =
-  let* context = get_context in
-  let () = TypingValidate.validate_subtype type' constr context in
+  let () = TypingValidate.validate_subtype type' constr in
   return ()
 
 let validate_suptype type' constr =
-  let* context = get_context in
-  let () = TypingValidate.validate_suptype type' constr context in
+  let () = TypingValidate.validate_suptype type' constr in
   return ()
 
 let rec check expr constr =
@@ -139,8 +131,7 @@ let rec check expr constr =
 
 and check_infer expr constr =
   let* type' = infer_none expr in
-  let* context = get_context in
-  if Bool.not (Typing.isa type' constr context) then
+  if Bool.not (Typing.isa type' constr) then
     TypingErrors.raise_expr_constraint expr type' constr
   else
     return ()
@@ -287,7 +278,7 @@ and infer_bind bind returner state =
     returner print_type state
   | BindExprDef def when DefSet.mem def state.progress.remains ->
     let (type', progress) = check_def def state.progress in
-    returner type' { state with progress }
+    returner type' { progress }
   | BindExprDef def when DefSet.mem def state.progress.currents ->
     TypingErrors.raise_expr_recursive def
   | _ ->
@@ -435,25 +426,24 @@ and infer_abs_param param =
   return type'
 
 and infer_type_abs abs returner =
-  TypingValidate.validate abs.param.type' TypingContext.empty;
+  TypingValidate.validate abs.param.type';
   let* body = infer_none abs.body in
   returner (TypeAbsExprType { pos = abs.pos; param = abs.param; body })
 
 and infer_type_app app returner =
   let* type' = infer_none app.expr in
-  let* context = get_context in
-  match infer_type_app_type type' context with
+  match infer_type_app_type type' with
   | Some abs ->
     infer_type_app_abs app abs returner
   | None ->
     TypingErrors.raise_expr_type_app_kind app type'
 
-and infer_type_app_type type' context =
+and infer_type_app_type type' =
   let type' = Typing.promote type' in
   match type' with
   | TypeApp type_app ->
     let type' = TypingApp.apply_app type_app in
-    infer_type_app_type type' context
+    infer_type_app_type type'
   | TypeAbsExprType abs ->
     Some abs
   | _ ->
@@ -493,7 +483,7 @@ and check_def def progress =
   let progress = start_progress progress def in
   match def.type' with
   | Some type' ->
-    TypingValidate.validate_proper type' TypingContext.empty;
+    TypingValidate.validate_proper type';
     let progress = end_progress progress def type' in
     let state = make_state progress in
     let (_, state) = check def.expr type' state in
@@ -514,4 +504,4 @@ let check_exprs defs =
   progress_defs (make_progress defs)
 
 let check_types types =
-  List.iter (fun type' -> TypingValidate.validate type' TypingContext.empty) types
+  List.iter TypingValidate.validate types
