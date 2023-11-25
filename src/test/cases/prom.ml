@@ -23,8 +23,8 @@ let tests = [
   case bot bot;
 
   (* variables *)
-  case (with_var ("A", top) (fun a -> a)) top;
-  case (with_var ("A", int) (fun a -> a)) int;
+  case (with_var ("A", top) id) top;
+  case (with_var ("A", int) id) int;
   case (with_var ("A", (tuple [bool; int])) id) (tuple [bool; int]);
   case (with_var ("A", int) (fun a -> with_var ("B", a) id)) int;
   case (with_var ("A", (record [("foo", int)])) (fun a -> with_var ("B", a) id)) (record[("foo", int)]);

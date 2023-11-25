@@ -28,39 +28,80 @@ let tests = [
   (* primitives *)
   case top 0 None;
   case unit 0 None;
+  case bool 0 None;
+  case bool 0 None;
+  case string 0 None;
 
-  (* record *)
-  case (tuple []) 0 None;
+  (* tuples *)
   case (tuple [a]) 0 (Some a);
-  case (tuple [a]) 1 None;
   case (tuple [a; b]) 1 (Some b);
+  case (tuple []) 0 None;
+  case (tuple [a]) 1 None;
+  case (tuple [a; b]) 2 None;
 
   (* bottom *)
   case bot 0 (Some bot);
   case bot 1 (Some bot);
 
-  (* var *)
+  (* vars *)
   case (var "A" (tuple [])) 0 None;
   case (var "A" (tuple [a])) 0 (Some a);
   case (var "A" (var "B" (tuple [a]))) 0 (Some a);
-  case (var "A" bot) 0 (Some bot);
 
-  (* union *)
+  (* vars & bottom *)
+  case (var "A" bot) 0 (Some bot);
+  case (var "A" (var "B" bot)) 0 (Some bot);
+
+  (* unions *)
   case (union top top) 0 None;
   case (union (tuple [a]) top) 0 None;
   case (union (tuple []) (tuple [])) 0 None;
   case (union (tuple [a]) (tuple [])) 0 None;
   case (union (tuple [a]) (tuple [a])) 0 (Some a);
   case (union (tuple [a]) (tuple [b])) 0 (Some (union a b));
-  case (union bot bot) 0 (Some bot);
 
-  (* intersection *)
+  (* unions & bottom *)
+  case (union bot bot) 0 (Some bot);
+  case (union bot (tuple [a])) 0 (Some a);
+  case (union (tuple [a]) bot) 0 (Some a);
+
+  (* unions & intersections *)
+  case (union (inter (tuple [a]) (tuple [b])) (tuple [c])) 0 (Some (union (inter a b) c));
+
+  (* intersections *)
   case (inter top top) 0 None;
   case (inter (tuple [a]) top) 0 (Some a);
   case (inter (tuple []) (tuple [])) 0 None;
-  case (inter (tuple [a]) (tuple [])) 0 (Some bot);
   case (inter (tuple [a]) (tuple [a])) 0 (Some a);
   case (inter (tuple [a]) (tuple [b])) 0 (Some (inter a b));
+
+  (* intersections & bottom *)
+  case (inter bot bot) 0 (Some bot);
   case (inter bot top) 0 (Some bot);
   case (inter top bot) 0 (Some bot);
+  case (inter unit bool) 0 (Some bot);
+  case (inter bool unit) 0 (Some bot);
+  case (inter (tuple [a]) (tuple [])) 0 (Some bot);
+  case (inter (tuple []) (tuple [b])) 0 (Some bot);
+
+  (* intersections & unions *)
+  case (inter (union (tuple [a]) (tuple [b])) (tuple [c])) 0 (Some (union (inter b c) (inter a c)));
+
+  (* constructors *)
+  case (abs "A" top (fun a -> (tuple [a]))) 0 None;
+  case (app (abs "A" top id) (tuple [a])) 0 (Some a);
+  case (app (abs "A" top (fun a -> (tuple [a]))) a) 0 (Some a);
+
+  (* constructors & unions *)
+  case (app (abs "A" top id) (union (tuple [a]) (tuple []))) 0 None;
+  case (app (abs "A" top id) (union (tuple [a]) (tuple [b]))) 0 (Some (union a b));
+
+  (* constructors & intersections *)
+  case (app (abs "A" top (fun a -> (inter (tuple [a]) (tuple [unit])))) top) 0 (Some unit);
+  case (app (abs "A" top (fun a -> (inter (tuple [unit]) (tuple [a])))) top) 0 (Some unit);
+
+  (* constructors & intersections & bottom *)
+  case (app (abs "A" top id) (inter unit bool)) 0 (Some bot);
+  case (app (abs "A" top (fun a -> (inter (tuple [a]) (tuple [unit])))) bool) 0 (Some bot);
+  case (app (abs "A" top (fun a -> (inter (tuple [unit]) (tuple [a])))) bool) 0 (Some bot);
 ]

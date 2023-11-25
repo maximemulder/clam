@@ -41,6 +41,14 @@ let abs_expr_type (name, type') body =
   let body = body (TypeVar { pos; param }) in
   TypeAbsExprType { pos; param; body }
 
+let abs name type' body =
+  let param = { name; type' } in
+  let body = body (TypeVar { pos; param }) in
+  TypeAbs { pos; param; body }
+
+let app type' arg =
+  TypeApp { pos; type'; arg }
+
 let a = var "A" top
 let b = var "B" top
 let c = var "C" top

@@ -29,7 +29,7 @@ and var_is_bot var =
 
 (* TYPE EQUIVALENCE *)
 
-and is left right =
+let rec is left right =
   let left  = normalize left  in
   let right = normalize right in
   match (left, right) with
