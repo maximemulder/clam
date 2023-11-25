@@ -16,14 +16,10 @@ end
 
 module BindMap = Map.Make(BindKey)
 
-type progress = {
+type state = {
   remains: DefSet.t;
   currents: DefSet.t;
   dones: type' BindMap.t;
-}
-
-type state = {
-  progress: progress;
 }
 
 module State = struct
@@ -36,9 +32,6 @@ let make_progress defs =
   let remains = List.fold_left (fun set def -> DefSet.add def set) DefSet.empty defs in
   { remains; currents = DefSet.empty; dones = BindMap.empty }
 
-let make_state progress =
-  { progress }
-
 let start_progress progress def =
   let remains = DefSet.remove def progress.remains in
   let currents = DefSet.add def progress.currents in
@@ -50,11 +43,11 @@ let end_progress progress def type' =
   { progress with currents; dones }
 
 let add_bind bind type' state =
-  let dones = BindMap.add bind type' state.progress.dones in
-  ((), { progress = { state.progress with dones } })
+  let dones = BindMap.add bind type' state.dones in
+  ((), { state with dones })
 
 let return_def (def: def_expr) =
-  fun type' state -> (type', { progress = end_progress state.progress def type' })
+  fun type' state -> (type', end_progress state def type')
 
 let return_abs (abs: expr_abs) param returner =
   fun body -> returner (TypeAbsExpr { pos = abs.pos; param; body })
@@ -106,6 +99,27 @@ let validate_subtype type' constr =
 let validate_suptype type' constr =
   let () = TypingValidate.validate_suptype type' constr in
   return ()
+
+let rec infer_type f type' =
+  let type' = Typing.normalize type' in
+  match type' with
+  | TypeBot _ ->
+    return (Some Model.prim_bot)
+  | TypeVar var ->
+    infer_type f var.param.type'
+  | TypeInter inter ->
+    let* left = infer_type f inter.left in
+    let* right = infer_type f inter.right in
+    return (Utils.join_option2 left right Typing.meet)
+  | TypeUnion union ->
+    let* left = infer_type f union.left in
+    let* right = infer_type f union.right in
+    return (Utils.map_option2 left right Typing.join)
+  | TypeApp app ->
+    let type' = TypingApp.apply_app app in
+    infer_type f type'
+  | _ ->
+    f type'
 
 let rec check expr constr =
   match constr with
@@ -276,13 +290,13 @@ and infer_bind bind returner state =
   match bind with
   | BindExprPrint ->
     returner print_type state
-  | BindExprDef def when DefSet.mem def state.progress.remains ->
-    let (type', progress) = check_def def state.progress in
-    returner type' { progress }
-  | BindExprDef def when DefSet.mem def state.progress.currents ->
+  | BindExprDef def when DefSet.mem def state.remains ->
+    let (type', state) = check_def def state in
+    returner type' state
+  | BindExprDef def when DefSet.mem def state.currents ->
     TypingErrors.raise_expr_recursive def
   | _ ->
-    returner (BindMap.find bind state.progress.dones) state
+    returner (BindMap.find bind state.dones) state
 
 and infer_tuple tuple returner =
   let* elems = map_list infer_none tuple.elems in
@@ -298,81 +312,70 @@ and infer_record_attr attr =
   let* type' = infer_none attr.expr in
   return ({ pos = attr.pos; name = attr.name; type' })
 
-and infer_type f type' =
-  let type' = Typing.normalize type' in
-  match type' with
-  | TypeBot _ ->
-    Some Model.prim_bot
-  | TypeVar var ->
-    let type' = Typing.promote_var var in
-    infer_type f type'
-  | TypeInter inter ->
-    let left = infer_type f inter.left in
-    let right = infer_type f inter.right in
-    Utils.join_option2 left right Typing.meet
-  | TypeUnion union ->
-    let left = infer_type f union.left in
-    let right = infer_type f union.right in
-    Utils.map_option2 left right Typing.join
-  | TypeApp app ->
-    let type' = TypingApp.apply_app app in
-    infer_type f type'
-  | _ ->
-    f type'
-
 and infer_elem elem returner =
-  let* type' = infer_none elem.expr in
-  match infer_type (infer_elem_type elem.index) type' with
+  let* tuple = infer_none elem.expr in
+  let* type' = infer_type (infer_elem_final elem.index) tuple in
+  match type' with
   | Some type' -> returner type'
-  | None -> TypingErrors.raise_expr_elem elem type'
+  | None -> TypingErrors.raise_expr_elem elem tuple
 
-and infer_elem_type index type' =
+and infer_elem_final index type' =
   match type' with
   | TypeTuple tuple ->
-    List.nth_opt tuple.elems index
+    return (List.nth_opt tuple.elems index)
   | _ ->
-    None
+    return None
 
 and infer_attr attr returner =
-  let* type' = infer_none attr.expr in
-  match infer_type (infer_attr_type attr.name) type' with
+  let* record = infer_none attr.expr in
+  let* type' = infer_type (infer_attr_final attr.name) record in
+  match type' with
   | Some type' -> returner type'
-  | None -> TypingErrors.raise_expr_attr attr type'
+  | None -> TypingErrors.raise_expr_attr attr record
 
-and infer_attr_type name type' =
+and infer_attr_final name type' =
   match type' with
   | TypeRecord record ->
-    Option.map (fun (attr: attr_type) -> attr.type') (NameMap.find_opt name record.attrs)
+    return (Option.map (fun (attr: attr_type) -> attr.type') (NameMap.find_opt name record.attrs))
   | _ ->
-    None
+    return None
 
+(* TODO: Check 4 next functions, especially with regards to their argument's type inference  *)
 and infer_app app returner =
-  let* type' = infer_none app.expr in
-  match infer_app_type type' with
-  | Some abs ->
-    let* () = check app.arg abs.param in
-    returner abs.body
+  let* abs = infer_none app.expr in
+  let* type' = infer_type (infer_app_final app.arg)abs in
+  match type' with
+  | Some type' ->
+    returner type'
   | None ->
-    TypingErrors.raise_expr_app_kind app type'
+    TypingErrors.raise_expr_app_kind app abs
 
-(*and infer_app_type type' =
+and infer_app_final arg type' =
   match type' with
   | TypeAbsExpr abs ->
-    Some abs
-    let* () = check app.arg abs.param in
-    returner abs.body
+    let* () = check arg abs.param in
+    return (Some abs.body)
   | _ ->
-    None*)
+    return None
 
-and infer_app_type type': type_abs_expr option =
-  let type' = Typing.promote type' in
+and infer_type_app app returner =
+  let* abs = infer_none app.expr in
+  let* type' = infer_type (infer_type_app_final app.arg) abs in
   match type' with
-  | TypeApp type_app ->
-    let type' = TypingApp.apply_app type_app in
-    infer_app_type type'
-  | TypeAbsExpr abs ->
-    Some abs
-  | _ -> None
+  | Some type' ->
+    returner type'
+  | None ->
+    TypingErrors.raise_expr_type_app_kind app abs
+
+and infer_type_app_final arg type' =
+  match type' with
+  | TypeAbsExprType abs ->
+    let* _ = validate_subtype arg abs.param.type' in
+    let entry = TypingApp.entry abs.param arg in
+    let body = TypingApp.apply abs.body entry in
+    return (Some body)
+  | _ ->
+    return None
 
 and infer_preop preop returner =
   let entry = NameMap.find_opt preop.op preop_types in
@@ -430,34 +433,6 @@ and infer_type_abs abs returner =
   let* body = infer_none abs.body in
   returner (TypeAbsExprType { pos = abs.pos; param = abs.param; body })
 
-and infer_type_app app returner =
-  let* type' = infer_none app.expr in
-  match infer_type_app_type type' with
-  | Some abs ->
-    infer_type_app_abs app abs returner
-  | None ->
-    TypingErrors.raise_expr_type_app_kind app type'
-
-and infer_type_app_type type' =
-  let type' = Typing.promote type' in
-  match type' with
-  | TypeApp type_app ->
-    let type' = TypingApp.apply_app type_app in
-    infer_type_app_type type'
-  | TypeAbsExprType abs ->
-    Some abs
-  | _ ->
-    None
-
-and infer_type_app_abs app abs returner =
-  let* _ = infer_type_app_abs_param abs.param app.arg in
-  let entry = TypingApp.entry abs.param app.arg in
-  let body = TypingApp.apply abs.body entry in
-  returner body
-
-and infer_type_app_abs_param param arg =
-  validate_subtype arg param.type'
-
 and infer_stmt stmt returner =
   let* _ = infer_stmt_body stmt.stmt in
   infer stmt.expr returner
@@ -479,19 +454,17 @@ and infer_stmt_body body =
     let* _ = infer_none expr in
     return ()
 
-and check_def def progress =
-  let progress = start_progress progress def in
+and check_def def state =
+  let state = start_progress state def in
   match def.type' with
   | Some type' ->
     TypingValidate.validate_proper type';
-    let progress = end_progress progress def type' in
-    let state = make_state progress in
+    let state = end_progress state def type' in
     let (_, state) = check def.expr type' state in
-    (type', state.progress)
+    (type', state)
   | None ->
-    let state = make_state progress in
     let (type', state) = infer def.expr (return_def def) state in
-    (type', state.progress)
+    (type', state)
 
 let rec progress_defs progress =
   match DefSet.choose_opt progress.remains with
