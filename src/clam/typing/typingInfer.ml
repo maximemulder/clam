@@ -57,13 +57,6 @@ let add_bind bind type' state =
   let dones = BindMap.add bind type' state.progress.dones in
   ((), { state with progress = { state.progress with dones } })
 
-let with_entries call entries state =
-  let parent = state.context in
-  let context = TypingContext.child parent entries in
-  let state = { state with context } in
-  let res = call state in
-  (res, { state with context = parent })
-
 let return_def (def: def_expr) =
   fun type' state -> (type', { state with progress = end_progress state.progress def type' })
 
@@ -314,62 +307,53 @@ and infer_record_attr attr =
   let* type' = infer_none attr.expr in
   return ({ pos = attr.pos; name = attr.name; type' })
 
+and infer_type f type' =
+  let type' = Typing.normalize type' in
+  match type' with
+  | TypeBot _ ->
+    Some Model.prim_bot
+  | TypeVar var ->
+    let type' = Typing.promote_var var in
+    infer_type f type'
+  | TypeInter inter ->
+    let left = infer_type f inter.left in
+    let right = infer_type f inter.right in
+    Utils.join_option2 left right Typing.meet
+  | TypeUnion union ->
+    let left = infer_type f union.left in
+    let right = infer_type f union.right in
+    Utils.map_option2 left right Typing.join
+  | TypeApp app ->
+    let type' = TypingApp.apply_app app in
+    infer_type f type'
+  | _ ->
+    f type'
+
 and infer_elem elem returner =
   let* type' = infer_none elem.expr in
-  let* context = get_context in
-  match infer_elem_type type' elem.index context with
+  match infer_type (infer_elem_type elem.index) type' with
   | Some type' -> returner type'
   | None -> TypingErrors.raise_expr_elem elem type'
 
-and infer_elem_type type' index context =
-  let type' = Typing.promote type' in
-  let type' = Typing.normalize type' in
+and infer_elem_type index type' =
   match type' with
-  | TypeBot _ ->
-    Some Model.prim_bot
   | TypeTuple tuple ->
     List.nth_opt tuple.elems index
-  | TypeApp app ->
-    let type' = TypingApp.apply_app app in
-    infer_elem_type type' index context
-  | TypeUnion union ->
-    let left = infer_elem_type union.left index context in
-    let right = infer_elem_type union.right index context in
-    Utils.map_option2 left right Typing.join
-  | TypeInter inter ->
-    let left = infer_elem_type inter.left index context in
-    let right = infer_elem_type inter.right index context in
-    Utils.join_option2 left right Typing.meet
-  | _ -> None
+  | _ ->
+    None
 
 and infer_attr attr returner =
   let* type' = infer_none attr.expr in
-
-  let* context = get_context in
-  match infer_attr_type type' attr.name context with
+  match infer_type (infer_attr_type attr.name) type' with
   | Some type' -> returner type'
   | None -> TypingErrors.raise_expr_attr attr type'
 
-and infer_attr_type type' name context =
-  let type' = Typing.promote type' in
-  let type' = Typing.normalize type' in
+and infer_attr_type name type' =
   match type' with
-  | TypeBot _ ->
-    Some Model.prim_bot
   | TypeRecord record ->
     Option.map (fun (attr: attr_type) -> attr.type') (NameMap.find_opt name record.attrs)
-  | TypeApp app ->
-    let type' = TypingApp.apply_app app in
-    infer_attr_type type' name context
-  | TypeUnion union ->
-    let left = infer_attr_type union.left name context in
-    let right = infer_attr_type union.right name context in
-    Utils.map_option2 left right Typing.join
-  | TypeInter inter ->
-    let left = infer_attr_type inter.left name context in
-    let right = infer_attr_type inter.right name context in
-    Utils.join_option2 left right Typing.meet
-  | _ -> None
+  | _ ->
+    None
 
 and infer_app app returner =
   let* type' = infer_none app.expr in
@@ -379,6 +363,15 @@ and infer_app app returner =
     returner abs.body
   | None ->
     TypingErrors.raise_expr_app_kind app type'
+
+(*and infer_app_type type' =
+  match type' with
+  | TypeAbsExpr abs ->
+    Some abs
+    let* () = check app.arg abs.param in
+    returner abs.body
+  | _ ->
+    None*)
 
 and infer_app_type type': type_abs_expr option =
   let type' = Typing.promote type' in

@@ -4,6 +4,9 @@ open TypingContext
 (** Promotes a type to its least supertype that is not a type variable. *)
 val promote : type' -> type'
 
+(** Promotes a type variable to its least supertype that is not a type variable. *)
+val promote_var : type_var -> type'
+
 (** Determines if a type is equivalent to the bottom type. *)
 val type_is_bot : type' -> bool
 
