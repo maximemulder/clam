@@ -76,5 +76,57 @@ let raise_type_proper type' =
     ("expected proper type but found type `" ^ type' ^ "`")
     pos
 
+let raise_check_tuple (expr: expr_tuple) (constr: type') =
+  let pos = expr.pos in
+  let constr = display constr in
+  raise
+    ("expected expression of type `" ^ constr ^ "` but found a tuple")
+    pos
+
+let raise_check_tuple_arity (expr: expr_tuple) (constr: type_tuple) =
+  let pos = expr.pos in
+  let arity = string_of_int (List.length expr.elems) in
+  let constr_arity = string_of_int (List.length constr.elems) in
+  raise
+    ("expected tuple of " ^ constr_arity ^ " elements but found tuple of " ^ arity ^ " elements")
+    pos
+
+let raise_check_record (expr: expr_record) (constr: type') =
+  let pos = expr.pos in
+  let constr = display constr in
+  raise
+    ("expected expression of type `" ^ constr ^ "` but found a record")
+    pos
+
+let raise_check_record_attr (expr: expr_record) (constr: attr_type) =
+  let pos = expr.pos in
+  let name = constr.name in
+  let type' = display constr.type' in
+  raise
+    ("expected attribute `" ^ name ^ "` of type `" ^ type' ^ "` but found no attribute with this name")
+    pos
+
+let raise_check_abs (expr: expr_abs) (constr: type') =
+  let pos = expr.pos in
+  let constr = display constr in
+  raise
+    ("expected expression of type `" ^ constr ^ "` but found abstraction")
+    pos
+
+let raise_check_type_abs (expr: expr_type_abs) (constr: type') =
+  let pos = expr.pos in
+  let constr = display constr in
+  raise
+    ("expected expression of type `" ^ constr ^ "` but found type abstraction")
+    pos
+
+let raise_check_type_abs_param (expr: expr_type_abs) (constr: param_type) =
+  let pos = expr.pos in
+  let type' = display expr.param.type' in
+  let constr = display constr.type' in
+  raise
+    ("expected type parameter of type `" ^ constr ^ "` but found parameter of type `" ^ type' ^ "`")
+    pos
+
 let raise_unexpected _ =
   Error.raise "TYPE ERROR" "unexpected error"

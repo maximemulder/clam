@@ -100,6 +100,13 @@ let validate_suptype type' constr =
   let () = TypingValidate.validate_suptype type' constr in
   return ()
 
+module type INFERER = sig
+  type t
+  val meet: t -> t -> t
+  val join: t -> t -> t
+  val bot: t
+end
+
 let rec infer_type f type' =
   let type' = Typing.normalize type' in
   match type' with
@@ -121,7 +128,49 @@ let rec infer_type f type' =
   | _ ->
     f type'
 
+module Inferer(I: INFERER) = struct
+  let rec infer f type' =
+    let type' = Typing.normalize type' in
+    match type' with
+    | TypeBot _ ->
+      return (Some I.bot)
+    | TypeVar var ->
+      infer f var.param.type'
+    | TypeInter inter ->
+      let* left = infer f inter.left in
+      let* right = infer f inter.right in
+      return (Utils.join_option2 left right I.meet)
+    | TypeUnion union ->
+      let* left = infer f union.left in
+      let* right = infer f union.right in
+      return (Utils.map_option2 left right I.join)
+    | TypeApp app ->
+      let type' = TypingApp.apply_app app in
+      infer f type'
+    | _ ->
+      f type'
+end
+
+module InfererProj = Inferer(
+  struct
+    type t = type'
+    let join = Typing.join
+    let meet = Typing.meet
+    let bot = Model.prim_bot
+  end
+)
+
+module InfererApp = Inferer(
+  struct
+    type t = type' * type'
+    let join l r = Typing.meet (fst l) (fst r), Typing.join (snd l) (snd r)
+    let meet l r = Typing.join (fst l) (fst r), Typing.meet (snd l) (snd r)
+    let bot = prim_top, prim_bot
+  end
+)
+
 let rec check expr constr =
+  let constr = Typing.normalize constr in
   match constr with
   | TypeUnion _ | TypeInter _ ->
     check_infer expr constr
@@ -150,37 +199,27 @@ and check_infer expr constr =
   else
     return ()
 
-and check_error expr constr =
-  let* type' = infer_none expr in
-  TypingErrors.raise_expr_constraint expr type' constr
-
 and check_tuple tuple constr =
-  let expr = ExprTuple tuple in
-  let elems = tuple.elems in
   match constr with
   | TypeTuple constr_tuple ->
-    let constr_elems = constr_tuple.elems in
-    if List.compare_lengths elems constr_elems != 0 then
-      check_error expr constr
+    if List.compare_lengths tuple.elems constr_tuple.elems != 0 then
+      TypingErrors.raise_check_tuple_arity tuple constr_tuple
     else
-    let* _ = map_list2 check elems constr_elems in
-    return ()
+    iter_list2 check tuple.elems constr_tuple.elems
   | _ ->
-    check_error expr constr
+    TypingErrors.raise_check_tuple tuple constr
 
 and check_record record constr =
-  let expr = ExprRecord record in
-  let attrs = record.attrs in
   match constr with
   | TypeRecord constr_record ->
-    let* _ = map_map (fun (constr_attr: attr_type) -> match List.find_opt (fun (attr: attr_expr) -> attr.name = constr_attr.name) attrs with
-    | Some attr -> check attr.expr constr_attr.type'
-    | None ->
-      check_error expr constr
-    ) constr_record.attrs in
-    return ()
+    iter_map (check_record_attr record) constr_record.attrs
   | _ ->
-    check_error expr constr
+    TypingErrors.raise_check_record record constr
+
+and check_record_attr record constr_attr =
+  match List.find_opt (fun (attr: attr_expr) -> attr.name = constr_attr.name) record.attrs with
+  | Some attr -> check attr.expr constr_attr.type'
+  | None -> TypingErrors.raise_check_record_attr record constr_attr
 
 and check_if if' constr =
   let* _ = check if'.cond prim_bool in
@@ -189,14 +228,13 @@ and check_if if' constr =
   return ()
 
 and check_abs abs constr =
-  let expr = ExprAbs abs in
   match constr with
   | TypeAbsExpr constr_abs ->
     let* _ = check_abs_param abs.param constr_abs.param in
     let* _ = check abs.body constr_abs.body in
     return ()
   | _ ->
-    check_error expr constr
+    TypingErrors.raise_check_abs abs constr
 
 and check_abs_param param constr =
   let* type' = match param.type' with
@@ -212,19 +250,19 @@ and check_abs_param param constr =
 and check_type_abs abs constr =
   match constr with
   | TypeAbsExprType constr_abs ->
-    let* _ = check_type_abs_param abs constr_abs in
+    let* _ = check_type_abs_param abs constr_abs.param in
     let constr_body = TypingApp.apply_abs_expr_param constr_abs abs.param in
     let* _ = check abs.body constr_body in
     return ()
   | _ ->
-    check_error (ExprTypeAbs abs) constr
+    TypingErrors.raise_check_type_abs abs constr
 
-and check_type_abs_param abs constr_abs =
+and check_type_abs_param abs constr_param =
   let* () = validate abs.param.type' in
-  if Typing.is abs.param.type' constr_abs.param.type' then
+  if Typing.is abs.param.type' constr_param.type' then
     return ()
   else
-    check_error (ExprTypeAbs abs) (TypeAbsExprType constr_abs)
+    TypingErrors.raise_check_type_abs_param abs constr_param
 
 and infer expr returner =
   match expr with
@@ -314,7 +352,7 @@ and infer_record_attr attr =
 
 and infer_elem elem returner =
   let* tuple = infer_none elem.expr in
-  let* type' = infer_type (infer_elem_final elem.index) tuple in
+  let* type' = InfererProj.infer (infer_elem_final elem.index) tuple in
   match type' with
   | Some type' -> returner type'
   | None -> TypingErrors.raise_expr_elem elem tuple
@@ -340,24 +378,24 @@ and infer_attr_final name type' =
   | _ ->
     return None
 
-(* TODO: Check 4 next functions, especially with regards to their argument's type inference  *)
 and infer_app app returner =
   let* abs = infer_none app.expr in
-  let* type' = infer_type (infer_app_final app.arg)abs in
+  let* type' = InfererApp.infer infer_app_final abs in
   match type' with
-  | Some type' ->
-    returner type'
-  | None ->
+  | Some (param, body) ->
+    let* () = check app.arg param in
+    returner body
+  | _ ->
     TypingErrors.raise_expr_app_kind app abs
 
-and infer_app_final arg type' =
+and infer_app_final type' =
   match type' with
   | TypeAbsExpr abs ->
-    let* () = check arg abs.param in
-    return (Some abs.body)
+    return (Some (abs.param, abs.body))
   | _ ->
     return None
 
+(* TODO: Check (and very probably fix) this function (and remove infer_type) *)
 and infer_type_app app returner =
   let* abs = infer_none app.expr in
   let* type' = infer_type (infer_type_app_final app.arg) abs in

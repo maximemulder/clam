@@ -1,0 +1,7 @@
+def main = unit
+
+def a: [A, B] -> (((A) -> Unit) & ((B) -> Unit)) = [A, B] -> (p) -> unit
+
+def b = [A, B] -> (p: A & B) -> a[A, B](p)
+
+def c = (b: Bot) -> b(0)
