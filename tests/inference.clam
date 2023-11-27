@@ -5,3 +5,12 @@ def a: [A, B] -> (((A) -> Unit) & ((B) -> Unit)) = [A, B] -> (p) -> unit
 def b = [A, B] -> (p: A & B) -> a[A, B](p)
 
 def c = (b: Bot) -> b(0)
+
+type D = ([T] -> Unit) & ([U: Int] -> Unit)
+def d: (D) -> Bot = (p: D) -> p[Top]
+
+type E = ([T: Int] -> Unit) | ([T: String] -> Unit)
+def e: (E) -> Unit = (p: E) -> p[Bot]
+
+type F = [T: Int] -> (T) -> T
+def f: F = [T: Int] -> (p) -> p

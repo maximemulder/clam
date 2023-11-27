@@ -107,27 +107,6 @@ module type INFERER = sig
   val bot: t
 end
 
-let rec infer_type f type' =
-  let type' = Typing.normalize type' in
-  match type' with
-  | TypeBot _ ->
-    return (Some Model.prim_bot)
-  | TypeVar var ->
-    infer_type f var.param.type'
-  | TypeInter inter ->
-    let* left = infer_type f inter.left in
-    let* right = infer_type f inter.right in
-    return (Utils.join_option2 left right Typing.meet)
-  | TypeUnion union ->
-    let* left = infer_type f union.left in
-    let* right = infer_type f union.right in
-    return (Utils.map_option2 left right Typing.join)
-  | TypeApp app ->
-    let type' = TypingApp.apply_app app in
-    infer_type f type'
-  | _ ->
-    f type'
-
 module Inferer(I: INFERER) = struct
   let rec infer f type' =
     let type' = Typing.normalize type' in
@@ -366,7 +345,7 @@ and infer_elem_final index type' =
 
 and infer_attr attr returner =
   let* record = infer_none attr.expr in
-  let* type' = infer_type (infer_attr_final attr.name) record in
+  let* type' = InfererProj.infer (infer_attr_final attr.name) record in
   match type' with
   | Some type' -> returner type'
   | None -> TypingErrors.raise_expr_attr attr record
@@ -395,10 +374,10 @@ and infer_app_final type' =
   | _ ->
     return None
 
-(* TODO: Check (and very probably fix) this function (and remove infer_type) *)
+(* TODO: Research and eventually implement implied bounds (and better error messages) *)
 and infer_type_app app returner =
   let* abs = infer_none app.expr in
-  let* type' = infer_type (infer_type_app_final app.arg) abs in
+  let* type' = InfererProj.infer (infer_type_app_final app.arg) abs in
   match type' with
   | Some type' ->
     returner type'
