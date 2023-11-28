@@ -112,17 +112,17 @@ module Inferer(I: INFERER) = struct
     let type' = Typing.normalize type' in
     match type' with
     | TypeBot _ ->
-      return (Some I.bot)
+      Some I.bot
     | TypeVar var ->
       infer f var.param.type'
     | TypeInter inter ->
-      let* left = infer f inter.left in
-      let* right = infer f inter.right in
-      return (Utils.join_option2 left right I.meet)
+      let left = infer f inter.left in
+      let right = infer f inter.right in
+      Utils.join_option2 left right I.meet
     | TypeUnion union ->
-      let* left = infer f union.left in
-      let* right = infer f union.right in
-      return (Utils.map_option2 left right I.join)
+      let left = infer f union.left in
+      let right = infer f union.right in
+      Utils.map_option2 left right I.join
     | TypeApp app ->
       let type' = TypingApp.apply_app app in
       infer f type'
@@ -367,35 +367,35 @@ and infer_record_attr attr =
 
 and infer_elem elem returner =
   let* tuple = infer_none elem.expr in
-  let* type' = InfererProj2.infer (infer_elem_final elem.index) tuple in
+  let type' = InfererProj2.infer (infer_elem_base elem.index) tuple in
   match type' with
   | Some type' -> returner type'
   | None -> TypingErrors.raise_expr_elem elem tuple
 
-and infer_elem_final index type' =
+and infer_elem_base index type' =
   match type' with
   | TypeTuple tuple ->
-    return (List.nth_opt tuple.elems index)
+    List.nth_opt tuple.elems index
   | _ ->
-    return None
+    None
 
 and infer_attr attr returner =
   let* record = infer_none attr.expr in
-  let* type' = InfererProj2.infer (infer_attr_final attr.name) record in
+  let type' = InfererProj2.infer (infer_attr_base attr.name) record in
   match type' with
   | Some type' -> returner type'
   | None -> TypingErrors.raise_expr_attr attr record
 
-and infer_attr_final name type' =
+and infer_attr_base name type' =
   match type' with
   | TypeRecord record ->
-    return (Option.map (fun (attr: attr_type) -> attr.type') (NameMap.find_opt name record.attrs))
+    Option.map (fun (attr: attr_type) -> attr.type') (NameMap.find_opt name record.attrs)
   | _ ->
-    return None
+    None
 
 and infer_app app returner =
   let* abs = infer_none app.expr in
-  let* type' = InfererApp2.infer infer_app_final abs in
+  let type' = InfererApp2.infer infer_app_base abs in
   match type' with
   | Some { arg; ret } ->
     let* () = check app.arg arg in
@@ -403,16 +403,16 @@ and infer_app app returner =
   | _ ->
     TypingErrors.raise_expr_app_kind app abs
 
-and infer_app_final type' =
+and infer_app_base type' =
   match type' with
   | TypeAbsExpr abs ->
-    return (Some { InfererApp.arg = abs.param; ret = abs.body })
+    Some { InfererApp.arg = abs.param; ret = abs.body }
   | _ ->
-    return None
+    None
 
 and infer_type_app app returner =
   let* abs = infer_none app.expr in
-  let* type' = InfererAppType2.infer infer_type_app_final abs in
+  let type' = InfererAppType2.infer infer_type_app_base abs in
   match type' with
   | Some { arg; ret } ->
     let* () = validate_subtype app.arg arg.type' in
@@ -422,12 +422,12 @@ and infer_type_app app returner =
   | None ->
     TypingErrors.raise_expr_type_app_kind app abs
 
-and infer_type_app_final type' =
+and infer_type_app_base type' =
   match type' with
   | TypeAbsExprType abs ->
-    return (Some { InfererAppType.arg = abs.param; ret = abs.body })
+    Some { InfererAppType.arg = abs.param; ret = abs.body }
   | _ ->
-    return None
+    None
 
 and infer_preop preop returner =
   let entry = NameMap.find_opt preop.op preop_types in

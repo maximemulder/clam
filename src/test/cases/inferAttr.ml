@@ -2,7 +2,7 @@ open Clam
 open Vars
 
 let test name type' name' expect (_: unit) =
-  let (result, _) = TypingInfer.InfererProj2.infer (TypingInfer.infer_attr_final name') type' (TypingInfer.make_progress []) in
+  let result = TypingInfer.InfererProj2.infer (TypingInfer.infer_attr_base name') type' in
   let result = match (result, expect) with
   | (Some result, Some expect) -> TypingCompare.compare result expect
   | (None, None) -> true
