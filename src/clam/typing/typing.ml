@@ -334,7 +334,7 @@ and meet_abs_expr left_abs right_abs =
 
 and meet_abs_expr_type left_abs right_abs =
   if not (is_param left_abs.param right_abs.param) then
-    prim_bot (* TODO: Check this *)
+    prim_bot
   else
   let right_body = TypingApp.apply_abs_expr_param right_abs left_abs.param in
   let body = meet left_abs.body right_body in
@@ -342,7 +342,7 @@ and meet_abs_expr_type left_abs right_abs =
 
 and meet_abs left_abs right_abs =
   if not (is_param left_abs.param right_abs.param) then
-    prim_bot (* TODO: Check this *)
+    prim_bot
   else
   let right_body = TypingApp.apply_abs_param right_abs left_abs.param in
   let body = meet left_abs.body right_body in

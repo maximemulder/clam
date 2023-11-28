@@ -102,9 +102,9 @@ let validate_suptype type' constr =
 
 module type INFERER = sig
   type t
+  val bot: t
   val meet: t -> t -> t
   val join: t -> t -> t
-  val bot: t
 end
 
 module Inferer(I: INFERER) = struct
@@ -130,23 +130,59 @@ module Inferer(I: INFERER) = struct
       f type'
 end
 
-module InfererProj = Inferer(
-  struct
-    type t = type'
-    let join = Typing.join
-    let meet = Typing.meet
-    let bot = Model.prim_bot
-  end
-)
+module InfererProj = struct
+  type t = type'
+  let bot = Model.prim_bot
+  let join = Typing.join
+  let meet = Typing.meet
+end
 
-module InfererApp = Inferer(
-  struct
-    type t = type' * type'
-    let join l r = Typing.meet (fst l) (fst r), Typing.join (snd l) (snd r)
-    let meet l r = Typing.join (fst l) (fst r), Typing.meet (snd l) (snd r)
-    let bot = prim_top, prim_bot
-  end
-)
+module InfererProj2 = Inferer(InfererProj)
+
+module InfererApp = struct
+  type t = { arg: type'; ret: type' }
+
+  let bot = { arg = prim_top; ret = prim_bot }
+
+  let join left right =
+    let arg = Typing.meet left.arg right.arg in
+    let ret = Typing.join left.ret right.ret in
+    { arg; ret }
+
+  let meet left right =
+    let arg = Typing.join left.arg right.arg in
+    let ret = Typing.meet left.ret right.ret in
+    { arg; ret }
+end
+
+module InfererApp2 = Inferer(InfererApp)
+
+module InfererAppType = struct
+  type t = { arg: param_type; ret: type' }
+
+  let bot = { arg = { name = "_"; type' = prim_top }; ret = prim_bot }
+
+  let join left right =
+    let type' = Typing.meet left.arg.type' right.arg.type' in
+    let arg = { name = "_"; type' } in
+    let entry = TypingApp.entry_param arg left.arg (type_pos left.ret) in
+    let left_ret = TypingApp.apply left.ret entry in
+    let entry = TypingApp.entry_param arg right.arg (type_pos right.ret) in
+    let right_ret = TypingApp.apply right.ret entry in
+    let ret = Typing.join left_ret right_ret in
+    { arg; ret }
+
+  let meet left right =
+    if not (Typing.is_param left.arg right.arg) then
+      bot
+    else
+      let entry = TypingApp.entry_param right.arg left.arg (type_pos right.ret) in
+      let right_ret = TypingApp.apply right.ret entry in
+      let ret = Typing.meet left.ret right_ret in
+      { arg = left.arg; ret }
+end
+
+module InfererAppType2 = Inferer(InfererAppType)
 
 let rec check expr constr =
   let constr = Typing.normalize constr in
@@ -331,7 +367,7 @@ and infer_record_attr attr =
 
 and infer_elem elem returner =
   let* tuple = infer_none elem.expr in
-  let* type' = InfererProj.infer (infer_elem_final elem.index) tuple in
+  let* type' = InfererProj2.infer (infer_elem_final elem.index) tuple in
   match type' with
   | Some type' -> returner type'
   | None -> TypingErrors.raise_expr_elem elem tuple
@@ -345,7 +381,7 @@ and infer_elem_final index type' =
 
 and infer_attr attr returner =
   let* record = infer_none attr.expr in
-  let* type' = InfererProj.infer (infer_attr_final attr.name) record in
+  let* type' = InfererProj2.infer (infer_attr_final attr.name) record in
   match type' with
   | Some type' -> returner type'
   | None -> TypingErrors.raise_expr_attr attr record
@@ -359,38 +395,37 @@ and infer_attr_final name type' =
 
 and infer_app app returner =
   let* abs = infer_none app.expr in
-  let* type' = InfererApp.infer infer_app_final abs in
+  let* type' = InfererApp2.infer infer_app_final abs in
   match type' with
-  | Some (param, body) ->
-    let* () = check app.arg param in
-    returner body
+  | Some { arg; ret } ->
+    let* () = check app.arg arg in
+    returner ret
   | _ ->
     TypingErrors.raise_expr_app_kind app abs
 
 and infer_app_final type' =
   match type' with
   | TypeAbsExpr abs ->
-    return (Some (abs.param, abs.body))
+    return (Some { InfererApp.arg = abs.param; ret = abs.body })
   | _ ->
     return None
 
-(* TODO: Research and eventually implement implied bounds (and better error messages) *)
 and infer_type_app app returner =
   let* abs = infer_none app.expr in
-  let* type' = InfererProj.infer (infer_type_app_final app.arg) abs in
+  let* type' = InfererAppType2.infer infer_type_app_final abs in
   match type' with
-  | Some type' ->
-    returner type'
+  | Some { arg; ret } ->
+    let* () = validate_subtype app.arg arg.type' in
+    let entry = TypingApp.entry arg app.arg in
+    let ret = TypingApp.apply ret entry in
+    returner ret
   | None ->
     TypingErrors.raise_expr_type_app_kind app abs
 
-and infer_type_app_final arg type' =
+and infer_type_app_final type' =
   match type' with
   | TypeAbsExprType abs ->
-    let* _ = validate_subtype arg abs.param.type' in
-    let entry = TypingApp.entry abs.param arg in
-    let body = TypingApp.apply abs.body entry in
-    return (Some body)
+    return (Some { InfererAppType.arg = abs.param; ret = abs.body })
   | _ ->
     return None
 

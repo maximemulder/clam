@@ -23,8 +23,7 @@ module Monad (M: MONAD) = struct
     | [] -> return ()
     | x :: xs ->
       let* () = f x in
-      let* () = iter_list f xs in
-      return ()
+      iter_list f xs
 
   let rec map_list f xs =
     match xs with

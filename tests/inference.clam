@@ -14,3 +14,6 @@ def e: (E) -> Unit = (p: E) -> p[Bot]
 
 type F = [T: Int] -> (T) -> T
 def f: F = [T: Int] -> (p) -> p
+
+def g = (p: ([T: String] -> T) | ([T: Top] -> String)) -> p[String]
+def h: String = g([T] -> "Hello")
