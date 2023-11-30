@@ -1,31 +1,25 @@
 open Model
 
-
-let rec validate_subtype type' constr =
-  let () = validate type' in
-  let sub = Typing.isa type' constr in
-  if Bool.not sub then
-    TypingErrors.raise_subtype_constraint type' constr
+let rec validate_proper type' =
+  validate type';
+  if TypingKind.get_kind type' <> TypingKind.Type then
+    TypingErrors.raise_validate_proper type'
   else
-    ()
+  ()
+
+and validate_subtype type' constr =
+  validate type';
+  if Bool.not (Typing.isa type' constr) then
+    TypingErrors.raise_validate_subtype type' constr
+  else
+  ()
 
 and validate_suptype type' constr =
-  let () = validate type' in
-  let sub = Typing.isa constr type' in
-  if Bool.not sub then
-    TypingErrors.raise_suptype_constraint type' constr
+  validate type';
+  if Bool.not (Typing.isa constr type') then
+    TypingErrors.raise_validate_suptype type' constr
   else
-    ()
-
-and validate_proper (type': type') =
-  let () = validate type' in
-  match type' with
-  | TypeAbs _ -> TypingErrors.raise_type_proper type'
-  | TypeApp app ->
-    let type' = TypingApp.apply_app app in
-    validate_proper type'
-  | _ ->
-    ()
+  ()
 
 and validate (type': type') =
   match type' with
@@ -38,29 +32,41 @@ and validate (type': type') =
   | TypeString _ -> ()
   | TypeVar _    -> ()
   | TypeAbsExpr abs ->
-    validate abs.param;
-    validate abs.body;
+    validate_proper abs.param;
+    validate_proper abs.body;
   | TypeAbsExprType abs ->
     validate_param abs.param;
-    validate abs.body;
+    validate_proper abs.body;
   | TypeTuple tuple ->
-    List.iter validate tuple.elems
+    validate_tuple tuple
   | TypeRecord record ->
     validate_record record;
   | TypeInter inter ->
-    validate inter.left;
-    validate inter.right;
+    validate_inter inter;
   | TypeUnion union ->
-    validate union.left;
-    validate union.right;
+    validate_union union;
   | TypeAbs abs ->
     validate_param abs.param;
     validate abs.body;
   | TypeApp app ->
     validate_app app;
 
+and validate_tuple tuple =
+  List.iter validate_proper tuple.elems
+
 and validate_record record =
-  Utils.NameMap.iter (fun _ attr -> validate_attr attr) record.attrs
+  Utils.NameMap.iter (fun _ attr -> validate_record_attr attr) record.attrs
+
+and validate_record_attr attr =
+  validate_proper attr.type'
+
+and validate_inter inter =
+  validate_proper inter.left;
+  validate_proper inter.right;
+
+and validate_union union =
+  validate_proper union.left;
+  validate_proper union.right;
 
 and validate_app app =
   match validate_app_type app.type' with
@@ -83,9 +89,6 @@ and validate_app_type type' =
 and valiate_app_abs app abs =
   validate_subtype app.arg abs.param.type';
   validate abs.body
-
-and validate_attr attr =
-  validate attr.type'
 
 and validate_param param =
   validate param.type'

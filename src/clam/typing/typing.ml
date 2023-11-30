@@ -103,7 +103,8 @@ and isa sub sup: bool =
   let sub = normalize sub in
   let sup = normalize sup in
   match (sub, sup) with
-  | (           _, TypeTop    _) -> true
+  | (           _, TypeTop    _) ->
+    isa_top sub
   | (TypeBot    _,            _) -> true
   | (TypeUnit   _, TypeUnit   _) -> true
   | (TypeBool   _, TypeBool   _) -> true
@@ -149,6 +150,11 @@ and isa sub sup: bool =
   | _ ->
     false
     (* TODO: Adapt this function to type abstractions *)
+
+and isa_top sub =
+  match TypingKind.get_kind sub with
+  | TypingKind.Type -> true
+  | TypingKind.Abs _ -> false
 
 and isa_var sub_var sup =
   var_is_bot sub_var

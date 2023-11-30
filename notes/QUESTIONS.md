@@ -1,3 +1,4 @@
 - Is the bottom type only of the proper kind, or can it be of all kinds ?
 - What are the tradeoffs of using substitution versus context ?
 - Should the language implement implied bounds for type parameters ?
+- It is possible for unions and intersectiont to support higher-kinded types ?

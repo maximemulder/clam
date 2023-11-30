@@ -84,22 +84,6 @@ let binop_types =
 let print_type =
   TypeAbsExpr { pos = prim_pos; param = prim_top; body = prim_unit }
 
-let validate type' =
-  let () = TypingValidate.validate type' in
-  return ()
-
-let validate_proper type' =
-  let () = TypingValidate.validate_proper type' in
-  return ()
-
-let validate_subtype type' constr =
-  let () = TypingValidate.validate_subtype type' constr in
-  return ()
-
-let validate_suptype type' constr =
-  let () = TypingValidate.validate_suptype type' constr in
-  return ()
-
 module type INFERER = sig
   type t
   val bot: t
@@ -254,8 +238,8 @@ and check_abs abs constr =
 and check_abs_param param constr =
   let* type' = match param.type' with
   | Some type' ->
-    let* () = validate_proper type' in
-    let* () = validate_suptype type' constr in
+    TypingValidate.validate_proper type';
+    TypingValidate.validate_suptype type' constr;
     return type'
   | None ->
     return constr
@@ -273,7 +257,7 @@ and check_type_abs abs constr =
     TypingErrors.raise_check_type_abs abs constr
 
 and check_type_abs_param abs constr_param =
-  let* () = validate abs.param.type' in
+  TypingValidate.validate abs.param.type';
   if Typing.is abs.param.type' constr_param.type' then
     return ()
   else
@@ -415,7 +399,7 @@ and infer_type_app app returner =
   let type' = InfererAppType2.infer infer_type_app_base abs in
   match type' with
   | Some { arg; ret } ->
-    let* () = validate_subtype app.arg arg.type' in
+    TypingValidate.validate_subtype app.arg arg.type';
     let entry = TypingApp.entry arg app.arg in
     let ret = TypingApp.apply ret entry in
     returner ret
@@ -455,7 +439,7 @@ and infer_binop binop returner =
 
 and infer_ascr ascr returner =
   let type' = ascr.type' in
-  let* () = validate type' in
+  TypingValidate.validate type';
   let* returned = returner type' in
   let* _ = check ascr.expr type' in
   return returned
@@ -475,7 +459,7 @@ and infer_abs_param param =
   let type' = match param.type' with
   | Some type' -> type'
   | None -> TypingErrors.raise_param param in
-  let* () = validate_proper type' in
+  TypingValidate.validate_proper type';
   let bind = BindExprParam param in
   let* _ = add_bind bind type' in
   return type'
@@ -494,7 +478,7 @@ and infer_stmt_body body =
   | StmtVar (var, type', expr) ->
     let* type' = match type' with
     | Some type' ->
-      let* () = validate type' in
+      TypingValidate.validate type';
       let* _ = check expr type' in
       return type'
     | None ->

@@ -46,22 +46,6 @@ let raise_param (param: param_expr) =
     ("require type annotation for parameter `" ^ param.name ^ "`")
     param.pos
 
-let raise_subtype_constraint type' constr =
-  let pos = type_pos type' in
-  let type' = display type' in
-  let constr = display constr in
-  raise
-    ("expected subtype of `" ^ constr ^ "` but found type `" ^ type' ^ "`")
-    pos
-
-let raise_suptype_constraint type' constr =
-  let pos = type_pos type' in
-  let type' = display type' in
-  let constr = display constr in
-  raise
-    ("expected supertype of `" ^ constr ^ "` but found type `" ^ type' ^ "`")
-    pos
-
 let raise_type_app_kind type' =
   let pos = type_pos type' in
   let type' = display type' in
@@ -69,11 +53,27 @@ let raise_type_app_kind type' =
     ("expected type abstraction but found type `" ^ type' ^ "`")
     pos
 
-let raise_type_proper type' =
+let raise_validate_proper type' =
   let pos = type_pos type' in
   let type' = display type' in
   raise
     ("expected proper type but found type `" ^ type' ^ "`")
+    pos
+
+let raise_validate_subtype type' constr =
+  let pos = type_pos type' in
+  let type' = display type' in
+  let constr = display constr in
+  raise
+    ("expected subtype of `" ^ constr ^ "` but found type `" ^ type' ^ "`")
+    pos
+
+let raise_validate_suptype type' constr =
+  let pos = type_pos type' in
+  let type' = display type' in
+  let constr = display constr in
+  raise
+    ("expected supertype of `" ^ constr ^ "` but found type `" ^ type' ^ "`")
     pos
 
 let raise_check_tuple (expr: expr_tuple) (constr: type') =
