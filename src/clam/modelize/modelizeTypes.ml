@@ -130,7 +130,7 @@ and modelize_abs_expr_type pos params body =
     modelize_type body
   | (param :: params) ->
     let* param = modelize_param param in
-    let type' = (param.name, Model.TypeVar { pos = Model.type_pos param.type'; param }) in
+    let type' = (param.name, Model.TypeVar { pos = Model.type_pos param.bound; param }) in
     let* body = with_scope (modelize_abs_expr_type pos params body) [type'] in
     return (Model.TypeAbsExprType { pos; param; body })
 
@@ -140,7 +140,7 @@ and modelize_abs pos params body =
     modelize_type body
   | (param :: params) ->
     let* param = modelize_param param in
-    let type' = (param.name, Model.TypeVar { pos = Model.type_pos param.type'; param }) in
+    let type' = (param.name, Model.TypeVar { pos = Model.type_pos param.bound; param }) in
     let* body = with_scope (modelize_abs pos params body) [type'] in
     return (Model.TypeAbs { pos; param; body })
 
@@ -153,10 +153,14 @@ and modelize_app pos type' args =
     let app = (Model.TypeApp { pos; type'; arg }) in
     modelize_app pos app args
 
-and modelize_param (param: Ast.param ): Model.param_type t =
-  let* type' = map_option modelize_type param.type' in
-  let type' = Option.value type' ~default:(Model.TypeTop { pos = param.pos }) in
-  return { Model.name = param.name; Model.type' = type' }
+and modelize_param (param: Ast.param): Model.param_type t =
+  let* bound = (match param.type' with
+    | Some type' ->
+      modelize_type type'
+    | None ->
+      return (Model.TypeTop { pos = param.pos })
+  ) in
+  return { Model.name = param.name; Model.bound }
 
 and modelize_product type' fields =
   let fields = List.partition_map partition_field fields in
@@ -217,6 +221,6 @@ let modelize_program (program: Ast.program) =
   (state.scope.dones, state.all)
 
 let modelize_abs (param: Model.param_type) state =
-  let type' = (param.name, Model.TypeVar { pos = Model.type_pos param.type'; param}) in
+  let type' = (param.name, Model.TypeVar { pos = Model.type_pos param.bound; param}) in
   let (_, state) = make_child [type'] state in
   state.scope.dones

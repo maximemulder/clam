@@ -6,7 +6,7 @@ type kind =
 
 let rec get_kind type' =
   match type' with
-  | TypeVar var -> get_kind var.param.type'
+  | TypeVar var -> get_kind var.param.bound
   | TypeInter inter ->
     let left = get_kind inter.left in
     let right = get_kind inter.right in
@@ -22,7 +22,7 @@ let rec get_kind type' =
     else
     invalid_arg "Typing.get_kind"
   | TypeAbs abs ->
-    let param = get_kind abs.param.type' in
+    let param = get_kind abs.param.bound in
     let body = get_kind abs.body in
     Abs (param, body)
   | TypeApp app ->

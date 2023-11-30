@@ -238,10 +238,14 @@ and modelize_param (param: Ast.param) =
   let* id = next_id in
   return { Model.pos = param.pos; id; name = param.name; type' }
 
-and modelize_type_param (param: Ast.param) =
-  let* type' = map_option modelize_type param.type' in
-  let type' = Option.value type' ~default:(Model.TypeTop { pos = param.pos }) in
-  return { Model.name = param.name; type' }
+and modelize_type_param (param: Ast.param): Model.param_type t =
+  let* bound = (match param.type' with
+    | Some type' ->
+      modelize_type type'
+    | None ->
+      return (Model.TypeTop { pos = param.pos })
+  ) in
+  return { Model.name = param.name; Model.bound }
 
 and modelize_stmt (stmt: Ast.stmt) (expr: Ast.expr) =
   match stmt with

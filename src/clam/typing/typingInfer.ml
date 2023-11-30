@@ -98,7 +98,7 @@ module Inferer(I: INFERER) = struct
     | TypeBot _ ->
       Some I.bot
     | TypeVar var ->
-      infer f var.param.type'
+      infer f var.param.bound
     | TypeInter inter ->
       let left = infer f inter.left in
       let right = infer f inter.right in
@@ -144,11 +144,11 @@ module InfererApp2 = Inferer(InfererApp)
 module InfererAppType = struct
   type t = { arg: param_type; ret: type' }
 
-  let bot = { arg = { name = "_"; type' = prim_top }; ret = prim_bot }
+  let bot = { arg = { name = "_"; bound = prim_top }; ret = prim_bot }
 
   let join left right =
-    let type' = Typing.meet left.arg.type' right.arg.type' in
-    let arg = { name = "_"; type' } in
+    let bound = Typing.meet left.arg.bound right.arg.bound in
+    let arg = { name = "_"; bound } in
     let entry = TypingApp.entry_param arg left.arg (type_pos left.ret) in
     let left_ret = TypingApp.apply left.ret entry in
     let entry = TypingApp.entry_param arg right.arg (type_pos right.ret) in
@@ -160,10 +160,10 @@ module InfererAppType = struct
     if not (Typing.is_param left.arg right.arg) then
       bot
     else
-      let entry = TypingApp.entry_param right.arg left.arg (type_pos right.ret) in
-      let right_ret = TypingApp.apply right.ret entry in
-      let ret = Typing.meet left.ret right_ret in
-      { arg = left.arg; ret }
+    let entry = TypingApp.entry_param right.arg left.arg (type_pos right.ret) in
+    let right_ret = TypingApp.apply right.ret entry in
+    let ret = Typing.meet left.ret right_ret in
+    { arg = left.arg; ret }
 end
 
 module InfererAppType2 = Inferer(InfererAppType)
@@ -257,8 +257,8 @@ and check_type_abs abs constr =
     TypingErrors.raise_check_type_abs abs constr
 
 and check_type_abs_param abs constr_param =
-  TypingValidate.validate abs.param.type';
-  if Typing.is abs.param.type' constr_param.type' then
+  TypingValidate.validate abs.param.bound;
+  if Typing.is abs.param.bound constr_param.bound then
     return ()
   else
     TypingErrors.raise_check_type_abs_param abs constr_param
@@ -399,7 +399,7 @@ and infer_type_app app returner =
   let type' = InfererAppType2.infer infer_type_app_base abs in
   match type' with
   | Some { arg; ret } ->
-    TypingValidate.validate_subtype app.arg arg.type';
+    TypingValidate.validate_subtype app.arg arg.bound;
     let entry = TypingApp.entry arg app.arg in
     let ret = TypingApp.apply ret entry in
     returner ret
@@ -465,7 +465,7 @@ and infer_abs_param param =
   return type'
 
 and infer_type_abs abs returner =
-  TypingValidate.validate abs.param.type';
+  TypingValidate.validate abs.param.bound;
   let* body = infer_none abs.body in
   returner (TypeAbsExprType { pos = abs.pos; param = abs.param; body })
 

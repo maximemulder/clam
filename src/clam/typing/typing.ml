@@ -8,7 +8,7 @@ let rec promote type' =
   | _ -> type'
 
 and promote_var var =
-  promote var.param.type'
+  promote var.param.bound
 
 (* BOTTOM EQUIVALENCE *)
 
@@ -19,7 +19,7 @@ let rec type_is_bot type' =
   | _ -> false
 
 and var_is_bot var =
-  type_is_bot var.param.type'
+  type_is_bot var.param.bound
 
 (* TYPE EQUIVALENCE *)
 
@@ -95,7 +95,7 @@ and is_attr left_attr right_attr =
   is left_attr.type' right_attr.type'
 
 and is_param left_param right_param =
-  is left_param.type' right_param.type'
+  is left_param.bound right_param.bound
 
 (* TYPE SUB *)
 
@@ -162,7 +162,7 @@ and isa_var sub_var sup =
   | TypeVar sup_var when sub_var.param = sup_var.param ->
     true
   | _ ->
-    isa sub_var.param.type' sup
+    isa sub_var.param.bound sup
 
 and isa_tuple sub_tuple sup_tuple =
   List.equal isa sub_tuple.elems sup_tuple.elems

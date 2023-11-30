@@ -83,8 +83,8 @@ and apply_var var =
     return (TypeVar var)
 
 and apply_param param =
-  let* type' = apply param.type' in
-  return { param with type' }
+  let* bound = apply param.bound in
+  return { param with bound }
 
 and apply_attr attr =
   let* type' = apply attr.type' in
@@ -108,7 +108,7 @@ let rec apply_app (app: type_app) =
 and apply_app_type (type': type'): type_abs option =
   match type' with
   | TypeVar var ->
-    apply_app_type var.param.type'
+    apply_app_type var.param.bound
   | TypeAbs abs ->
     Some abs
   | TypeApp app ->

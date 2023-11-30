@@ -14,8 +14,8 @@ let inline type' _ = type'
 
 let id type' = type'
 
-let var name type' =
-  TypeVar { pos; param = { name; type' }}
+let var name bound =
+  TypeVar { pos; param = { name; bound }}
 
 let tuple elems =
   TypeTuple { pos; elems }
@@ -36,13 +36,13 @@ let inter left right =
 let abs_expr param body =
   TypeAbsExpr { pos; param; body }
 
-let abs_expr_type (name, type') body =
-  let param = { name; type' } in
+let abs_expr_type (name, bound) body =
+  let param = { name; bound } in
   let body = body (TypeVar { pos; param }) in
   TypeAbsExprType { pos; param; body }
 
-let abs name type' body =
-  let param = { name; type' } in
+let abs name bound body =
+  let param = { name; bound } in
   let body = body (TypeVar { pos; param }) in
   TypeAbs { pos; param; body }
 

@@ -78,7 +78,7 @@ and validate_app app =
 and validate_app_type type' =
   match type' with
   | TypeVar var ->
-    validate_app_type var.param.type'
+    validate_app_type var.param.bound
   | TypeApp app ->
     validate_app_type (TypingApp.apply_app app)
   | TypeAbs abs ->
@@ -87,8 +87,8 @@ and validate_app_type type' =
     None
 
 and valiate_app_abs app abs =
-  validate_subtype app.arg abs.param.type';
+  validate_subtype app.arg abs.param.bound;
   validate abs.body
 
 and validate_param param =
-  validate param.type'
+  validate param.bound

@@ -15,7 +15,7 @@ let name param sub type' expect =
   "app [`" ^  param ^ "` --> `" ^ sub ^ "`] `" ^ type' ^ "` `" ^ expect ^ "`"
 
 let case pair type' expect =
-  let entry_param = { Model.name = fst pair; type' = top } in
+  let entry_param = { Model.name = fst pair; bound = top } in
   let entry_type = snd pair in
   let type' =  type' (Model.TypeVar { Model.pos; param = entry_param }) in
   let name = name entry_param entry_type type' expect in

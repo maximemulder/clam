@@ -105,7 +105,7 @@ and attr_type = {
 
 and param_type = {
   name: string;
-  type': type';
+  bound: type';
 }
 
 let type_pos type' =

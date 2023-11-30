@@ -45,4 +45,4 @@ and display_attr_entry (name, attr) =
   name ^ ": " ^ display attr.type'
 
 and display_param param =
-  param.name ^ ": " ^ display param.type'
+  param.name ^ ": " ^ display param.bound

@@ -122,10 +122,10 @@ let raise_check_type_abs (expr: expr_type_abs) (constr: type') =
 
 let raise_check_type_abs_param (expr: expr_type_abs) (constr: param_type) =
   let pos = expr.pos in
-  let type' = display expr.param.type' in
-  let constr = display constr.type' in
+  let bound = display expr.param.bound in
+  let constr = display constr.bound in
   raise
-    ("expected type parameter of type `" ^ constr ^ "` but found parameter of type `" ^ type' ^ "`")
+    ("expected type parameter of type `" ^ constr ^ "` but found parameter of type `" ^ bound ^ "`")
     pos
 
 let raise_unexpected _ =
