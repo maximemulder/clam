@@ -53,15 +53,6 @@ let return_def (def: def_expr) =
 let return_abs (abs: expr_abs) param returner =
   fun body -> returner (TypeAbsExpr { pos = abs.pos; param; body })
 
-let preop_types =
-  [
-    ("+", (Primitive.int, Primitive.int));
-    ("-", (Primitive.int, Primitive.int));
-    ("!", (Primitive.bool, Primitive.bool));
-  ]
-  |> List.to_seq
-  |> NameMap.of_seq
-
 let binop_types =
   [
     ("+",  ((Primitive.int, Primitive.int), Primitive.int));
@@ -283,8 +274,6 @@ and infer expr returner =
     infer_elem elem returner
   | ExprAttr attr ->
     infer_attr attr returner
-  | ExprPreop preop ->
-    infer_preop preop returner
   | ExprBinop binop ->
     infer_binop binop returner
   | ExprAscr ascr ->
@@ -408,17 +397,6 @@ and infer_type_app_base type' =
     Some { InfererAppType.arg = abs.param; ret = abs.body }
   | _ ->
     None
-
-and infer_preop preop returner =
-  let entry = NameMap.find_opt preop.op preop_types in
-  match entry with
-  | Some (type_operand, type_result) ->
-    let operand = preop.expr in
-    let* returned = returner type_result in
-    let* _ = check operand type_operand in
-    return returned
-  | None ->
-    TypingErrors.raise_unexpected
 
 and infer_binop binop returner =
   let entry = NameMap.find_opt binop.op binop_types in

@@ -21,6 +21,13 @@ end
 
 open Monad.Monad(Monad.StateMonad(State))
 
+let get_preop_name expr op =
+  match op with
+  | "+" -> "__pos__"
+  | "-" -> "__neg__"
+  | "!" -> "__not__"
+  | _ -> ModelizeErrors.raise_expr_operator expr op
+
 let find_remain name state =
   NameMap.find_opt name state.scope.remains
 
@@ -225,8 +232,11 @@ and modelize_attr expr name =
   return (Model.ExprAttr { pos = fst expr; expr = expr2; name })
 
 and modelize_preop expr op operand =
-  let* operand = modelize_expr operand in
-  return (Model.ExprPreop { pos = fst expr; op; expr = operand })
+  let* arg = modelize_expr operand in
+  let name = get_preop_name expr op in
+  let* bind = modelize_name expr name in
+  let bind = (Model.ExprBind { pos = fst expr; bind }) in
+  return (Model.ExprApp { pos = fst expr; expr = bind; arg })
 
 and modelize_binop expr left op right =
   let* left = modelize_expr left in

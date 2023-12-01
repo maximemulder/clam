@@ -10,6 +10,10 @@ let raise_expr_bound expr name =
   let pos = fst expr in
   raise ("unbound expression `" ^ name ^ "`") pos
 
+let raise_expr_operator expr op =
+  let pos = fst expr in
+  raise ("unknown operator `" ^ op ^ "`") pos
+
 let raise_expr_integer expr value =
   let pos = fst expr in
   raise ("invalid integer literal `" ^ value ^ "`") pos

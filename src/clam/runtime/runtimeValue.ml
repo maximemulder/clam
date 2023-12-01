@@ -67,3 +67,13 @@ let rec compare left right =
   | (VTypeAbs left, VTypeAbs right) ->
     left = right
   | _ -> false
+
+let value_int value =
+  match value with
+  | VInt int -> int
+  | _ -> RuntimeErrors.raise_value ()
+
+let value_bool value =
+  match value with
+  | VBool bool -> bool
+  | _ -> RuntimeErrors.raise_value ()

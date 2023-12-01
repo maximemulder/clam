@@ -138,7 +138,6 @@ type expr =
   | ExprRecord  of expr_record
   | ExprElem    of expr_elem
   | ExprAttr    of expr_attr
-  | ExprPreop   of expr_preop
   | ExprBinop   of expr_binop
   | ExprAscr    of expr_ascr
   | ExprIf      of expr_if
@@ -197,12 +196,6 @@ and expr_attr = {
   pos: pos;
   expr: expr;
   name: string;
-}
-
-and expr_preop = {
-  pos: pos;
-  op: string;
-  expr: expr;
 }
 
 and expr_binop = {
@@ -303,7 +296,6 @@ let expr_pos expr =
   | ExprRecord  expr -> expr.pos
   | ExprElem    expr -> expr.pos
   | ExprAttr    expr -> expr.pos
-  | ExprPreop   expr -> expr.pos
   | ExprBinop   expr -> expr.pos
   | ExprAscr    expr -> expr.pos
   | ExprIf      expr -> expr.pos

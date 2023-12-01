@@ -30,10 +30,19 @@ let make_primitives primitives =
   primitives
 
 let primitives = make_primitives [
-  "print", TypeAbsExpr { pos; param = top; body = unit }, fun { value; out } ->
+  ("print", TypeAbsExpr { pos; param = top; body = unit }, fun { value; out } ->
     let string = RuntimeDisplay.display value in
     let _ = out string in
-  VUnit;
+    VUnit);
+  ("__pos__", TypeAbsExpr { pos; param = int; body = int }, fun { value; _ } ->
+    let int = value_int value in
+    (VInt int));
+  ("__neg__", TypeAbsExpr { pos; param = int; body = int }, fun { value; _ } ->
+    let int = value_int value in
+    (VInt (-int)));
+  ("__not__", TypeAbsExpr { pos; param = bool; body = bool }, fun { value; _ } ->
+    let bool = value_bool value in
+    (VBool (not bool)));
 ]
 
 let binds = List.map (fun primitive -> primitive.name, primitive.bind) primitives

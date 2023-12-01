@@ -62,8 +62,6 @@ let rec eval (expr: Model.expr) =
   | ExprAttr attr ->
     let* attrs = eval_record attr.expr in
     return (NameMap.find attr.name attrs)
-  | ExprPreop preop ->
-    eval_preop preop
   | ExprBinop binop ->
     eval_binop binop
   | ExprAscr ascr ->
@@ -138,20 +136,6 @@ and eval_type_app expr =
 and eval_type_app_abs abs context =
   let context = new_frame context abs.frame BindMap.empty in
   eval abs.abs.body context
-
-and eval_preop preop =
-  let expr = preop.expr in
-  match preop.op with
-  | "+" ->
-    let* value = eval_value_int expr in
-    return (VInt value)
-  | "-" ->
-    let* value = eval_value_int expr in
-    return (VInt ~- value)
-  | "!" ->
-    let* value = eval_value_bool expr in
-    return (VBool (not value))
-  | _ -> RuntimeErrors.raise_operator preop.op
 
 and eval_binop binop =
   let left = binop.left in
