@@ -2,15 +2,16 @@ open Model
 open Utils
 open RuntimeValue
 
-type writer = string -> unit
-
 type context = {
-  out_handler: writer;
+  out: writer;
   frame: frame;
 }
 
-let new_empty out_handler =
-  { out_handler; frame = { parent = None; binds = BindMap.empty } }
+let root =
+  { parent = None; binds = BindMap.of_list Primitive.values }
+
+let new_empty out =
+  { out; frame = { parent = Some root; binds = BindMap.empty } }
 
 let new_scope context binds =
   { context with frame = { parent = Some context.frame; binds } }
@@ -21,15 +22,10 @@ let new_frame context frame binds =
 let get_frame context =
   context.frame
 
-let rec get_param param stack =
-  match BindMap.find_opt (Model.BindExprParam param) stack.binds with
+let rec get_bind bind stack =
+  match BindMap.find_opt bind stack.binds with
   | Some value -> value
-  | None -> get_param param (Option.get stack.parent)
-
-let rec get_var var stack =
-  match BindMap.find_opt (Model.BindExprVar var) stack.binds with
-  | Some value -> value
-  | None -> get_var var (Option.get stack.parent)
+  | None -> get_bind bind (Option.get stack.parent)
 
 module Reader = struct
   type r = context
@@ -77,7 +73,7 @@ let rec eval (expr: Model.expr) =
     if cond then eval if'.then' else eval if'.else'
   | ExprAbs abs ->
     let* frame = get_frame in
-    return (VExprAbs { abs; frame })
+    return (VExprAbs (VCode { abs; frame }))
   | ExprApp app ->
     eval_expr_app app
   | ExprTypeAbs abs ->
@@ -106,29 +102,30 @@ and eval_string string =
 
 and eval_bind bind context =
   match (Option.get !(bind.bind)) with
-  | BindExprDef def -> eval def.expr (new_empty context.out_handler)
-  | BindExprParam param -> get_param param context.frame
-  | BindExprPrint -> VPrint
-  | BindExprVar var -> get_var var context.frame
+  | BindExprDef def -> eval def.expr (new_empty context.out)
+  | bind -> get_bind bind context.frame
 
 and eval_expr_app app context =
   let value = eval app.expr context in
   match value with
-  | VPrint -> eval_expr_app_print app.arg context
   | VExprAbs abs -> eval_expr_app_abs abs app.arg context
   | _ -> RuntimeErrors.raise_value ()
 
 and eval_expr_app_print arg context =
   let value = eval arg context in
   let string = RuntimeDisplay.display value in
-  let _ = context.out_handler string in
+  let _ = context.out string in
   VUnit
 
 and eval_expr_app_abs abs arg context =
   let value = eval arg context in
-  let binds = BindMap.singleton (Model.BindExprParam abs.abs.param) value in
-  let context = new_frame context abs.frame binds in
-  eval abs.abs.body context
+  match abs with
+  | VPrim prim ->
+    prim { value; out = context.out }
+  | VCode abs ->
+    let binds = BindMap.singleton (Model.BindExprParam abs.abs.param) value in
+    let context = new_frame context abs.frame binds in
+    eval abs.abs.body context
 
 and eval_type_app expr =
   let* value = eval expr in

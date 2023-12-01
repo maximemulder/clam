@@ -1,18 +1,19 @@
 open Clam.Model
+open Clam.Primitive
 
-let pos = prim_pos
+let inline v _ = v
 
-let top    = prim_top
-let bot    = prim_bot
-let unit   = prim_unit
-let bool   = prim_bool
-let int    = prim_int
-let char   = prim_char
-let string = prim_string
+let id v = v
 
-let inline type' _ = type'
+(* Types *)
 
-let id type' = type'
+let top    = top
+let bot    = bot
+let unit   = unit
+let bool   = bool
+let int    = int
+let char   = char
+let string = string
 
 let var name bound =
   TypeVar { pos; param = { name; bound }}
@@ -60,3 +61,46 @@ let fa = var "F" a
 
 let with_var (name, type') body =
   body (var name type')
+
+(* Expressions *)
+
+let e_unit =
+  ExprUnit { pos }
+
+let e_bool value =
+  ExprBool { pos; value }
+
+let e_int value =
+  ExprInt { pos; value }
+
+let e_string value =
+  ExprString { pos; value }
+
+let e_tuple elems =
+  ExprTuple { pos; elems }
+
+let e_record attrs =
+  let attrs = List.map (fun (name, expr) -> ({ pos; name; expr })) attrs in
+  ExprRecord { pos; attrs }
+
+let e_ascr expr type' =
+  ExprAscr { pos; expr; type' }
+
+let e_if cond then' else' =
+  ExprIf { pos; cond; then'; else' }
+
+let e_abs (name, type') body =
+  let param = { pos; id = 0; name; type' = Some type' } in
+  let body = body param in
+  ExprAbs { pos; param; body }
+
+let e_app expr arg =
+  ExprApp { pos; expr; arg }
+
+let e_abs_te (name, bound) body =
+  let param = { name; bound } in
+  let body = body param in
+  ExprTypeAbs { pos; param; body }
+
+let e_app_te expr arg =
+  ExprTypeApp { pos; expr; arg }

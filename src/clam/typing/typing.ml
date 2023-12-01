@@ -312,7 +312,7 @@ and meet_type left right =
 
 and meet_tuple left_tuple right_tuple =
   if List.compare_lengths left_tuple.elems right_tuple.elems != 0 then
-    prim_bot
+    TypeBot { pos = left_tuple.pos }
   else
   let elems = List.map2 meet left_tuple.elems right_tuple.elems in
   TypeTuple { pos = left_tuple.pos; elems }
@@ -340,7 +340,7 @@ and meet_abs_expr left_abs right_abs =
 
 and meet_abs_expr_type left_abs right_abs =
   if not (is_param left_abs.param right_abs.param) then
-    prim_bot
+    TypeBot { pos = left_abs.pos }
   else
   let right_body = TypingApp.apply_abs_expr_param right_abs left_abs.param in
   let body = meet left_abs.body right_body in
@@ -348,7 +348,7 @@ and meet_abs_expr_type left_abs right_abs =
 
 and meet_abs left_abs right_abs =
   if not (is_param left_abs.param right_abs.param) then
-    prim_bot
+    TypeBot { pos = left_abs.pos }
   else
   let right_body = TypingApp.apply_abs_param right_abs left_abs.param in
   let body = meet left_abs.body right_body in

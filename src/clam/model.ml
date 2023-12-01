@@ -127,21 +127,6 @@ let type_pos type' =
   | TypeAbs         type' -> type'.pos
   | TypeApp         type' -> type'.pos
 
-let prim_pos = {
-  Lexing.pos_fname = "primitives.clam";
-  Lexing.pos_lnum = 0;
-  Lexing.pos_bol = 0;
-  Lexing.pos_cnum = 0;
-}
-
-let prim_top    = TypeTop    { pos = prim_pos; }
-let prim_bot    = TypeBot    { pos = prim_pos; }
-let prim_unit   = TypeUnit   { pos = prim_pos; }
-let prim_bool   = TypeBool   { pos = prim_pos; }
-let prim_int    = TypeInt    { pos = prim_pos; }
-let prim_char   = TypeChar   { pos = prim_pos; }
-let prim_string = TypeString { pos = prim_pos; }
-
 type expr =
   | ExprUnit    of expr_unit
   | ExprBool    of expr_bool
@@ -301,10 +286,10 @@ and def_expr = {
 }
 
 and bind_expr =
-  | BindExprPrint
-  | BindExprDef   of def_expr
-  | BindExprParam of param_expr
-  | BindExprVar   of var_expr
+  | BindExprPrim of int
+  | BindExprDef       of def_expr
+  | BindExprParam     of param_expr
+  | BindExprVar       of var_expr
 
 let expr_pos expr =
   match expr with
@@ -330,14 +315,14 @@ let expr_pos expr =
 
 let bind_expr_id bind =
   match bind with
-  | BindExprPrint       -> -1
-  | BindExprVar   var   -> var.id
-  | BindExprParam param -> param.id
-  | BindExprDef   def   -> def.id
+  | BindExprPrim      id    -> id
+  | BindExprVar       var   -> var.id
+  | BindExprParam     param -> param.id
+  | BindExprDef       def   -> def.id
 
 let bind_expr_name bind =
   match bind with
-  | BindExprPrint       -> "print"
+  | BindExprPrim  _     -> "primitive"
   | BindExprDef   def   -> def.name
   | BindExprParam param -> param.name
   | BindExprVar   var   -> var.name

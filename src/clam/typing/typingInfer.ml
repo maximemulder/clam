@@ -29,8 +29,9 @@ end
 open Monad.Monad(Monad.StateMonad(State))
 
 let make_progress defs =
+  let dones = BindMap.of_list Primitive.types in
   let remains = List.fold_left (fun set def -> DefSet.add def set) DefSet.empty defs in
-  { remains; currents = DefSet.empty; dones = BindMap.empty }
+  { remains; currents = DefSet.empty; dones }
 
 let start_progress progress def =
   let remains = DefSet.remove def progress.remains in
@@ -54,35 +55,32 @@ let return_abs (abs: expr_abs) param returner =
 
 let preop_types =
   [
-    ("+", (prim_int, prim_int));
-    ("-", (prim_int, prim_int));
-    ("!", (prim_bool, prim_bool));
+    ("+", (Primitive.int, Primitive.int));
+    ("-", (Primitive.int, Primitive.int));
+    ("!", (Primitive.bool, Primitive.bool));
   ]
   |> List.to_seq
   |> NameMap.of_seq
 
 let binop_types =
   [
-    ("+",  ((prim_int, prim_int), prim_int));
-    ("-",  ((prim_int, prim_int), prim_int));
-    ("*",  ((prim_int, prim_int), prim_int));
-    ("/",  ((prim_int, prim_int), prim_int));
-    ("%",  ((prim_int, prim_int), prim_int));
-    ("++", ((prim_string, prim_string), prim_string));
-    ("==", ((prim_top, prim_top), prim_bool));
-    ("!=", ((prim_top, prim_top), prim_bool));
-    ("<",  ((prim_int, prim_int), prim_bool));
-    (">",  ((prim_int, prim_int), prim_bool));
-    ("<=", ((prim_int, prim_int), prim_bool));
-    (">=", ((prim_int, prim_int), prim_bool));
-    ("|",  ((prim_bool, prim_bool), prim_bool));
-    ("&",  ((prim_bool, prim_bool), prim_bool));
+    ("+",  ((Primitive.int, Primitive.int), Primitive.int));
+    ("-",  ((Primitive.int, Primitive.int), Primitive.int));
+    ("*",  ((Primitive.int, Primitive.int), Primitive.int));
+    ("/",  ((Primitive.int, Primitive.int), Primitive.int));
+    ("%",  ((Primitive.int, Primitive.int), Primitive.int));
+    ("++", ((Primitive.string, Primitive.string), Primitive.string));
+    ("==", ((Primitive.top, Primitive.top), Primitive.bool));
+    ("!=", ((Primitive.top, Primitive.top), Primitive.bool));
+    ("<",  ((Primitive.int, Primitive.int), Primitive.bool));
+    (">",  ((Primitive.int, Primitive.int), Primitive.bool));
+    ("<=", ((Primitive.int, Primitive.int), Primitive.bool));
+    (">=", ((Primitive.int, Primitive.int), Primitive.bool));
+    ("|",  ((Primitive.bool, Primitive.bool), Primitive.bool));
+    ("&",  ((Primitive.bool, Primitive.bool), Primitive.bool));
   ]
   |> List.to_seq
   |> NameMap.of_seq
-
-let print_type =
-  TypeAbsExpr { pos = prim_pos; param = prim_top; body = prim_unit }
 
 module type INFERER = sig
   type t
@@ -116,7 +114,7 @@ end
 
 module InfererProj = struct
   type t = type'
-  let bot = Model.prim_bot
+  let bot = Primitive.bot
   let join = Typing.join
   let meet = Typing.meet
 end
@@ -126,7 +124,7 @@ module InfererProj2 = Inferer(InfererProj)
 module InfererApp = struct
   type t = { arg: type'; ret: type' }
 
-  let bot = { arg = prim_top; ret = prim_bot }
+  let bot = { arg = Primitive.top; ret = Primitive.bot }
 
   let join left right =
     let arg = Typing.meet left.arg right.arg in
@@ -144,7 +142,7 @@ module InfererApp2 = Inferer(InfererApp)
 module InfererAppType = struct
   type t = { arg: param_type; ret: type' }
 
-  let bot = { arg = { name = "_"; bound = prim_top }; ret = prim_bot }
+  let bot = { arg = { name = "_"; bound = Primitive.top }; ret = Primitive.bot }
 
   let join left right =
     let bound = Typing.meet left.arg.bound right.arg.bound in
@@ -221,7 +219,7 @@ and check_record_attr record constr_attr =
   | None -> TypingErrors.raise_check_record_attr record constr_attr
 
 and check_if if' constr =
-  let* _ = check if'.cond prim_bool in
+  let* _ = check if'.cond Primitive.bool in
   let* _ = check if'.then' constr in
   let* _ = check if'.else' constr in
   return ()
@@ -325,8 +323,6 @@ and infer_string string returner =
 and infer_bind bind returner state =
   let bind = Option.get !(bind.bind) in
   match bind with
-  | BindExprPrint ->
-    returner print_type state
   | BindExprDef def when DefSet.mem def state.remains ->
     let (type', state) = check_def def state in
     returner type' state
@@ -445,7 +441,7 @@ and infer_ascr ascr returner =
   return returned
 
 and infer_if if' returner =
-  let* _ = check if'.cond prim_bool in
+  let* _ = check if'.cond Primitive.bool in
   let* then' = infer_none if'.then' in
   let* else' = infer_none if'.else' in
   returner (Typing.join then' else')

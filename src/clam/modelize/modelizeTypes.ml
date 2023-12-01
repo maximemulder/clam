@@ -205,13 +205,13 @@ let rec modelize_defs state =
     modelize_defs state
 
 let primitives = [
-  ("Top",    Model.prim_top);
-  ("Bot",    Model.prim_bot);
-  ("Unit",   Model.prim_unit);
-  ("Bool",   Model.prim_bool);
-  ("Int",    Model.prim_int);
-  ("Char",   Model.prim_char);
-  ("String", Model.prim_string);
+  ("Top",    Primitive.top);
+  ("Bot",    Primitive.bot);
+  ("Unit",   Primitive.unit);
+  ("Bool",   Primitive.bool);
+  ("Int",    Primitive.int);
+  ("Char",   Primitive.char);
+  ("String", Primitive.string);
 ]
 
 let modelize_program (program: Ast.program) =

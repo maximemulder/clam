@@ -8,13 +8,9 @@ end
 
 module BindMap = Map.Make(BindKey)
 
-type frame = {
-  parent: frame option;
-  binds: value BindMap.t;
-}
+type writer = string -> unit
 
-and value =
-| VPrint
+type value =
 | VUnit
 | VBool    of bool
 | VInt     of int
@@ -25,9 +21,15 @@ and value =
 | VExprAbs of abs_expr
 | VTypeAbs of abs_type
 
-and abs_expr = {
+and abs_expr =
+  | VPrim of abs_expr_prim
+  | VCode of abs_expr_code
+
+and abs_expr_prim = context -> value
+
+and abs_expr_code = {
   abs: Model.expr_abs;
-  frame: frame;
+  frame: frame
 }
 
 and abs_type = {
@@ -35,26 +37,33 @@ and abs_type = {
   frame: frame;
 }
 
-let rec compare value other =
-  match (value, other) with
-  | (VPrint, VPrint) ->
-    true
+and context = { value: value; out: writer }
+
+and frame = {
+  parent: frame option;
+  binds: value BindMap.t;
+}
+
+let rec compare left right =
+  match (left, right) with
   | (VUnit, VUnit) ->
     true
-  | (VBool bool, VBool other) ->
-    bool = other
-  | (VInt int, VInt other) ->
-    int = other
-  | (VChar char, VChar other) ->
-    char = other
-  | (VString string, VString other) ->
-    string = other
-  | (VTuple values, VTuple others) ->
-    compare_lists compare values others
-  | (VRecord attrs, VRecord others) ->
-    compare_maps compare attrs others
-  | (VExprAbs abs, VExprAbs other) ->
-    abs = other
-  | (VTypeAbs abs, VTypeAbs other) ->
-    abs = other
+  | (VBool left, VBool right) ->
+    left = right
+  | (VInt left, VInt right) ->
+    left = right
+  | (VChar left, VChar right) ->
+    left = right
+  | (VString left, VString right) ->
+    left = right
+  | (VTuple lefts, VTuple rights) ->
+    compare_lists compare lefts rights
+  | (VRecord lefts, VRecord rights) ->
+    compare_maps compare lefts rights
+  | (VExprAbs (VPrim left), VExprAbs (VPrim right)) ->
+    left = right
+  | (VExprAbs (VCode left), VExprAbs (VCode right)) ->
+    left.abs = right.abs
+  | (VTypeAbs left, VTypeAbs right) ->
+    left = right
   | _ -> false
