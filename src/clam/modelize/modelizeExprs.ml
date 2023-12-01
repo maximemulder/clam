@@ -28,6 +28,24 @@ let get_preop_name expr op =
   | "!" -> "__not__"
   | _ -> ModelizeErrors.raise_expr_operator expr op
 
+let get_binop_name expr op =
+  match op with
+  | "+"  -> "__add__"
+  | "-"  -> "__sub__"
+  | "*"  -> "__mul__"
+  | "/"  -> "__div__"
+  | "%"  -> "__mod__"
+  | "++" -> "__concat__"
+  | "==" -> "__eq__"
+  | "!=" -> "__ne__"
+  | "<"  -> "__lt__"
+  | ">"  -> "__gt__"
+  | "<=" -> "__le__"
+  | ">=" -> "__ge__"
+  | "&"  -> "__and__"
+  | "|"  -> "__or__"
+  | _ -> ModelizeErrors.raise_expr_operator expr op
+
 let find_remain name state =
   NameMap.find_opt name state.scope.remains
 
@@ -234,14 +252,16 @@ and modelize_attr expr name =
 and modelize_preop expr op operand =
   let* arg = modelize_expr operand in
   let name = get_preop_name expr op in
-  let* bind = modelize_name expr name in
-  let bind = (Model.ExprBind { pos = fst expr; bind }) in
+  let* bind = modelize_bind expr name in
   return (Model.ExprApp { pos = fst expr; expr = bind; arg })
 
 and modelize_binop expr left op right =
+  let pos = fst expr in
   let* left = modelize_expr left in
   let* right = modelize_expr right in
-  return (Model.ExprBinop { pos = fst expr; left; op; right })
+  let name = get_binop_name expr op in
+  let* bind = modelize_bind expr name in
+  return (Model.ExprApp { pos; expr = (Model.ExprApp { pos; expr = bind; arg = left }); arg = right })
 
 and modelize_param (param: Ast.param) =
   let* type' = map_option modelize_type param.type' in

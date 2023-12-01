@@ -53,26 +53,6 @@ let return_def (def: def_expr) =
 let return_abs (abs: expr_abs) param returner =
   fun body -> returner (TypeAbsExpr { pos = abs.pos; param; body })
 
-let binop_types =
-  [
-    ("+",  ((Primitive.int, Primitive.int), Primitive.int));
-    ("-",  ((Primitive.int, Primitive.int), Primitive.int));
-    ("*",  ((Primitive.int, Primitive.int), Primitive.int));
-    ("/",  ((Primitive.int, Primitive.int), Primitive.int));
-    ("%",  ((Primitive.int, Primitive.int), Primitive.int));
-    ("++", ((Primitive.string, Primitive.string), Primitive.string));
-    ("==", ((Primitive.top, Primitive.top), Primitive.bool));
-    ("!=", ((Primitive.top, Primitive.top), Primitive.bool));
-    ("<",  ((Primitive.int, Primitive.int), Primitive.bool));
-    (">",  ((Primitive.int, Primitive.int), Primitive.bool));
-    ("<=", ((Primitive.int, Primitive.int), Primitive.bool));
-    (">=", ((Primitive.int, Primitive.int), Primitive.bool));
-    ("|",  ((Primitive.bool, Primitive.bool), Primitive.bool));
-    ("&",  ((Primitive.bool, Primitive.bool), Primitive.bool));
-  ]
-  |> List.to_seq
-  |> NameMap.of_seq
-
 module type INFERER = sig
   type t
   val bot: t
@@ -182,7 +162,7 @@ let rec check expr constr =
 
 and check_infer expr constr =
   let* type' = infer_none expr in
-  if Bool.not (Typing.isa type' constr) then
+  if not (Typing.isa type' constr) then
     TypingErrors.raise_expr_constraint expr type' constr
   else
     return ()
@@ -274,8 +254,6 @@ and infer expr returner =
     infer_elem elem returner
   | ExprAttr attr ->
     infer_attr attr returner
-  | ExprBinop binop ->
-    infer_binop binop returner
   | ExprAscr ascr ->
     infer_ascr ascr returner
   | ExprIf if' ->
@@ -397,19 +375,6 @@ and infer_type_app_base type' =
     Some { InfererAppType.arg = abs.param; ret = abs.body }
   | _ ->
     None
-
-and infer_binop binop returner =
-  let entry = NameMap.find_opt binop.op binop_types in
-  match entry with
-  | Some ((type_left, type_right), type_result) ->
-    let left = binop.left in
-    let right = binop.right in
-    let* returned = returner type_result in
-    let* _ = check left type_left in
-    let* _ = check right type_right in
-    return returned
-  | None ->
-    TypingErrors.raise_unexpected
 
 and infer_ascr ascr returner =
   let type' = ascr.type' in

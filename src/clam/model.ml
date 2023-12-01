@@ -138,7 +138,6 @@ type expr =
   | ExprRecord  of expr_record
   | ExprElem    of expr_elem
   | ExprAttr    of expr_attr
-  | ExprBinop   of expr_binop
   | ExprAscr    of expr_ascr
   | ExprIf      of expr_if
   | ExprAbs     of expr_abs
@@ -296,7 +295,6 @@ let expr_pos expr =
   | ExprRecord  expr -> expr.pos
   | ExprElem    expr -> expr.pos
   | ExprAttr    expr -> expr.pos
-  | ExprBinop   expr -> expr.pos
   | ExprAscr    expr -> expr.pos
   | ExprIf      expr -> expr.pos
   | ExprAbs     expr -> expr.pos

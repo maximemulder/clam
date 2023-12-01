@@ -9,14 +9,14 @@ let rec validate_proper type' =
 
 and validate_subtype type' constr =
   validate type';
-  if Bool.not (Typing.isa type' constr) then
+  if not (Typing.isa type' constr) then
     TypingErrors.raise_validate_subtype type' constr
   else
   ()
 
 and validate_suptype type' constr =
   validate type';
-  if Bool.not (Typing.isa constr type') then
+  if not (Typing.isa constr type') then
     TypingErrors.raise_validate_suptype type' constr
   else
   ()

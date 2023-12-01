@@ -62,13 +62,11 @@ let rec eval (expr: Model.expr) =
   | ExprAttr attr ->
     let* attrs = eval_record attr.expr in
     return (NameMap.find attr.name attrs)
-  | ExprBinop binop ->
-    eval_binop binop
   | ExprAscr ascr ->
     eval ascr.expr
   | ExprIf if' ->
-    let* cond = eval_value_bool if'.cond in
-    if cond then eval if'.then' else eval if'.else'
+    let* cond = eval if'.cond in
+    if value_bool cond then eval if'.then' else eval if'.else'
   | ExprAbs abs ->
     let* frame = get_frame in
     return (VExprAbs (VCode { abs; frame }))
@@ -137,67 +135,11 @@ and eval_type_app_abs abs context =
   let context = new_frame context abs.frame BindMap.empty in
   eval abs.abs.body context
 
-and eval_binop binop =
-  let left = binop.left in
-  let right = binop.right in
-  match binop.op with
-  | "+"  ->
-    let* left = eval_value_int left in
-    let* right = eval_value_int right in
-    return (VInt (left + right))
-  | "-"  ->
-    let* left = eval_value_int left in
-    let* right = eval_value_int right in
-    return (VInt (left - right))
-  | "*"  ->
-    let* left = eval_value_int left in
-    let* right = eval_value_int right in
-    return (VInt (left * right))
-  | "/"  ->
-    let* left = eval_value_int left in
-    let* right = eval_value_int right in
-    return (VInt (left / right))
-  | "%"  ->
-    let* left = eval_value_int left in
-    let* right = eval_value_int right in
-    return (VInt (left mod right))
-  | "++" ->
-    let* left = eval_value_string left in
-    let* right = eval_value_string right in
-    return (VString (left ^ right))
-  | "==" ->
-    let* left = eval left in
-    let* right = eval right in
-    return (VBool (RuntimeValue.compare left right))
-  | "!=" ->
-    let* left = eval left in
-    let* right = eval right in
-    return (VBool (Bool.not (RuntimeValue.compare left right)))
-  | "<" ->
-    let* left = eval_value_int left in
-    let* right = eval_value_int right in
-    return (VBool (left < right))
-  | ">" ->
-    let* left = eval_value_int left in
-    let* right = eval_value_int right in
-    return (VBool (left > right))
-  | "<=" ->
-    let* left = eval_value_int left in
-    let* right = eval_value_int right in
-    return (VBool (left <= right))
-  | ">=" ->
-    let* left = eval_value_int left in
-    let* right = eval_value_int right in
-    return (VBool (left >= right))
-  | "|" ->
-    let* left = eval_value_bool left in
-    let* right = eval_value_bool right in
-    return (VBool (left || right))
-  | "&" ->
-    let* left = eval_value_bool left in
-    let* right = eval_value_bool right in
-    return (VBool (left && right))
-  | _ -> RuntimeErrors.raise_operator binop.op
+and eval_tuple (expr: Model.expr) =
+  let* value = eval expr in
+  match value with
+  | VTuple values -> return values
+  | _ -> RuntimeErrors.raise_value ()
 
 and eval_record (expr: Model.expr) =
   let* value = eval expr in
@@ -215,30 +157,6 @@ and eval_stmt stmt context =
     context
   in
   eval stmt.expr context
-
-and eval_value_bool (expr: Model.expr) =
-  let* value = eval expr in
-  match value with
-  | VBool bool -> return bool
-  | _ -> RuntimeErrors.raise_value ()
-
-and eval_value_int (expr: Model.expr) =
-  let* value = eval expr in
-  match value with
-  | VInt int -> return int
-  | _ -> RuntimeErrors.raise_value ()
-
-and eval_value_string (expr: Model.expr) =
-  let* value = eval expr in
-  match value with
-  | VString string -> return string
-  | _ -> RuntimeErrors.raise_value ()
-
-and eval_tuple (expr: Model.expr) =
-  let* value = eval expr in
-  match value with
-  | VTuple values -> return values
-  | _ -> RuntimeErrors.raise_value ()
 
 let eval_def def stdout =
   eval def.expr (new_empty stdout)
