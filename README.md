@@ -53,14 +53,11 @@ Clam features functions, whose parameters and arguments are declared using paren
 def add = (a: Int, b: Int) -> a + b
 def step = add(1)
 def three = step(2)
-
-def factorial = (n: Int) -> n * factorial(n – 1)
-def six = factorial(2)
 ```
 
 ## Product types
 
-Clam features tuples and records, whose types and values are declared using curly braces. Tuple fields are indexed by their order and record fields are indexed by their labels. Fields are accessed using the dot `.` and the empty product `{}` is considered to be a record.
+Clam features tuples and records, whose types and values are declared using curly braces. Tuple fields are indexed by their order and record fields are indexed by their labels. Fields are accessed using the dot operator `.` and the empty product `{}` is considered to be a record.
 
 ```
 type Tuple = {Int, Int}
@@ -95,7 +92,7 @@ def u: Unit = unit
 
 ## Top type
 
-Clam has a top type named `Top`, which contains every value and is therefore a supertype of all proper types.
+Clam has a top type named `Top`, which contains all values and is therefore a supertype of all proper types.
 
 ```
 def a: Top = 0

@@ -18,7 +18,7 @@
 
 (package
  (name clam)
- (synopsis "Minimalist purely functionnal language with a C-family syntax")
+ (synopsis "Small functionnal programming language with many type features")
  (depends ocaml dune))
 
 ; See the complete stanza docs at https://dune.readthedocs.io/en/stable/dune-files.html#dune-project
