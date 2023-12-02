@@ -55,8 +55,10 @@ let tests = [
   (* unions *)
   case (union top top) 0 None;
   case (union (tuple [a]) top) 0 None;
+  case (union top (tuple [a])) 0 None;
   case (union (tuple []) (tuple [])) 0 None;
   case (union (tuple [a]) (tuple [])) 0 None;
+  case (union (tuple []) (tuple [a])) 0 None;
   case (union (tuple [a]) (tuple [a])) 0 (Some a);
   case (union (tuple [a]) (tuple [b])) 0 (Some (union a b));
 
@@ -71,6 +73,7 @@ let tests = [
   (* intersections *)
   case (inter top top) 0 None;
   case (inter (tuple [a]) top) 0 (Some a);
+  case (inter top (tuple [a])) 0 (Some a);
   case (inter (tuple []) (tuple [])) 0 None;
   case (inter (tuple [a]) (tuple [a])) 0 (Some a);
   case (inter (tuple [a]) (tuple [b])) 0 (Some (inter a b));
@@ -82,26 +85,26 @@ let tests = [
   case (inter unit bool) 0 (Some bot);
   case (inter bool unit) 0 (Some bot);
   case (inter (tuple [a]) (tuple [])) 0 (Some bot);
-  case (inter (tuple []) (tuple [b])) 0 (Some bot);
+  case (inter (tuple []) (tuple [a])) 0 (Some bot);
 
   (* intersections & unions *)
   case (inter (union (tuple [a]) (tuple [b])) (tuple [c])) 0 (Some (union (inter b c) (inter a c)));
 
   (* constructors *)
-  case (abs "A" top (fun a -> (tuple [a]))) 0 None;
-  case (app (abs "A" top id) (tuple [a])) 0 (Some a);
-  case (app (abs "A" top (fun a -> (tuple [a]))) a) 0 (Some a);
+  case (abs "T" top (fun a -> (tuple [a]))) 0 None;
+  case (app (abs "T" top id) (tuple [a])) 0 (Some a);
+  case (app (abs "T" top (fun t -> (tuple [t]))) a) 0 (Some a);
 
   (* constructors & unions *)
-  case (app (abs "A" top id) (union (tuple [a]) (tuple []))) 0 None;
-  case (app (abs "A" top id) (union (tuple [a]) (tuple [b]))) 0 (Some (union a b));
+  case (app (abs "T" top id) (union (tuple [a]) (tuple []))) 0 None;
+  case (app (abs "T" top id) (union (tuple [a]) (tuple [b]))) 0 (Some (union a b));
 
   (* constructors & intersections *)
-  case (app (abs "A" top (fun a -> (inter (tuple [a]) (tuple [unit])))) top) 0 (Some unit);
-  case (app (abs "A" top (fun a -> (inter (tuple [unit]) (tuple [a])))) top) 0 (Some unit);
+  case (app (abs "T" top (fun t -> (inter (tuple [t]) (tuple [unit])))) top) 0 (Some unit);
+  case (app (abs "T" top (fun t -> (inter (tuple [unit]) (tuple [t])))) top) 0 (Some unit);
 
   (* constructors & intersections & bottom *)
-  case (app (abs "A" top id) (inter unit bool)) 0 (Some bot);
-  case (app (abs "A" top (fun a -> (inter (tuple [a]) (tuple [unit])))) bool) 0 (Some bot);
-  case (app (abs "A" top (fun a -> (inter (tuple [unit]) (tuple [a])))) bool) 0 (Some bot);
+  case (app (abs "T" top id) (inter unit bool)) 0 (Some bot);
+  case (app (abs "T" top (fun t -> (inter (tuple [t]) (tuple [unit])))) bool) 0 (Some bot);
+  case (app (abs "T" top (fun t -> (inter (tuple [unit]) (tuple [t])))) bool) 0 (Some bot);
 ]

@@ -287,14 +287,10 @@ and meet_type left right =
     TypeInter { pos; left; right }
   | (_, TypeInter _) ->
     TypeInter { pos; left; right }
-  | (TypeUnion left_union, _) ->
-    let result_left  = meet left_union.left  right in
-    let result_right = meet left_union.right right in
-    meet result_left result_right
-  | (_, TypeUnion right_union) ->
-    let result_left  = meet left right_union.left  in
-    let result_right = meet left right_union.right in
-    meet result_left result_right
+  | (TypeUnion _, _) ->
+    TypeInter { pos; left; right }
+  | (_, TypeUnion _) ->
+    TypeInter { pos; left; right }
   | (TypeAbsExpr left_abs, TypeAbsExpr right_abs) ->
     meet_abs_expr left_abs right_abs
   | (TypeAbsExprType left_abs, TypeAbsExprType right_abs) ->
@@ -334,7 +330,7 @@ and meet_record_attr name left_attr right_attr =
     None
 
 and meet_abs_expr left_abs right_abs =
-  let param = meet left_abs.param right_abs.param in
+  let param = join left_abs.param right_abs.param in
   let body = meet left_abs.body right_abs.body in
   TypeAbsExpr { pos = left_abs.pos; param; body }
 

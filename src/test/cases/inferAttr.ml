@@ -52,8 +52,10 @@ let tests = [
   (* unions *)
   case (union top top) "foo" None;
   case (union (record ["foo", a]) top) "foo" None;
+  case (union top (record ["foo", a])) "foo" None;
   case (union (record []) (record [])) "foo" None;
   case (union (record ["foo", a]) (record [])) "foo" None;
+  case (union (record []) (record ["foo", a])) "foo" None;
   case (union (record ["foo", a]) (record ["foo", a])) "foo" (Some a);
   case (union (record ["foo", a]) (record ["foo", b])) "foo" (Some (union a b));
 
@@ -65,11 +67,13 @@ let tests = [
   (* unions & intersections *)
   case (union (inter (record [("foo", a)]) (record [("foo", b)])) (record [("foo", c)])) "foo" (Some (union (inter a b) c));
 
-  (* intersection *)
+  (* intersections *)
   case (inter top top) "foo" None;
   case (inter (record ["foo", a]) top) "foo" (Some a);
+  case (inter top (record ["foo", a])) "foo" (Some a);
   case (inter (record []) (record [])) "foo" None;
   case (inter (record ["foo", a]) (record [])) "foo" (Some a);
+  case (inter (record []) (record ["foo", a])) "foo" (Some a);
   case (inter (record ["foo", a]) (record ["foo", a])) "foo" (Some a);
   case (inter (record ["foo", a]) (record ["foo", b])) "foo" (Some (inter a b));
 
@@ -84,20 +88,20 @@ let tests = [
   case (inter (union (record ["foo", a]) (record ["foo", b])) (record ["foo", c])) "foo" (Some (union (inter b c) (inter a c)));
 
 (* constructors *)
-  case (abs "A" top (fun a -> (record ["foo", a]))) "foo" None;
-  case (app (abs "A" top id) (record ["foo", a])) "foo" (Some a);
-  case (app (abs "A" top (fun a -> (record ["foo", a]))) a) "foo" (Some a);
+  case (abs "T" top (fun a -> (record ["foo", a]))) "foo" None;
+  case (app (abs "T" top id) (record ["foo", a])) "foo" (Some a);
+  case (app (abs "T" top (fun t -> (record ["foo", t]))) a) "foo" (Some a);
 
 (* constructors & unions *)
-  case (app (abs "A" top id) (union (record ["foo", a]) (record []))) "foo" None;
-  case (app (abs "A" top id) (union (record ["foo", a]) (record ["foo", b]))) "foo" (Some (union a b));
+  case (app (abs "T" top id) (union (record ["foo", a]) (record []))) "foo" None;
+  case (app (abs "T" top id) (union (record ["foo", a]) (record ["foo", b]))) "foo" (Some (union a b));
 
 (* constructors & intersections *)
-  case (app (abs "A" top (fun a -> (inter (record ["foo", a]) (record ["foo", unit])))) top) "foo" (Some unit);
-  case (app (abs "A" top (fun a -> (inter (record ["foo", unit]) (record ["foo", a])))) top) "foo" (Some unit);
+  case (app (abs "T" top (fun t -> (inter (record ["foo", t]) (record ["foo", unit])))) top) "foo" (Some unit);
+  case (app (abs "T" top (fun t -> (inter (record ["foo", unit]) (record ["foo", t])))) top) "foo" (Some unit);
 
 (* constructors & intersections & bottom *)
-  case (app (abs "A" top id) (inter unit int)) "foo" (Some bot);
-  case (app (abs "A" top (fun a -> (inter (record ["foo", a]) (record ["foo", int])))) unit) "foo" (Some bot);
-  case (app (abs "A" top (fun a -> (inter (record ["foo", int]) (record ["foo", a])))) unit) "foo" (Some bot);
+  case (app (abs "T" top id) (inter unit int)) "foo" (Some bot);
+  case (app (abs "T" top (fun t -> (inter (record ["foo", t]) (record ["foo", int])))) unit) "foo" (Some bot);
+  case (app (abs "T" top (fun t -> (inter (record ["foo", int]) (record ["foo", t])))) unit) "foo" (Some bot);
 ]

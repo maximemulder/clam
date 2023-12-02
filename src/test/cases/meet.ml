@@ -63,9 +63,9 @@ let tests = [
 
   (* expression to expression abstractions *)
   case (abs_expr a b) (abs_expr a b) (abs_expr a b);
-  case (abs_expr a c) (abs_expr b c) (abs_expr (inter a b) c);
   case (abs_expr a b) (abs_expr a c) (abs_expr a (inter b c));
-  case (abs_expr a c) (abs_expr b d) (abs_expr (inter a b) (inter c d));
+  case (abs_expr a c) (abs_expr b c) (abs_expr (union a b) c);
+  case (abs_expr a c) (abs_expr b d) (abs_expr (union a b) (inter c d));
 
   (* type to expression abstractions *)
   case (abs_expr_type ("A", top) (inline c)) (abs_expr_type ("B", top) (inline d)) (abs_expr_type ("A", top) (inline ((inter c d))));
