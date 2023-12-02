@@ -5,6 +5,7 @@ let () =  Alcotest.run "clam" [
   "is",             Is.tests;
   "is!",            Is.tests_not;
   "isa",            Isa.tests;
+  "isa!",           Isa.tests_not;
   "join",           Join.tests;
   "meet",           Meet.tests;
   "infer_app",      InferApp.tests;

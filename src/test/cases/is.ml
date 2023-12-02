@@ -73,12 +73,18 @@ let tests = [
   case (abs_expr_type ("A", top) (inline a)) (abs_expr_type ("A", top) (inline a));
   case (abs_expr_type ("A", top) (fun a -> a)) (abs_expr_type ("A", top) (fun a -> a));
   case (abs_expr_type ("A", top) (fun a -> a)) (abs_expr_type ("B", top) (fun b -> b));
+
+  (* type applications *)
+  case top (app (abs "T" top id) top);
+  case (app (abs "T" top id) top) top;
+  case top (app (abs "T" top (inline top)) top);
+  case (app (abs "T" top (inline top)) top) top;
 ]
 
 let case left right = case_base left right false
 
 let tests_not = [
-  (* top and bot *)
+  (* top and bottom types *)
   case top bot;
   case bot top;
   case unit top;
@@ -114,4 +120,7 @@ let tests_not = [
   (* ambiguous names *)
   case (var "A" top) (var "A" top);
   case (abs_expr_type ("A", top) (fun a -> a)) (abs_expr_type ("A", top) (inline a));
+
+  (* type abstractions and vars*)
+  case (with_var "T" (abs "X" top id) (fun t -> (app t top))) (with_var "T" (abs "X" top id) (fun t -> (app t top)));
 ]

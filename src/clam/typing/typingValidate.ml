@@ -80,7 +80,7 @@ and validate_app_type type' =
   | TypeVar var ->
     validate_app_type var.param.bound
   | TypeApp app ->
-    validate_app_type (TypingApp.apply_app app)
+    validate_app_type (Typing.simplify_app app)
   | TypeAbs abs ->
     Some abs
   | _ ->

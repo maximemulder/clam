@@ -55,12 +55,9 @@ let rec is left right =
     is_abs_expr_type left_abs right_abs
   | (TypeAbs left_abs, TypeAbs right_abs) ->
     is_abs_type left_abs right_abs
-  | (TypeApp left_app, _) ->
-    is (TypingApp.apply_app left_app) right
-  | (_, TypeApp right_app) ->
-    is left (TypingApp.apply_app right_app)
+  | (TypeApp left_app, TypeApp right_app) ->
+    is_app_type left_app right_app
   | _ -> false
-  (* TODO: Adapt this function to type abstractions *)
 
 and is_union left right =
   let lefts  = collect_union left  in
@@ -90,6 +87,10 @@ and is_abs_type left_abs right_abs =
   is_param left_abs.param right_abs.param
   && let right_body = TypingApp.apply_abs_param right_abs left_abs.param in
   is left_abs.body right_body
+
+and is_app_type left_app right_app =
+  is left_app.type' right_app.type'
+  && is left_app.arg right_app.arg
 
 and is_attr left_attr right_attr =
   is left_attr.type' right_attr.type'
@@ -141,15 +142,10 @@ and isa sub sup: bool =
     isa_abs_expr_type sub_abs sup_abs
   | (TypeAbs sub_abs, TypeAbs sup_abs) ->
     isa_abs_type sub_abs sup_abs
-  | (TypeApp sub_app, _) ->
-    let sub = TypingApp.apply_app sub_app in
-    isa sub sup
-  | (_, TypeApp sup_app) ->
-    let sup = TypingApp.apply_app sup_app in
-    isa sub sup
+  | (TypeApp left_app, TypeApp right_app) ->
+    isa_app_type left_app right_app
   | _ ->
     false
-    (* TODO: Adapt this function to type abstractions *)
 
 and isa_top sub =
   match TypingKind.get_kind sub with
@@ -159,7 +155,7 @@ and isa_top sub =
 and isa_var sub_var sup =
   var_is_bot sub_var
   || match sup with
-  | TypeVar sup_var when sub_var.param = sup_var.param ->
+  | TypeVar sup_var when sub_var.param == sup_var.param ->
     true
   | _ ->
     isa sub_var.param.bound sup
@@ -187,10 +183,32 @@ and isa_abs_type sub_abs sup_abs =
   && let sup_body = TypingApp.apply_abs_param sup_abs sub_abs.param in
   isa sub_abs.body sup_body
 
+and isa_app_type sub_app sup_app =
+  isa sub_app.type' sup_app.type'
+  && is sub_app.arg sup_app.arg
+
 (* TYPE NORMALIZATION *)
 
+(* TODO: I am not sure this function works with inter-nested unions, intersections and type abstractions *)
+(* It may be easier to implement a simplified form for types than to correct it immediatly *)
 and normalize type' =
-  Utils.reduce_list join_type (distribute_unions type')
+  let type' = Utils.reduce_list join_type (distribute_unions type') in
+  simplify type'
+
+and simplify type' =
+  match type' with
+  | TypeApp app ->
+    simplify_app app
+  | _ ->
+    type'
+
+and simplify_app app =
+  let abs = normalize app.type' in
+  match abs with
+  | TypeAbs { param; body; _ } ->
+    let entry = TypingApp.entry param app.arg in
+    normalize (TypingApp.apply body entry)
+  | type' -> type'
 
 and distribute_unions type' =
   match type' with
@@ -297,11 +315,12 @@ and meet_type left right =
     meet_abs_expr_type left_abs right_abs
   | (TypeAbs left_abs, TypeAbs right_abs) ->
     meet_abs left_abs right_abs
+  (* TODO: The two next cases are probably wrong but I am too done to fix it now *)
   | (TypeApp left_app, _) ->
-    let left = TypingApp.apply_app left_app in
+    let left = simplify_app left_app in
     meet left right
   | (_, TypeApp right_app) ->
-    let right = TypingApp.apply_app right_app in
+    let right = simplify_app right_app in
     meet left right
   | (_, _) ->
     TypeBot { pos }

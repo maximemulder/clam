@@ -26,6 +26,9 @@ val isa : type' -> type' -> bool
   form. *)
 val normalize : type' -> type'
 
+(** Applies a type application to its abstraction *)
+val simplify_app : type_app -> type'
+
 (** Decomposes two types and combines them into their simplified lowest common supertype, which
   is either the more general input type, or the union of these types. *)
 val join : type' -> type' -> type'

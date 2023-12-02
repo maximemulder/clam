@@ -97,21 +97,3 @@ and apply_abs_expr_param abs param =
 and apply_abs_param abs param =
   let entry = entry_param param abs.param abs.pos in
   apply abs.body entry
-
-let rec apply_app (app: type_app) =
-  match apply_app_type app.type' with
-  | Some abs ->
-    let entry = entry abs.param app.arg in
-    apply abs.body entry
-  | _ -> TypingErrors.raise_unexpected ()
-
-and apply_app_type (type': type'): type_abs option =
-  match type' with
-  | TypeVar var ->
-    apply_app_type var.param.bound
-  | TypeAbs abs ->
-    Some abs
-  | TypeApp app ->
-    apply_app_type (apply_app app)
-  | _ ->
-    None

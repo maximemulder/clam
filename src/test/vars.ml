@@ -58,10 +58,10 @@ let e = var "E" top
 let f = var "F" top
 let z = var "Z" top
 
-let ea = var "E" a
-let fa = var "F" a
+let ea = var "EA" a
+let fa = var "FA" a
 
-let with_var (name, type') body =
+let with_var name type' body =
   body (var name type')
 
 (* Expressions *)

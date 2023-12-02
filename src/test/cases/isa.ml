@@ -1,19 +1,22 @@
 open Clam
 open Vars
 
-let test name sub sup (_: unit) =
+let test name sub sup expect (_: unit) =
   let result = Typing.isa sub sup in
-  Alcotest.(check bool) name true result
+  Alcotest.(check bool) name result expect
 
-let name sub sup =
+let name sub sup expect =
   let sub = TypingDisplay.display sub in
   let sup = TypingDisplay.display sup in
-  "isa `" ^ sub ^ "` `" ^ sup ^ "`"
+  let suffix = if expect then "" else "!" in
+  "isa" ^ suffix ^ " `" ^ sub ^ "` `" ^ sup ^ "`"
 
-let case sub sup =
-  let name = name sub sup in
-  let test = test name sub sup in
+let case_base sub sup expect =
+  let name = name sub sup expect in
+  let test = test name sub sup expect in
   Alcotest.test_case name `Quick test
+
+let case left right = case_base left right true
 
 let tests = [
   (* bottom *)
@@ -61,7 +64,60 @@ let tests = [
   case (abs_expr (union a b) (inter c d)) (inter (abs_expr a c) (abs_expr b d));
 
   (* type to expression abstractions *)
-  case (abs_expr_type ("A", top) (inline a)) (abs_expr_type ("A", top) (inline a));
-  case (abs_expr_type ("A", top) (fun a -> a)) (abs_expr_type ("A", top) (fun a -> a));
-  case (abs_expr_type ("A", top) (fun a -> a)) (abs_expr_type ("B", top) (fun b -> b));
+  case (abs_expr_type ("T", top) id) (abs_expr_type ("T", top) id);
+  case (abs_expr_type ("T", top) id) (abs_expr_type ("X", top) id);
+  case (abs_expr_type ("T", top) (inline a)) (abs_expr_type ("T", top) (inline a));
+  case (abs_expr_type ("T", top) (inline a)) (abs_expr_type ("X", top) (inline a));
+
+  (* type abstractions *)
+  case (abs "T" top id) (abs "T" top id);
+  case (abs "T" top id) (abs "T" top (inline top));
+  case (abs "T" top (inline a)) (abs "T" top (inline a));
+  case (abs "T" top (inline a)) (abs "T" top (inline top));
+
+  (* type applications *)
+  case top (app (abs "T" top id) top);
+  case (app (abs "T" top id) top) top;
+  case top (app (abs "T" top (inline top)) top);
+  case (app (abs "T" top (inline top)) top) top;
+]
+
+let case left right = case_base left right false
+
+let tests_not = [
+  (* bottom type *)
+  case top bot;
+  case unit bot;
+  case bool bot;
+  case int bot;
+  case string bot;
+
+  (* vars *)
+  case a b;
+  case (with_var "T" top id) (with_var "T" top id);
+
+  (* tuples *)
+  case (tuple [a]) (tuple []);
+  case (tuple []) (tuple [a]);
+  case (tuple [top]) (tuple [a]);
+
+  (* records *)
+  case (record []) (record ["foo", a]);
+  case (record ["foo", top]) (record ["foo", a]);
+
+  (* type abstractions*)
+  case (abs "T" top (inline a)) (abs "T" top (inline b));
+  case (abs "T" top (inline top)) (abs "T" top (inline b));
+  case (abs "T" a (inline c)) (abs "T" b (inline c));
+  case (abs "T" top (inline b)) (abs "T" a (inline b));
+  case (abs "T" a (inline b)) (abs "T" top (inline b));
+
+  (* type abstractions and top *)
+  case top (abs "T" top id);
+  case top (abs "T" top (inline top));
+  case (abs "T" top id) top;
+  case (abs "T" top (inline top)) top;
+
+  (* type abstractions and vars*)
+  case (with_var "T" (abs "X" top id) (fun t -> (app t top))) (with_var "T" (abs "X" top id) (fun t -> (app t top)));
 ]

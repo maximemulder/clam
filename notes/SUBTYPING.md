@@ -2,9 +2,6 @@
 
 ## Unions and intersections
 
-Subtyping for unions and intersections is inspired by the following article:
-https://dl.acm.org/doi/abs/10.1145/3276482
-
 The order of the subtyping pattern matching is important. Notably, the left union should appear before the right union and intersection, which should appear before the left intersection.
 
 ## Debugging subtyping
@@ -38,17 +35,33 @@ and is l r =
   res
 ```
 
+## Type representation
+
+It may be a good idea to create a (OCaml) type for normalized (Clam) types.
+
+All types would always be in their DNF form. And applications would always be applied when possible.
+
+Example:
+```
+type type' =
+  type_literal list list
+
+type_literal =
+  | Int type_int
+  | Tuple type_tuple
+  ...
+
+type_int {
+  pos: pos;
+}
+
+type_tuple {
+  pos: pos;
+  elems: type'
+}
+```
+
 ## TODO
 
-THIS LIST IS NOT UP-TO-DATE
-- Finish `meet` function, check if `join` is complete
-- Type variables with `Bot` as a bound should act similar to `Bot`.
-- More testing (calls and above improvements)
-- Subtyping uses substitution for type applications, but what if it simply added variables to the context ?
-- Check the interactions of a type variable bound to a parameter whose name is overriden by another parameter.
-- Check this case `case (abs_expr_type_1 ("A", top) (fun a -> (inter a int))) (abs_expr_type_1 ("B", top) (fun b -> b)) (abs_expr_type_1 ("A", top) (fun a -> (inter a int)));`
-
-UPTODATE ENTRIES:
-- `Top` should only be a supertype of first order types
-- Factorize type inference
 - Finish higher order subtyping
+- Add more tests

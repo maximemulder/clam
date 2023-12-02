@@ -77,7 +77,7 @@ module Inferer(I: INFERER) = struct
       let right = infer f union.right in
       Utils.map_option2 left right I.join
     | TypeApp app ->
-      let type' = TypingApp.apply_app app in
+      let type' = Typing.simplify_app app in
       infer f type'
     | _ ->
       f type'
@@ -142,9 +142,6 @@ let rec check expr constr =
   match constr with
   | TypeUnion _ | TypeInter _ ->
     check_infer expr constr
-  | TypeApp app ->
-    let constr = TypingApp.apply_app app in
-    check expr constr
   | _ ->
   match expr with
   | ExprTuple tuple ->
