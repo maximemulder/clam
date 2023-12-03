@@ -130,7 +130,7 @@ def distributivity = [A, B, C] -> (developed: (A & B) | (A & C)) ->
 
 ## Universal types
 
-Clam features universal types, which allow to abstract over a term using types.
+Clam features universal types, which allow to abstract over an expression using types.
 
 ```
 type Iter = [T] -> (Int, T, (T) -> T) -> T
