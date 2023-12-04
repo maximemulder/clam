@@ -33,7 +33,7 @@ In a terminal, enter `dune build` to build the project or `dune exec main exampl
 
 # Features
 
-Clam aims to be a small lambda-calculus-like programming language with an easily readable syntax and many features borrowed from System $F^ω_{<:}$ and its derivatives to experiment with.
+Clam aims to be a small experimental functional programming language with an easily readable syntax and many features borrowed from System $F^ω_{<:}$ and its derivatives to experiment with.
 
 ## Literals
 
