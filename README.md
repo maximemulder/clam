@@ -47,7 +47,7 @@ def hello: String = "Hello world !"
 
 ## Functions
 
-Clam features functions, whose parameters and arguments are declared using parentheses. Functions (or any expression currently) can be recursive, and are decomposed in their unary form to enable currying.
+Clam features functions, whose parameters and arguments are declared using parentheses. Functions (or any expression currently) can be recursive, and are desugared in their unary form to enable currying.
 
 ```
 def add = (a: Int, b: Int) -> a + b
