@@ -60,7 +60,6 @@ let tests = [
   case (abs_expr (union a b) c) (inter (abs_expr a c) (abs_expr b c));
   case (inter (abs_expr a b) (abs_expr a c)) (abs_expr a (inter b c));
   case (abs_expr a (inter b c)) (inter (abs_expr a b) (abs_expr a c));
-  case (inter (abs_expr a c) (abs_expr b d)) (abs_expr (union a b) (inter c d));
   case (abs_expr (union a b) (inter c d)) (inter (abs_expr a c) (abs_expr b d));
 
   (* type to expression abstractions *)
@@ -104,6 +103,9 @@ let tests_not = [
   (* records *)
   case (record []) (record ["foo", a]);
   case (record ["foo", top]) (record ["foo", a]);
+
+  (* meets *)
+  case (inter (abs_expr a c) (abs_expr b d)) (abs_expr (union a b) (inter c d));
 
   (* type abstractions*)
   case (abs "T" top (inline a)) (abs "T" top (inline b));

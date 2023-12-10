@@ -349,9 +349,15 @@ and meet_record_attr name left_attr right_attr =
     None
 
 and meet_abs_expr left_abs right_abs =
-  let param = join left_abs.param right_abs.param in
-  let body = meet left_abs.body right_abs.body in
-  TypeAbsExpr { pos = left_abs.pos; param; body }
+  let pos = left_abs.pos in
+  if is left_abs.param right_abs.param then
+    let body = meet left_abs.body right_abs.body in
+    TypeAbsExpr { pos = left_abs.pos; param = left_abs.param; body }
+  else if is left_abs.body right_abs.body then
+    let param = join left_abs.param right_abs.param in
+    TypeAbsExpr { pos = left_abs.pos; param; body = left_abs.body }
+  else
+  TypeInter { pos; left = TypeAbsExpr left_abs; right = TypeAbsExpr right_abs }
 
 and meet_abs_expr_type left_abs right_abs =
   if not (is_param left_abs.param right_abs.param) then
