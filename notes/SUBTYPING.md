@@ -20,8 +20,8 @@ and indent_with f =
   indent_n := indent_n.contents - 1;
   res
 
-and isa l r c =
-  let res = indent_with (fun _ -> isa2 l r c) in
+and isa l r =
+  let res = indent_with (fun _ -> isa2 l r) in
   let tab = indent indent_n.contents in
   print_endline(tab ^ (TypingDisplay.display (normalize l)) ^ " : " ^ (TypingDisplay.display (normalize r)));
   print_endline(tab ^ (TypingDisplay.display l) ^ " : " ^ (TypingDisplay.display r) ^ "   " ^ (string_of_bool res));

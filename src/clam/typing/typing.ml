@@ -68,8 +68,8 @@ and is_union left right =
 and is_inter left right =
   let lefts =  collect_inter left  in
   let rights = collect_inter right in
-  List.for_all (fun left -> List.exists (fun right -> isa left right) rights) lefts &&
-  List.for_all (fun right -> List.exists (fun left -> isa right left) lefts) rights
+  List.for_all (fun left -> List.exists (fun right -> isa right left) rights) lefts &&
+  List.for_all (fun right -> List.exists (fun left -> isa left right) lefts) rights
 
 and is_var left_var right =
   if var_is_bot left_var && type_is_bot right then

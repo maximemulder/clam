@@ -47,6 +47,8 @@ let tests = [
   case (union (union a b) c) (union a (union b c));
   case (union top a) top;
   case top (union top a);
+  case (union a (union b ea)) (union a b);
+  case (union a b) (union a (union b ea));
 
   (* intersections *)
   case a (inter a a);
@@ -56,6 +58,8 @@ let tests = [
   case (inter a b) (inter b a);
   case (inter top a) a;
   case a (inter top a);
+  case (inter a (inter b ea)) (inter ea b);
+  case (inter ea b) (inter a (inter b ea));
 
   (* distributivity *)
   case (union (inter a b) (inter a c)) (inter a (union b c));
@@ -108,12 +112,16 @@ let tests_not = [
   case (union a b) a;
   case (union top a) a;
   case a (union top a);
+  case (union a (union b ea)) (union ea b);
+  case (union ea b) (union a (union b ea));
 
   (* interesections *)
   case a (inter a b);
   case (inter a b) a;
   case (inter top a) top;
   case top (inter top a);
+  case (inter a (inter b ea)) (inter a b);
+  case (inter a b) (inter a (inter b ea));
 
   (* meets *)
   case (inter (abs_expr a c) (abs_expr b d)) (abs_expr (union a b) (inter c d));
