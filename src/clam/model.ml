@@ -1,5 +1,9 @@
 type pos = Lexing.position
 
+type bind = {
+  name: string;
+}
+
 type type' =
   | TypeTop         of type_top
   | TypeBot         of type_bot

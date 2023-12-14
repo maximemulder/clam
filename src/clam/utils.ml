@@ -60,18 +60,18 @@ let rec product_lists acc f l1 l2 =
 let product_lists f l1 l2 =
   product_lists [] f l1 l2
 
-let rec try_reduce_rec n xs ys zs f =
+let rec collapse n xs ys zs f =
   match xs with
   | [] -> (
     match ys with
     | [] -> n :: zs
-    | y :: ys -> try_reduce_rec y ys [] (n :: zs) f)
+    | y :: ys -> collapse y ys [] (n :: zs) f)
   | x :: xs -> (
     match f n x with
-    | Some n -> try_reduce_rec n (xs @ ys @ zs) [] [] f
-    | None -> try_reduce_rec n xs (x :: ys) zs f)
+    | Some n -> collapse n (xs @ ys @ zs) [] [] f
+    | None -> collapse n xs (x :: ys) zs f)
 
-let try_reduce_rec xs f =
+let collapse f xs =
   match xs with
-  | x :: xs -> try_reduce_rec x xs [] [] f
-  | _ -> invalid_arg "try_reduce_rec"
+  | x :: xs -> collapse x xs [] [] f
+  | _ -> invalid_arg "collapse"

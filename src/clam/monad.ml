@@ -77,6 +77,29 @@ module Monad (M: MONAD) = struct
       return (r && r2)
     | _ ->
       return false
+
+  let rec list_all f xs =
+    match xs with
+    | [] ->
+      return true
+    | x :: xs ->
+      let* r = f x in
+      let* r2 = list_all f xs in
+      return (r && r2)
+
+  let rec list_any f xs =
+    match xs with
+    | [] ->
+      return true
+    | x :: xs ->
+      let* r = f x in
+      let* r2 = list_any f xs in
+      return (r || r2)
+
+  let rec map_all f xs =
+    let f = (fun (_, v) -> f v) in
+    let xs = List.of_seq (NameMap.to_seq xs) in
+    list_all f xs
 end
 
 module type STATE = sig
