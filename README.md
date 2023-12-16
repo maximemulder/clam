@@ -1,6 +1,6 @@
 # What is this ?
 
-This is  Clam ! A small statically typed functional programming language with many classic but interesting features. A formal (but currently incomplete) specification of the language is available in the `specs/specs.pdf` file available [here](https://github.com/MaximeMulder/clam/blob/main/specs/specs.pdf).
+This is  Clam ! A small statically typed functional programming language with many classic but interesting features. A formal (but currently incomplete) specification of the language is available in the `specs/specs.pdf` file available [here](https://raw.githubusercontent.com/MaximeMulder/Clam/main/specs/specs.pdf).
 
 # Example
 
