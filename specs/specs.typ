@@ -8,6 +8,8 @@
   ),
 )
 
+#show link: underline
+
 #show heading: title => [ #title \ ]
 
 #let rules(body) = par(justify: false, align(center, body))
@@ -26,6 +28,8 @@
 = Introduction
 
 This document is the work-in-progress specification of the Clam programming language semantics. It is mostly based on the semantics of System $F^omega_(<:)$ and captures most of the behaviours of Clam. However, it is not yet complete and lacks proofs. It could also benefit from more elegant evaluation semantics.
+
+This document is written using #link("https://typst.app")[Typst].
 
 #outline()
 
@@ -69,7 +73,7 @@ The abstract syntax of Clam is given by the following grammar:
           | & angle.l tau_1, ..., tau_n angle.r && space.quad "tuple" \
           | & angle.l l_1: tau_1, ..., l_n: tau_n angle.r && space.quad "record" \
           | & tau -> tau && space.quad "abstraction" \
-          | & forall T <: tau. space tau && space.quad "universal" \
+          | & forall T <: tau. space tau && space.quad "universal abstraction" \
           | & Lambda T <: tau. space tau && space.quad "type abstraction" \
           | & tau[tau] && space.quad "type application" $)
 ])
@@ -119,7 +123,7 @@ The kinding judgement is of the form $Delta tack.r tau :: k$. The hypotheses of 
     $Delta tack.r tau_1 -> tau_2 :: *$,
     $Delta tack.r tau_1 :: *$,
     $Delta tack.r tau_2 :: *$)
-  #rule("K-All",
+  #rule("K-Univ",
     $Delta tack.r forall T <: tau_1. space tau_2 :: *$,
     $Delta, T <: tau_1 tack.r tau_2 :: *$)
   \
@@ -173,7 +177,7 @@ The type equivalence judgement is of the form $Delta tack.r tau equiv tau'$.
     $Delta tack.r tau_1 -> tau_2 equiv tau'_1 -> tau'_2$,
     $Delta tack.r tau_1 equiv tau'_1$,
     $Delta tack.r tau_2 equiv tau'_2$)
-  #rule("E-All",
+  #rule("E-Univ",
     $Delta tack.r forall X <: tau_1. space tau_2 equiv forall X <: tau'_1. space tau'_2$,
     $Delta tack.r tau_1 equiv tau'_1$,
     $Delta tack.r tau_2 equiv tau'_2$)
@@ -240,7 +244,7 @@ The subtyping judgement is of the form $Delta tack.r tau <: tau'$.
     $Delta tack.r tau_1 -> tau_2 <: tau'_1 -> tau'_2$,
     $Delta tack.r tau'_1 <: tau_1$,
     $Delta tack.r tau_2 <: tau'_2$)
-  #rule("S-All",
+  #rule("S-Univ",
     $Delta tack.r forall T <: tau_1. space tau_2 <: forall T <: tau'_1. space tau'_2$,
     $Delta tack.r tau_1 equiv tau'_1$,
     $Delta, T <: tau_1 tack.r tau_2 <: tau'_2$)
@@ -318,10 +322,10 @@ The typing judgement is of the form $Delta space Gamma tack.r e : tau$. The hypo
     $Delta space Gamma tack.r e_1 : tau_1 -> tau_2$,
     $Delta space Gamma tack.r e_2 : tau_1$)
   \
-  #rule("T-All",
+  #rule("T-Univ",
     $Delta space Gamma tack.r lambda T <: tau_1. space e : forall T <: tau_1. space tau_2$,
     $Delta, T <: tau_1 space Gamma tack.r e : tau_2$)
-  #rule("T-AllApp",
+  #rule("T-UnivApp",
     $Delta space Gamma tack.r e[tau_3] : [T slash tau_3]tau_2$,
     $Delta space Gamma tack.r e : forall T <: tau_1. space tau_2$,
     $Delta tack.r tau_3 <: tau_1$)
@@ -390,7 +394,8 @@ The evaluation judgement is of the form $e arrow.b.double v$.
   #rule("V-Bool",
     $b arrow.b.double b$)
   #rule("V-Int",
-    $i arrow.b.double i$)
+    $n arrow.b.double i$,
+    $n = i$)
   #rule("V-String",
     $s arrow.b.double s$)
   \
@@ -416,9 +421,9 @@ The evaluation judgement is of the form $e arrow.b.double v$.
     $e_1 arrow.b.double lambda x. space e_3$,
     $[e_2 slash x]e_3 arrow.b.double v$)
   \
-  #rule("V-All",
+  #rule("V-Univ",
     $lambda T <: tau. space e arrow.b.double lambda T. space e$)
-  #rule("V-AllApp",
+  #rule("V-UnivApp",
     $e_1[tau] arrow.b.double e_2$,
     $e_1 arrow.b.double lambda T. space e_2$)
   \
