@@ -275,7 +275,7 @@ and modelize_type_param (param: Ast.param): Model.param_type t =
     | None ->
       return (Model.TypeTop { pos = param.pos })
   ) in
-  return { Model.name = param.name; Model.bound }
+  return { Model.bind = { name = param.name }; Model.bound }
 
 and modelize_stmt (stmt: Ast.stmt) (expr: Ast.expr) =
   match stmt with

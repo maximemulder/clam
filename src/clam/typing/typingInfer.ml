@@ -113,11 +113,11 @@ module InfererApp2 = Inferer(InfererApp)
 module InfererAppType = struct
   type t = { arg: param_type; ret: type' }
 
-  let bot = { arg = { name = "_"; bound = Primitive.top }; ret = Primitive.bot }
+  let bot = { arg = { bind = { name = "_" }; bound = Primitive.top }; ret = Primitive.bot }
 
   let join left right =
     let bound = Typing.meet left.arg.bound right.arg.bound in
-    let arg = { name = "_"; bound } in
+    let arg = { bind = { name = "_" }; bound } in
     let entry = TypingApp.entry_param arg left.arg (type_pos left.ret) in
     let left_ret = TypingApp.apply left.ret entry in
     let entry = TypingApp.entry_param arg right.arg (type_pos right.ret) in

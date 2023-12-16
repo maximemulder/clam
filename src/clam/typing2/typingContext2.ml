@@ -1,7 +1,10 @@
 type entry = {
-  bind: Model.bind;
+  bind: Model.bind_type;
   type': Type.type';
 }
+
+let entry (bind: Model.bind_type) (type': Type.type') =
+  { bind; type' }
 
 let entry_param pos (left: Type.param) (right: Type.param) =
   { bind = right.bind; type' = Type.base (Var { pos; bind = left.bind }) }

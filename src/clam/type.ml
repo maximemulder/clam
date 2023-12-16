@@ -56,7 +56,7 @@ and string = {
 
 and var = {
   pos: pos;
-  bind: Model.bind;
+  bind: Model.bind_type;
 }
 
 and tuple = {
@@ -106,7 +106,7 @@ and attr = {
 }
 
 and param = {
-  bind: Model.bind;
+  bind: Model.bind_type;
   bound: type';
 }
 

@@ -218,6 +218,16 @@ and substitute_attr ctx entry attr =
   let type' = substitute ctx entry attr.type' in
   { attr with type' }
 
+(* TYPE COMPUTATION *)
+
+and compute ctx (abs: Type.base) (arg: Type.type') =
+  match abs with
+  | Abs abs ->
+    let entry = TypingContext2.entry abs.param.bind arg in
+    substitute ctx entry abs.body
+  | _ ->
+    Type.base (Type.App { pos = Type.pos abs; abs = Type.base abs; arg })
+
 (* TYPE JOIN *)
 
 and join ctx (left: Type.type') (right: Type.type') =

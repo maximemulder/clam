@@ -1,6 +1,6 @@
 type pos = Lexing.position
 
-type bind = {
+type bind_type = {
   name: string;
 }
 
@@ -53,6 +53,7 @@ and type_string = {
 and type_var = {
   pos: pos;
   param: param_type;
+  bind: bind_type;
 }
 
 and type_tuple = {
@@ -108,7 +109,7 @@ and attr_type = {
 }
 
 and param_type = {
-  name: string;
+  bind: bind_type;
   bound: type';
 }
 

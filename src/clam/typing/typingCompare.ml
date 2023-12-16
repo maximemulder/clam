@@ -36,7 +36,7 @@ let rec compare (left: Model.type') (right: Model.type') =
   | _ -> false
 
 and compare_param left_param right_param =
-  left_param.name == right_param.name
+  left_param.bind.name == right_param.bind.name
   && compare left_param.bound right_param.bound
 
 and compare_attr left_attr right_attr =

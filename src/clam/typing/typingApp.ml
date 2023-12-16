@@ -15,7 +15,7 @@ let entry param type' =
   { param; type' }
 
 let entry_param left right pos =
-  entry right (TypeVar { pos; param = left })
+  entry right (TypeVar { pos; param = left; bind = left.bind })
 
 module Reader = struct
   type r = entry

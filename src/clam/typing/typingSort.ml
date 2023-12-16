@@ -23,7 +23,7 @@ let rec sort (left: Model.type') (right: Model.type') =
   | (TypeString _, _) -> +1
   | (_, TypeString _) -> -1
   | (TypeVar left_var, TypeVar right_var) ->
-    String.compare left_var.param.name right_var.param.name
+    String.compare left_var.bind.name right_var.bind.name
   | (TypeVar _, _) -> +1
   | (_, TypeVar _) -> -1
   | (TypeUnion left_union, TypeUnion right_union) ->

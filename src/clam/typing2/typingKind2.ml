@@ -5,7 +5,6 @@ type kind =
 let rec get_kind ctx (type': Type.type') =
   get_kind_union ctx type'
 
-(* TODO Fix this *)
 and get_kind_union ctx (union: Type.union) =
   get_kind_inter ctx (List.nth union.union 0)
 

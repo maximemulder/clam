@@ -40,11 +40,11 @@ and validate (type': type') =
   | TypeTuple tuple ->
     validate_tuple tuple
   | TypeRecord record ->
-    validate_record record;
+    validate_record record
   | TypeInter inter ->
-    validate_inter inter;
+    validate_inter inter
   | TypeUnion union ->
-    validate_union union;
+    validate_union union
   | TypeAbs abs ->
     validate_param abs.param;
     validate abs.body;
