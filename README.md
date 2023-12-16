@@ -1,6 +1,6 @@
 # What is this ?
 
-This is  Clam ! A small statically typed functional programming language with many classic but interesting features.
+This is  Clam ! A small statically typed functional programming language with many classic but interesting features. A formal (but currently incomplete) specification of the language is available in the `specs/specs.pdf` file available [here](https://github.com/MaximeMulder/clam/blob/main/specs/specs.pdf).
 
 # Example
 
@@ -196,7 +196,7 @@ Clam does not feature recursive types yet, which is quite limiting.
 
 Does this interpreter, and particularly its type checking, actually work ?
 
-It should. I do not have a mathematical proof of correctness (I hope I will one day !), but I have a decent amount of tests and have tried to design the code carefully. What I can ensure is that all the examples in this file and in the `tests` directory work.
+It should. I do not have a proof of correctness yet, but I have a decent amount of tests and have tried to design the code carefully. I can ensure that all the examples in this file and in the `tests` directory work.
 
 There may be a few bugs remaining with higher-kinded types, especially when interacting with other features such as unions and intersections. However, I want to eventually simplify the representation of these types in the future so I will wait until I do so to polish them more thoroughly.
 
