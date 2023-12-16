@@ -332,7 +332,8 @@ The typing judgement is of the form $Delta space Gamma tack.r e : tau$. The hypo
   \
   #rule("T-Ascr",
     $Delta space Gamma tack.r e : tau : tau$,
-    $Delta tack.r tau :: *$)
+    $Delta tack.r tau :: *$,
+    $Delta space Gamma tack.r e : tau$)
 ])
 
 #pagebreak()
