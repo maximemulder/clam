@@ -27,7 +27,9 @@
 
 = Introduction
 
-This document is the work-in-progress specification of the Clam programming language semantics. It is mostly based on the semantics of System $F^omega_(<:)$ and captures most of the behaviours of Clam. However, it is not yet complete and lacks proofs. It could also benefit from more elegant evaluation semantics.
+This document is the work-in-progress specification of the Clam programming language semantics. It is mostly based on the semantics of System $F^omega_(<:)$ and some of its derivatives.
+
+This document is not yet complete. For now, it only covers the core calculus of the language and only specifies declarative rules. It also lacks interesting theorems and proofs.
 
 This document has been written using #link("https://typst.app")[Typst].
 
@@ -168,10 +170,9 @@ The type equivalence judgement is of the form $Delta tack.r tau equiv tau'$. The
     $Delta tack.r tau_2 equiv tau_3$)
 ])
 
-The following rules describe type equivalence for data types.
+The following rules describe type equivalence for composite data types.
 
 #rules([
-  \
   #rule("E-Tuple",
     $Delta tack.r angle.l tau_1, ..., tau_n angle.r equiv angle.l tau'_1, ..., tau'_n angle.r$,
     $Delta tack.r tau_1 equiv tau'_1 space.quad ... space.quad Delta tack.r tau_n equiv tau'_n$)
@@ -201,7 +202,9 @@ The following rules describe type equivalence for data types.
     $(Lambda t <: tau_1. space tau_2)[tau_3] equiv [t slash tau_3]tau_2$)
 ])
 
-The following rules describe the commutativity, associativity, distribution and inclusion properties of union and intersection types.
+#let note = [#"" What about the absorbtion law ?]
+
+The following rules describe the commutativity, associativity, distribution and inclusion properties of union and intersection types#footnote(note).
 
 #rules([
   #rule("E-UnionComm",
@@ -225,13 +228,11 @@ The following rules describe the commutativity, associativity, distribution and 
   #rule("E-InterIncl",
     $Delta tack.r tau_1 equiv tau_1 sect tau_2$,
     $Delta tack.r tau_1 <: tau_2$)
-  \
-  Note: What about the absorbtion law ?
 ])
 
 #pagebreak()
 
-The following rules describe the distributivity of intersection types over data types.
+The following rules describe the distributivity of intersection types over composite data types.
 
 #rules([
   #rule("E-MeetTuple",
@@ -385,10 +386,16 @@ The typing judgement is of the form $Delta space Gamma tack.r e : tau$. The hypo
 = Primitives
 
 The types of the primitive values of Clam are given by the following table:
-\ \
+
+#let note = [#"" `if` is not implemented as a primitive value yet.]
+
 #align(center, [
-  #table(columns: (auto, auto),
-    [*Symbol*], [*Type*],
+  #table(
+    columns: (auto, auto),
+    stroke: none,
+    align: left,
+    column-gutter: 4pt,
+    [*Primitive*], [*Type*],
     [`+` #math.italic("(unary)")], $#Int -> #Int$,
     [`-` #math.italic("(unary)")], $#Int -> #Int$,
     `!`, $#Bool -> #Bool$,
@@ -406,18 +413,9 @@ The types of the primitive values of Clam are given by the following table:
     `>=`, $#Int -> #Int -> #Bool$,
     `|`, $#Bool -> #Bool -> #Bool$,
     `&`, $#Bool -> #Bool -> #Bool$,
-    `if`, $forall T_1. space forall T_2. space #Bool -> T_1 -> T_2 -> T_1 union T_2$,
+    [`if`#footnote(note)], $forall t_1. space forall t_2. space #Bool -> t_1 -> t_2 -> t_1 union t_2$,
   )
-  Note: `if` is not implemented as a primitive value yet.
 ])
-
-/*
-#rules([
-  #grammar($
-    "Primitive"
-    p :: = & #raw("+") ("unary") && space.quad : #Int -> #Int \
-         | & #raw("-") ("unary") && space.quad : #Int -> #Int$)
-]) */
 
 #pagebreak()
 
@@ -434,7 +432,7 @@ The syntax of values is given by the following grammar:
         | & s && space.quad "string" \
         | & angle.l v_1, ..., v_n angle.r && space.quad "tuple" \
         | & angle.l l_1 = v_1, ..., l_n = v_n angle.r && space.quad "record" \
-        | & lambda x. space e && space.quad "abstraction" \
+        | & lambda x. space e && space.quad "lambda abstraction" \
         | & lambda t. space e && space.quad "universal abstraction" $)
 ])
 
