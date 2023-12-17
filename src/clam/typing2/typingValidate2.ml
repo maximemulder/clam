@@ -89,34 +89,31 @@ and validate_abs ctx abs =
 and validate_app ctx app =
   let abs = validate ctx app.type' in
   let arg = validate ctx app.arg in
-  (* TODO:
-    1. Get param from abs (throw error if no param)
-    2. check bounds (if needed, not sure)
-    3. arg isa param (throw error if no)
-    4. compute type
-  *)
-  validate_app_type ctx abs arg
+  let param = validate_app_param ctx abs in
+  if not (Typing2.isa ctx arg param) then
+    raise_validate_app_arg app param arg  else
+  Typing2.compute ctx abs arg
 
-and validate_app_type ctx type' arg =
-  validate_app_union ctx type' arg
+and validate_app_param ctx abs =
+  validate_app_param_union ctx abs
 
-and validate_app_union ctx union arg =
-  let types = List.map ((Utils.flip (validate_app_inter ctx)) arg) union.union in
-  Utils.reduce_list (Typing2.join ctx) types
-
-and validate_app_inter ctx inter arg =
-  let types = List.map ((Utils.flip (validate_app_base ctx) arg)) inter.inter in
+and validate_app_param_union ctx union =
+  let types = List.map (validate_app_param_inter ctx) union.union in
   Utils.reduce_list (Typing2.meet ctx) types
 
-and validate_app_base ctx type' arg =
+and validate_app_param_inter ctx inter =
+  let types = List.map (validate_app_param_base ctx) inter.inter in
+  Utils.reduce_list (Typing2.join ctx) types
+
+and validate_app_param_base ctx type' =
   match type' with
   | Var var ->
-    base (App { pos = pos type'; abs = base (Var var); arg })
+    let bound = TypingContext2.get_bind_type ctx var.bind in
+    validate_app_param ctx bound
   | Abs abs ->
-    let entry = TypingContext2.entry abs.param.bind arg in
-    Typing2.substitute ctx entry abs.body
+    abs.param.bound
   | _ ->
-    invalid_arg "validate_app_base"
+    invalid_arg "validate_app_param_base"
 
 and validate_param ctx param =
   let bound = validate ctx param.bound in

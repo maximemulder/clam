@@ -1,10 +1,3 @@
-exception Todo of string
-
-let todo = raise (Todo "TODO")
-
-let simplify_app =
-  todo
-
 (* BOTTOM TYPE EQUIVALENCE *)
 
 (**
@@ -156,12 +149,10 @@ and substitute ctx entry (type': Type.type') =
   substitute_union ctx entry type'
 
 and substitute_union ctx entry (union: Type.union) =
-  let types = List.map (substitute_inter ctx entry) union.union in
-  Utils.reduce_list (join ctx) types
+  map_union ctx (substitute_inter ctx entry) union
 
 and substitute_inter ctx entry (inter: Type.inter) =
-  let types = List.map (substitute_base ctx entry) inter.inter in
-  Utils.reduce_list (meet ctx) types
+  map_inter ctx (substitute_base ctx entry) inter
 
 and substitute_base ctx entry (type': Type.base) =
   match type' with
@@ -202,7 +193,7 @@ and substitute_base ctx entry (type': Type.base) =
   | App app ->
     let abs = substitute ctx entry app.abs in
     let arg = substitute ctx entry app.arg in
-    Type.base (App { app with abs; arg })
+    compute ctx abs arg
 
 and substitute_var entry var =
   if var.bind = entry.TypingContext2.bind then
@@ -220,13 +211,32 @@ and substitute_attr ctx entry attr =
 
 (* TYPE COMPUTATION *)
 
-and compute ctx (abs: Type.base) (arg: Type.type') =
+and compute ctx (type': Type.type') (arg: Type.type') =
+  compute_union ctx type' arg
+
+and compute_union ctx (union: Type.union) (arg: Type.type') =
+  map_union ctx (Utils.flip (compute_inter ctx) arg) union
+
+and compute_inter ctx (inter: Type.inter) (arg: Type.type') =
+  map_inter ctx (Utils.flip (compute_base ctx) arg) inter
+
+and compute_base ctx (abs: Type.base) (arg: Type.type') =
   match abs with
   | Abs abs ->
     let entry = TypingContext2.entry abs.param.bind arg in
     substitute ctx entry abs.body
   | _ ->
     Type.base (Type.App { pos = Type.pos abs; abs = Type.base abs; arg })
+
+(* TYPE MAP *)
+
+and map_union ctx f union =
+  let types = List.map f union.union in
+  Utils.reduce_list (join ctx) types
+
+and map_inter ctx f inter =
+  let types = List.map f inter.inter in
+  Utils.reduce_list (meet ctx) types
 
 (* TYPE JOIN *)
 
@@ -280,13 +290,11 @@ and meet_base ctx (left: Type.base) (right: Type.base) =
     meet_abs_type_expr ctx left_abs right_abs
   | Abs left_abs, Abs right_abs ->
     meet_abs ctx left_abs right_abs
-  (* TODO: The two next cases are probably wrong but I am too done to fix it now *)
-  | App left_app, _ ->
-    let left = simplify_app left_app in
-    meet_base ctx left right
-  | _, App right_app ->
-    let right = simplify_app right_app in
-    meet_base ctx left right
+  (* For the two next rules, find the maximum type of app and check if subtype of other *)
+  | App _, _ ->
+    None
+  | _, App _ ->
+    None
   | _, _ ->
     Some (Bot { pos })
 

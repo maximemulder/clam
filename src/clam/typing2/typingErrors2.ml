@@ -24,3 +24,11 @@ let raise_validate_union_kind (union: Model.type_union) =
   raise
     ("both operands of union `" ^ union ^ "` must be of the same kind")
     pos
+
+let raise_validate_app_arg (app: Model.type_app) (param: Type.type') (arg: Type.type') =
+  let pos = app.pos in
+  let param = TypingDisplay2.display param in
+  let arg = TypingDisplay2.display arg in
+  raise
+    ("expected subtype of `" ^ param ^ "` but found type `" ^ arg ^ "`")
+    pos
