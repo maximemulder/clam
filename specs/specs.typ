@@ -29,7 +29,7 @@
 
 This document is the work-in-progress specification of the Clam programming language semantics. It is mostly based on the semantics of System $F^omega_(<:)$ and captures most of the behaviours of Clam. However, it is not yet complete and lacks proofs. It could also benefit from more elegant evaluation semantics.
 
-This document is written using #link("https://typst.app")[Typst].
+This document has been written using #link("https://typst.app")[Typst].
 
 #outline()
 
@@ -51,12 +51,13 @@ The abstract syntax of Clam is given by the following grammar:
         | & b && space.quad "boolean"\
         | & n && space.quad "integer"\
         | & s && space.quad "string" \
+        | & x && space.quad "variable" \
         | & angle.l e_1, ..., e_n angle.r && space.quad "tuple" \
         | & e.n && space.quad "tuple projection" \
         | & angle.l l_1 = e_1, ..., l_n = e_n angle.r && space.quad "record" \
         | & e.l && space.quad "record projection" \
-        | & lambda x : tau. space e && space.quad "abstraction" \
-        | & e(e) && space.quad "application" \
+        | & lambda x : tau. space e && space.quad "lambda abstraction" \
+        | & e(e) && space.quad "lambda application" \
         | & lambda T <: tau. space e && space.quad "universal abstraction" \
         | & e[tau] && space.quad "universal application" \
         | & e : tau && space.quad "type ascription" \
@@ -70,11 +71,12 @@ The abstract syntax of Clam is given by the following grammar:
           | & #Bool && space.quad "boolean" \
           | & #Int && space.quad "integer" \
           | & #String && space.quad "string" \
+          | & t && space.quad "variable"\
           | & angle.l tau_1, ..., tau_n angle.r && space.quad "tuple" \
           | & angle.l l_1: tau_1, ..., l_n: tau_n angle.r && space.quad "record" \
-          | & tau -> tau && space.quad "abstraction" \
-          | & forall T <: tau. space tau && space.quad "universal abstraction" \
-          | & Lambda T <: tau. space tau && space.quad "type abstraction" \
+          | & tau -> tau && space.quad "lambda abstraction" \
+          | & forall t <: tau. space tau && space.quad "universal abstraction" \
+          | & Lambda t <: tau. space tau && space.quad "type abstraction" \
           | & tau[tau] && space.quad "type application" $)
 ])
 
@@ -91,7 +93,7 @@ The syntax of kinds is given by the following grammar:
         | & k -> k && space.quad "arrow" $)
 ])
 
-The kinding judgement is of the form $Delta tack.r tau :: k$. The hypotheses of $Delta$ are of the form $T <: tau$.
+The kinding judgement is of the form $Delta tack.r tau :: k$. The hypotheses of $Delta$ are of the form $t <: tau$.
 
 #rules([
   #rule("K-Unit",
@@ -108,8 +110,8 @@ The kinding judgement is of the form $Delta tack.r tau :: k$. The hypotheses of 
   #rule("K-Bot",
     $bot :: *$)
   #rule("K-Var",
-    $Delta tack.r T :: K$,
-    $T <: tau in Delta$,
+    $Delta tack.r t :: K$,
+    $t <: tau in Delta$,
     $Delta tack.r tau :: K$)
   \
   #rule("K-Tuple",
@@ -124,17 +126,17 @@ The kinding judgement is of the form $Delta tack.r tau :: k$. The hypotheses of 
     $Delta tack.r tau_1 :: *$,
     $Delta tack.r tau_2 :: *$)
   #rule("K-Univ",
-    $Delta tack.r forall T <: tau_1. space tau_2 :: *$,
-    $Delta, T <: tau_1 tack.r tau_2 :: *$)
+    $Delta tack.r forall t <: tau_1. space tau_2 :: *$,
+    $Delta, t <: tau_1 tack.r tau_2 :: *$)
   \
   #rule("K-TAbs",
     $Delta tack.r Lambda T <: tau_1. space tau_2 :: k_1 -> k_2$,
     $Delta tack.r tau_1 :: k_1$,
-    $Delta, T <: tau_1 tack.r tau_2 :: k_2 $)
+    $Delta, T <: tau_1 tack.r tau_2 :: k_2$)
   \
   #rule("K-TAbsApp",
     $Delta tack.r tau_1[tau_4] :: k$,
-    $Delta tack.r tau_1 <: Lambda T <: tau_2. -> tau_3$,
+    $Delta tack.r tau_1 <: Lambda t <: tau_2. -> tau_3$,
     $Delta tack.r tau_3 :: k$,
     $Delta tack.r tau_4 <: tau_2$)
   \
@@ -152,7 +154,7 @@ The kinding judgement is of the form $Delta tack.r tau :: k$. The hypotheses of 
 
 = Type equivalence
 
-The type equivalence judgement is of the form $Delta tack.r tau equiv tau'$.
+The type equivalence judgement is of the form $Delta tack.r tau equiv tau'$. The following rules describe the reflexivity, symmetry and transitivity properties of the type equivalence relation.
 
 #rules([
   #rule("E-Refl",
@@ -164,6 +166,11 @@ The type equivalence judgement is of the form $Delta tack.r tau equiv tau'$.
     $Delta tack.r tau_1 equiv tau_3$,
     $Delta tack.r tau_1 equiv tau_2$,
     $Delta tack.r tau_2 equiv tau_3$)
+])
+
+The following rules describe type equivalence for data types.
+
+#rules([
   \
   #rule("E-Tuple",
     $Delta tack.r angle.l tau_1, ..., tau_n angle.r equiv angle.l tau'_1, ..., tau'_n angle.r$,
@@ -178,12 +185,12 @@ The type equivalence judgement is of the form $Delta tack.r tau equiv tau'$.
     $Delta tack.r tau_1 equiv tau'_1$,
     $Delta tack.r tau_2 equiv tau'_2$)
   #rule("E-Univ",
-    $Delta tack.r forall X <: tau_1. space tau_2 equiv forall X <: tau'_1. space tau'_2$,
+    $Delta tack.r forall t <: tau_1. space tau_2 equiv forall t <: tau'_1. space tau'_2$,
     $Delta tack.r tau_1 equiv tau'_1$,
     $Delta tack.r tau_2 equiv tau'_2$)
   \
   #rule("E-TAbs",
-    $Delta tack.r Lambda T <: tau_1. space tau_2 equiv Lambda T <: tau'_1. space tau'_2$,
+    $Delta tack.r Lambda T <: tau_1. space tau_2 equiv Lambda t <: tau'_1. space tau'_2$,
     $Delta tack.r tau_1 equiv tau'_1$,
     $Delta tack.r tau_2 equiv tau'_2$)
   #rule("E-TApp",
@@ -191,19 +198,56 @@ The type equivalence judgement is of the form $Delta tack.r tau equiv tau'$.
     $Delta tack.r tau_1 equiv tau'_1$,
     $Delta tack.r tau_2 equiv tau'_2$)
   #rule("E-TAbsApp",
-    $(Lambda T <: tau_1. space tau_2)[tau_3] equiv [T slash tau_3]tau_2$)
-  \
-  #rule("E-UnionSymm",
+    $(Lambda t <: tau_1. space tau_2)[tau_3] equiv [t slash tau_3]tau_2$)
+])
+
+The following rules describe the commutativity, associativity, distribution and inclusion properties of union and intersection types.
+
+#rules([
+  #rule("E-UnionComm",
     $tau_1 union tau_2 equiv tau_2 union tau_1$)
-  #rule("E-InterSymm",
+  #rule("E-InterComm",
     $tau_1 sect tau_2 equiv tau_2 sect tau_1$)
   \
-  #rule("E-UnionSub",
+  #rule("E-UnionAssoc",
+    $(tau_1 union tau_2) union tau_3 equiv tau_1 union (tau_2 union tau_3)$)
+  #rule("E-InterAssoc",
+    $(tau_1 sect tau_2) sect tau_3 equiv tau_1 sect (tau_2 sect tau_3)$)
+  \
+  #rule("E-UnionDistrib",
+    $tau_1 union (tau_2 sect tau_3) equiv (tau_1 union tau_2) sect (tau_1 union tau_3)$)
+  #rule("E-InterDistrib",
+    $tau_1 sect (tau_2 union tau_3) equiv (tau_1 sect tau_2) union (tau_1 sect tau_3)$)
+  \
+  #rule("E-UnionIncl",
     $Delta tack.r tau_1 union tau_2 equiv tau_2$,
     $Delta tack.r tau_1 <: tau_2$)
-  #rule("E-InterSub",
+  #rule("E-InterIncl",
     $Delta tack.r tau_1 equiv tau_1 sect tau_2$,
     $Delta tack.r tau_1 <: tau_2$)
+  \
+  Note: What about the absorbtion law ?
+])
+
+#pagebreak()
+
+The following rules describe the distributivity of intersection types over data types.
+
+#rules([
+  #rule("E-MeetTuple",
+    $angle.l tau_1, ..., tau_n angle.r sect angle.l tau'_1, ..., tau'_n angle.r equiv angle.l tau_1 sect tau'_1, ..., tau_n sect tau'_n angle.r$)
+  \
+  #rule("E-MeetRecord",
+    $ angle.l l_1 : tau_1, ..., l_n : tau_n, l''_1 : tau''_1, ..., l''_n : tau''_n angle.r sect angle.l l_1 : tau'_1, ..., l_n : tau'_n, l'''_1 : tau'''_1, ..., l'''_n : tau'''_n angle.r \ equiv \ angle.l l_1 : tau_1 sect tau'_1, ..., l_n : tau_n sect tau'_n, l''_1 : tau''_1, ..., l''_n : tau''_n, l'''_1 : tau'''_1, ..., l'''_n : tau'''_n angle.r $)
+  #rule("E-MeetAbs",
+    $(tau_1 -> tau_2) sect (tau'_1 -> tau'_2) equiv tau_1 union tau'_1 -> tau_2 sect tau'_2$)
+  \
+  #rule("E-MeetUniv",
+    $ Delta tack.r (forall t <: tau_1. space tau_2) sect (forall t <: tau_1. space tau'_2) equiv forall t <: tau_1. space tau_2 sect tau'_2 $,
+    $Delta tack.r tau_1 equiv tau'_1$)
+  #rule("E-MeetTAbs",
+    $Delta tack.r (Lambda t <: tau_1. space tau_2) sect (Lambda t <: tau_1. space tau'_2) equiv Lambda t <: tau_1. space tau_2 sect tau'_2$,
+    $ Delta tack.r tau_1 equiv tau'_1$)
 ])
 
 #pagebreak()
@@ -221,8 +265,8 @@ The subtyping judgement is of the form $Delta tack.r tau <: tau'$.
     $Delta tack.r tau_1 <: tau_2$,
     $Delta tack.r tau_2 <: tau_3$)
   #rule("S-Var",
-    $Delta tack.r T <: tau$,
-    $T <: tau in Delta$)
+    $Delta tack.r t <: tau$,
+    $t <: tau in Delta$)
   \
   #rule("S-Top",
     $Delta tack.r tau <: top$,
@@ -245,12 +289,12 @@ The subtyping judgement is of the form $Delta tack.r tau <: tau'$.
     $Delta tack.r tau'_1 <: tau_1$,
     $Delta tack.r tau_2 <: tau'_2$)
   #rule("S-Univ",
-    $Delta tack.r forall T <: tau_1. space tau_2 <: forall T <: tau'_1. space tau'_2$,
+    $Delta tack.r forall t <: tau_1. space tau_2 <: forall t <: tau'_1. space tau'_2$,
     $Delta tack.r tau_1 equiv tau'_1$,
-    $Delta, T <: tau_1 tack.r tau_2 <: tau'_2$)
+    $Delta, t <: tau_1 tack.r tau_2 <: tau'_2$)
   \
   #rule("S-TAbs",
-    $Delta tack.r Lambda T <: tau_1. space tau_2 <: Lambda T <: tau'_1. space tau'_2$,
+    $Delta tack.r Lambda t <: tau_1. space tau_2 <: Lambda t <: tau'_1. space tau'_2$,
     $Delta tack.r tau'_1 equiv tau_1$,
     $Delta tack.r tau_2 <: tau'_2$)
   #rule("S-TApp",
@@ -323,11 +367,11 @@ The typing judgement is of the form $Delta space Gamma tack.r e : tau$. The hypo
     $Delta space Gamma tack.r e_2 : tau_1$)
   \
   #rule("T-Univ",
-    $Delta space Gamma tack.r lambda T <: tau_1. space e : forall T <: tau_1. space tau_2$,
-    $Delta, T <: tau_1 space Gamma tack.r e : tau_2$)
+    $Delta space Gamma tack.r lambda t <: tau_1. space e : forall t <: tau_1. space tau_2$,
+    $Delta, t <: tau_1 space Gamma tack.r e : tau_2$)
   #rule("T-UnivApp",
-    $Delta space Gamma tack.r e[tau_3] : [T slash tau_3]tau_2$,
-    $Delta space Gamma tack.r e : forall T <: tau_1. space tau_2$,
+    $Delta space Gamma tack.r e[tau_3] : [t slash tau_3]tau_2$,
+    $Delta space Gamma tack.r e : forall t <: tau_1. space tau_2$,
     $Delta tack.r tau_3 <: tau_1$)
   \
   #rule("T-Ascr",
@@ -367,6 +411,14 @@ The types of the primitive values of Clam are given by the following table:
   Note: `if` is not implemented as a primitive value yet.
 ])
 
+/*
+#rules([
+  #grammar($
+    "Primitive"
+    p :: = & #raw("+") ("unary") && space.quad : #Int -> #Int \
+         | & #raw("-") ("unary") && space.quad : #Int -> #Int$)
+]) */
+
 #pagebreak()
 
 = Evaluation
@@ -383,7 +435,7 @@ The syntax of values is given by the following grammar:
         | & angle.l v_1, ..., v_n angle.r && space.quad "tuple" \
         | & angle.l l_1 = v_1, ..., l_n = v_n angle.r && space.quad "record" \
         | & lambda x. space e && space.quad "abstraction" \
-        | & lambda T. space e && space.quad "universal abstraction" $)
+        | & lambda t. space e && space.quad "universal abstraction" $)
 ])
 
 The evaluation judgement is of the form $e arrow.b.double v$.
@@ -423,10 +475,10 @@ The evaluation judgement is of the form $e arrow.b.double v$.
     $[e_2 slash x]e_3 arrow.b.double v$)
   \
   #rule("V-Univ",
-    $lambda T <: tau. space e arrow.b.double lambda T. space e$)
+    $lambda t <: tau. space e arrow.b.double lambda t. space e$)
   #rule("V-UnivApp",
     $e_1[tau] arrow.b.double e_2$,
-    $e_1 arrow.b.double lambda T. space e_2$)
+    $e_1 arrow.b.double lambda t. space e_2$)
   \
   #rule("V-Ascr",
     $e : tau arrow.b.double v$,
