@@ -71,11 +71,11 @@ module Inferer(I: INFERER) = struct
     | TypeInter inter ->
       let left = infer f inter.left in
       let right = infer f inter.right in
-      Utils.join_option2 left right I.meet
+      Utils.option_join left right I.meet
     | TypeUnion union ->
       let left = infer f union.left in
       let right = infer f union.right in
-      Utils.map_option2 left right I.join
+      Utils.option_meet left right I.join
     | TypeApp app ->
       let type' = Typing.simplify_app app in
       infer f type'

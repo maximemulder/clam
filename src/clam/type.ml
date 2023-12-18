@@ -127,4 +127,6 @@ let pos type' =
   | Abs         type' -> type'.pos
   | App         type' -> type'.pos
 
+let pos_type type' = pos (List.nth (List.nth type'.union 0).inter 0)
+
 let base base = { union = [{ inter = [base] }] }

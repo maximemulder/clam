@@ -25,7 +25,7 @@ and base_is_bot ctx (type': Type.base) =
     false
 
 and var_is_bot ctx (var: Type.var) =
-  let bound = TypingContext2.get_bind_type ctx var.bind in
+  let bound = TypeContext.get_bind_type ctx var.bind in
   type_is_bot ctx bound
 
 (* TYPE EQUIVALENCE *)
@@ -95,15 +95,15 @@ and isa_base ctx (sub: Type.base) (sup: Type.base) =
     false
 
 and isa_top ctx sub =
-  match TypingKind2.get_kind_base ctx sub with
-  | TypingKind2.Type ->
+  match TypeKind.get_kind_base ctx sub with
+  | TypeKind.Type ->
     true
-  | TypingKind2.Abs _ ->
+  | TypeKind.Abs _ ->
     false
 
 and isa_var ctx sub_var sup =
   var_is_bot ctx sub_var &&
-  let bound = TypingContext2.get_bind_type ctx sub_var.bind in
+  let bound = TypeContext.get_bind_type ctx sub_var.bind in
   match sup with
   | Var sup_var when sub_var.bind = sup_var.bind ->
     true
@@ -129,13 +129,13 @@ and isa_abs_expr ctx sub_abs sup_abs =
 
 and isa_abs_type_expr ctx sub_abs sup_abs =
   is_param ctx sub_abs.param sup_abs.param &&
-  let entry = TypingContext2.entry_param sub_abs.pos sub_abs.param sup_abs.param in
+  let entry = TypeContext.entry_param sub_abs.pos sub_abs.param sup_abs.param in
   let sup_ret = substitute ctx entry sup_abs.ret in
   isa ctx sub_abs.ret sup_ret
 
 and isa_abs ctx sub_abs sup_abs =
   is_param ctx sub_abs.param sup_abs.param &&
-  let entry = TypingContext2.entry_param sub_abs.pos sub_abs.param sup_abs.param in
+  let entry = TypeContext.entry_param sub_abs.pos sub_abs.param sup_abs.param in
   let sup_body = substitute ctx entry sup_abs.body in
   isa ctx sub_abs.body sup_body
 
@@ -196,7 +196,7 @@ and substitute_base ctx entry (type': Type.base) =
     compute ctx abs arg
 
 and substitute_var entry var =
-  if var.bind = entry.TypingContext2.bind then
+  if var.bind = entry.TypeContext.bind then
     entry.type'
   else
     Type.base (Var var)
@@ -223,7 +223,7 @@ and compute_inter ctx (inter: Type.inter) (arg: Type.type') =
 and compute_base ctx (abs: Type.base) (arg: Type.type') =
   match abs with
   | Abs abs ->
-    let entry = TypingContext2.entry abs.param.bind arg in
+    let entry = TypeContext.entry abs.param.bind arg in
     substitute ctx entry abs.body
   | _ ->
     Type.base (Type.App { pos = Type.pos abs; abs = Type.base abs; arg })
@@ -343,7 +343,7 @@ and meet_abs_type_expr ctx left right =
   if not (is_param ctx left.param right.param) then
     Some (Bot { pos = left.pos })
   else
-  let entry = TypingContext2.entry_param left.pos left.param right.param in
+  let entry = TypeContext.entry_param left.pos left.param right.param in
   let right_ret = substitute ctx entry right.ret in
   let ret = meet ctx left.ret right_ret in
   Some (AbsTypeExpr { pos = left.pos; param = left.param; ret })
@@ -352,7 +352,7 @@ and meet_abs ctx left right =
   if not (is_param ctx left.param right.param) then
     Some (Bot { pos = left.pos })
   else
-  let entry = TypingContext2.entry_param left.pos left.param right.param in
+  let entry = TypeContext.entry_param left.pos left.param right.param in
   let right_body = substitute ctx entry right.body in
   let body = meet ctx left.body right_body in
   Some (Abs { pos = left.pos; param = left.param; body })

@@ -16,6 +16,8 @@ type context = {
   assumptions: entry list;
 }
 
+let empty = { assumptions = [] }
+
 let get_bind_type context bind =
   let entry = List.find (Utils.flip is_bind bind) context.assumptions in
   entry.type'

@@ -36,17 +36,35 @@ let rec reduce_list f xs =
   | x :: xs -> f x (reduce_list f xs)
   | _ -> invalid_arg "Utils.reduce_list"
 
-let map_option2 x y f =
-  match (x, y) with
-  | (Some x, Some y) -> Some (f x y)
-  | _ -> None
-
-let join_option2 x y f =
+let option_join x y f =
   match (x, y) with
   | (Some x, Some y) -> Some (f x y)
   | (Some x, None) -> Some x
   | (None, Some y) -> Some y
   | _ -> None
+
+let option_meet x y f =
+  match (x, y) with
+  | (Some x, Some y) -> Some (f x y)
+  | _ -> None
+
+let rec list_option_meet xs f =
+  match xs with
+  | [x] ->
+    x
+  | x :: xs ->
+    option_meet x (list_option_meet xs f) f
+  | _ ->
+    invalid_arg "list_option_meet"
+
+let rec list_option_join xs f =
+  match xs with
+  | [x] ->
+    x
+  | x :: xs ->
+    option_join x (list_option_join xs f) f
+  | _ ->
+    invalid_arg "list_option_join"
 
 let rec product_lists acc f l1 l2 =
   match (l1, l2) with

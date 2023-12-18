@@ -1,10 +1,9 @@
 open Type
-open TypingErrors2
 
 let rec validate_proper ctx type' =
   let type'' = validate ctx type' in
-  if TypingKind2.get_kind ctx type'' <> TypingKind2.Type then
-    TypingErrors2.raise_validate_proper type'
+  if TypeKind.get_kind ctx type'' <> TypeKind.Type then
+    TypeError.validate_proper type'
   else
     type''
 
@@ -58,16 +57,16 @@ and validate_record_attr ctx attr =
 and validate_inter ctx inter =
   let left  = validate ctx inter.left  in
   let right = validate ctx inter.right in
-  if TypingKind2.get_kind ctx left <> TypingKind2.get_kind ctx right then
-    raise_validate_inter_kind inter
+  if TypeKind.get_kind ctx left <> TypeKind.get_kind ctx right then
+    TypeError.validate_inter_kind inter
   else
   Typing2.meet ctx left right
 
 and validate_union ctx union =
   let left  = validate ctx union.left  in
   let right = validate ctx union.right in
-  if TypingKind2.get_kind ctx left <> TypingKind2.get_kind ctx right then
-    raise_validate_union_kind union
+  if TypeKind.get_kind ctx left <> TypeKind.get_kind ctx right then
+    TypeError.validate_union_kind union
   else
   Typing2.join ctx left right
 
@@ -91,7 +90,7 @@ and validate_app ctx app =
   let arg = validate ctx app.arg in
   let param = validate_app_param ctx abs in
   if not (Typing2.isa ctx arg param) then
-    raise_validate_app_arg app param arg  else
+    TypeError.validate_app_arg app param arg  else
   Typing2.compute ctx abs arg
 
 and validate_app_param ctx abs =
@@ -108,7 +107,7 @@ and validate_app_param_inter ctx inter =
 and validate_app_param_base ctx type' =
   match type' with
   | Var var ->
-    let bound = TypingContext2.get_bind_type ctx var.bind in
+    let bound = TypeContext.get_bind_type ctx var.bind in
     validate_app_param ctx bound
   | Abs abs ->
     abs.param.bound

@@ -56,3 +56,6 @@ and display_param param =
 
 let display type' =
   display type' false
+
+let display_base type' =
+  display_base type' false

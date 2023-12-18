@@ -14,7 +14,7 @@ and get_kind_inter ctx (inter: Type.inter) =
 and get_kind_base ctx (type': Type.base) =
   match type' with
   | Var var ->
-    let bound = TypingContext2.get_bind_type ctx var.bind in
+    let bound = TypeContext.get_bind_type ctx var.bind in
     get_kind ctx bound
   | Abs abs ->
     let param = get_kind ctx abs.param.bound in
