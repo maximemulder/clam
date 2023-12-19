@@ -99,13 +99,13 @@ and isa_top ctx sub =
     false
 
 and isa_var ctx sub_var sup =
-  var_is_bot ctx sub_var &&
-  let bound = TypeContext.get_bind_type ctx sub_var.bind in
+  var_is_bot ctx sub_var ||
   match sup with
   | Var sup_var when sub_var.bind = sup_var.bind ->
     true
   | _ ->
-    isa ctx bound (Type.base sup)
+    let sub_bound = TypeContext.get_bind_type ctx sub_var.bind in
+    isa ctx sub_bound (Type.base sup)
 
 and isa_tuple ctx sub_tuple sup_tuple =
   List.equal (isa ctx) sub_tuple.elems sup_tuple.elems

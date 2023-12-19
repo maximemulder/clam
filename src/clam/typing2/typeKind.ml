@@ -30,4 +30,4 @@ and get_kind_app ctx app =
   | Abs (_, body) ->
     body
   | Type ->
-    invalid_arg "TypingKind.get_kind"
+    invalid_arg "TypeKind.get_kind"

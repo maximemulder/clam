@@ -18,9 +18,9 @@ type context = {
 
 let empty = { assumptions = [] }
 
-let get_bind_type context bind =
-  let entry = List.find (Utils.flip is_bind bind) context.assumptions in
+let get_bind_type ctx bind =
+  let entry = List.find (Utils.flip is_bind bind) ctx.assumptions in
   entry.type'
 
-let with_bind_type context bind type' f =
-  f { assumptions = {bind; type'} :: context.assumptions }
+let add_bind_type ctx bind type' =
+  { assumptions = { bind; type' } :: ctx.assumptions }

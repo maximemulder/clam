@@ -69,13 +69,13 @@ and validate_abs_expr ctx abs =
   base (AbsExpr { param; ret })
 
 and validate_abs_type_expr ctx abs =
-  let param = validate_param ctx abs.param in
-  let ret = validate_proper ctx abs.body in
+  let param, ret = validate_param_with ctx abs.param
+    (fun ctx -> validate_proper ctx abs.body) in
   base (AbsTypeExpr { param; ret })
 
 and validate_abs ctx abs =
-  let param = validate_param ctx abs.param in
-  let body = validate ctx abs.body in
+  let param, body = validate_param_with ctx abs.param
+    (fun ctx -> validate ctx abs.body) in
   base (Abs { param; body })
 
 and validate_app ctx app =
@@ -107,6 +107,8 @@ and validate_app_param_base ctx type' =
   | _ ->
     invalid_arg "validate_app_param_base"
 
-and validate_param ctx param =
+and validate_param_with ctx param f =
   let bound = validate ctx param.bound in
-  { bind = param.bind; bound }
+  let param = { bind = param.bind; bound } in
+  let other = f (TypeContext.add_bind_type ctx param.bind param.bound) in
+  param, other
