@@ -22,13 +22,13 @@ and display_inter (inter: Type.inter) surr =
 
 and display_base (type': Type.base) surr =
   match type' with
-  | Top    _ -> "Top"
-  | Bot    _ -> "Bot"
-  | Unit   _ -> "Unit"
-  | Bool   _ -> "Bool"
-  | Int    _ -> "Int"
-  | Char   _ -> "Char"
-  | String _ -> "String"
+  | Top    -> "Top"
+  | Bot    -> "Bot"
+  | Unit   -> "Unit"
+  | Bool   -> "Bool"
+  | Int    -> "Int"
+  | Char   -> "Char"
+  | String -> "String"
   | Var var -> var.bind.name
   | Tuple tuple ->
     let types = List.map (Utils.flip display false) tuple.elems in

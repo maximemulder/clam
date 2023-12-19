@@ -66,8 +66,8 @@ let add_expr_bind bind type' state =
 let return_def (def: def_expr) =
   fun type' state -> (type', end_progress state def type')
 
-let return_abs (abs: expr_abs) param returner =
-  fun ret -> returner (Type.base (Type.AbsExpr { pos = abs.pos; param; ret }))
+let return_abs param returner =
+  fun ret -> returner (Type.base (Type.AbsExpr { param; ret }))
 
 module type INFERER = sig
   type t
@@ -90,7 +90,7 @@ module Inferer(I: INFERER) = struct
 
   and infer_base ctx f type' =
     match type' with
-    | Type.Bot _ ->
+    | Type.Bot ->
       Some I.bot
     | Type.Var var ->
       let bound = TypeContext.get_bind_type ctx var.bind in
@@ -137,9 +137,9 @@ module InfererAppType = struct
   let join ctx left right =
     let bound = Typing2.meet ctx left.arg.bound right.arg.bound in
     let arg = { Type.bind = { name = "_" }; bound } in
-    let entry = TypeContext.entry_param (Type.pos_type left.ret) arg left.arg in
+    let entry = TypeContext.entry_param arg left.arg in
     let left_ret = Typing2.substitute ctx entry left.ret in
-    let entry = TypeContext.entry_param (Type.pos_type right.ret) arg right.arg in
+    let entry = TypeContext.entry_param arg right.arg in
     let right_ret = Typing2.substitute ctx entry right.ret in
     let ret = Typing2.join ctx left_ret right_ret in
     { arg; ret }
@@ -148,7 +148,7 @@ module InfererAppType = struct
     if not (Typing2.is_param ctx left.arg right.arg) then
       bot
     else
-    let entry = TypeContext.entry_param (Type.pos_type right.ret) left.arg right.arg in
+    let entry = TypeContext.entry_param left.arg right.arg in
     let right_ret = Typing2.substitute ctx entry right.ret in
     let ret = Typing2.meet ctx left.ret right_ret in
     { arg = left.arg; ret }
@@ -258,7 +258,7 @@ and check_type_abs abs constr =
   match constr with
   | Type.AbsTypeExpr constr_abs ->
     let* param = check_type_abs_param abs constr_abs.param in
-    let entry = TypeContext.entry_param abs.pos param constr_abs.param in
+    let entry = TypeContext.entry_param param constr_abs.param in
     let* ctx = get_type_ctx in
     let constr_body = Typing2.substitute ctx entry constr_abs.ret in
     let* _ = check abs.body constr_body in
@@ -314,20 +314,20 @@ and infer expr returner =
 and infer_none expr =
   infer expr return
 
-and infer_unit unit returner =
-  returner (Type.base (Type.Unit { pos = unit.pos }))
+and infer_unit _ returner =
+  returner (Type.base Type.Unit)
 
-and infer_bool bool returner =
-  returner (Type.base (Type.Bool { pos = bool.pos }))
+and infer_bool _ returner =
+  returner (Type.base Type.Bool)
 
-and infer_int int returner =
-  returner (Type.base (Type.Int { pos = int.pos }))
+and infer_int _ returner =
+  returner (Type.base Type.Int)
 
-and infer_char char returner =
-  returner (Type.base (Type.Char { pos = char.pos }))
+and infer_char _ returner =
+  returner (Type.base Type.Char)
 
-and infer_string string returner =
-  returner (Type.base (Type.String { pos = string.pos }))
+and infer_string _ returner =
+  returner (Type.base Type.String)
 
 and infer_bind bind returner =
   let* ctx = get_expr_ctx in
@@ -343,17 +343,17 @@ and infer_bind bind returner =
 
 and infer_tuple tuple returner =
   let* elems = map_list infer_none tuple.elems in
-  returner (Type.base (Type.Tuple { pos = tuple.pos; elems }))
+  returner (Type.base (Type.Tuple { elems }))
 
 and infer_record record returner =
   let attrs = record.attrs in
   let attrs = List.fold_left (fun map (attr: attr_expr) -> NameMap.add attr.name attr map) NameMap.empty attrs in
   let* attrs = map_map infer_record_attr attrs in
-  returner (Type.base (Type.Record { pos = record.pos; attrs }))
+  returner (Type.base (Type.Record { attrs }))
 
 and infer_record_attr attr =
   let* type' = infer_none attr.expr in
-  return ({ Type.pos = attr.pos; name = attr.name; type' })
+  return ({ Type.name = attr.name; type' })
 
 and infer_elem elem returner =
   let* tuple = infer_none elem.expr in
@@ -447,7 +447,7 @@ and infer_if if' returner =
 
 and infer_abs abs returner =
   let* param = infer_abs_param abs.param in
-  let returner = return_abs abs param returner in
+  let returner = return_abs param returner in
   infer abs.body returner
 
 and infer_abs_param param =
@@ -464,7 +464,7 @@ and infer_type_abs abs returner =
   let param = { Type.bind = abs.param.bind; bound } in
   (* TODO: with type bound ? *)
   let* ret = infer_none abs.body in
-  returner (Type.base (Type.AbsTypeExpr { pos = abs.pos; param = param; ret }))
+  returner (Type.base (Type.AbsTypeExpr { param = param; ret }))
 
 and infer_stmt stmt returner =
   let* _ = infer_stmt_body stmt.stmt in

@@ -1,19 +1,12 @@
 open RuntimeValue
 
-let pos = {
-  Lexing.pos_fname = "primitives.clam";
-  Lexing.pos_lnum = 0;
-  Lexing.pos_bol = 0;
-  Lexing.pos_cnum = 0;
-}
-
-let top    = Type.base (Type.Top    { pos })
-let bot    = Type.base (Type.Bot    { pos })
-let unit   = Type.base (Type.Unit   { pos })
-let bool   = Type.base (Type.Bool   { pos })
-let int    = Type.base (Type.Int    { pos })
-let char   = Type.base (Type.Char   { pos })
-let string = Type.base (Type.String { pos })
+let top    = Type.base Type.Top
+let bot    = Type.base Type.Bot
+let unit   = Type.base Type.Unit
+let bool   = Type.base Type.Bool
+let int    = Type.base Type.Int
+let char   = Type.base Type.Char
+let string = Type.base Type.String
 
 type primitive = {
   bind: Model.bind_expr;
@@ -30,13 +23,13 @@ let make_primitives primitives =
 
 let unary name value ret prim =
   (name,
-  Type.base (Type.AbsExpr { pos; param = value; ret }),
+  Type.base (Type.AbsExpr { param = value; ret }),
   VExprAbs (VPrim (fun { value; out } -> prim value out)))
 
 let binary name left right ret prim =
   (
     name,
-    Type.base (AbsExpr { pos; param = left; ret = Type.base (AbsExpr { pos; param = right; ret })}),
+    Type.base (AbsExpr { param = left; ret = Type.base (AbsExpr { param = right; ret })}),
     VExprAbs (VPrim (fun { value; _ } ->
       let left = value in
       VExprAbs (VPrim (fun { value; _ } ->

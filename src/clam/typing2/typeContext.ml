@@ -6,8 +6,8 @@ type entry = {
 let entry (bind: Model.bind_type) (type': Type.type') =
   { bind; type' }
 
-let entry_param pos (left: Type.param) (right: Type.param) =
-  { bind = right.bind; type' = Type.base (Var { pos; bind = left.bind }) }
+let entry_param (left: Type.param) (right: Type.param) =
+  { bind = right.bind; type' = Type.base (Var { bind = left.bind }) }
 
 let is_bind entry bind =
   entry.bind = bind

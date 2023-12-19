@@ -9,22 +9,15 @@ let rec validate_proper ctx type' =
 
 and validate ctx (type': Model.type') =
   match type' with
-  | TypeTop { pos } ->
-    base (Top { pos })
-  | TypeBot { pos } ->
-    base (Bot { pos })
-  | TypeUnit { pos } ->
-    base (Unit { pos })
-  | TypeBool { pos } ->
-    base (Bool { pos })
-  | TypeInt { pos } ->
-    base (Int { pos })
-  | TypeChar { pos } ->
-    base (Char { pos })
-  | TypeString { pos } ->
-    base (String { pos })
+  | TypeTop    _ -> base Top
+  | TypeBot    _ -> base Bot
+  | TypeUnit   _ -> base Unit
+  | TypeBool   _ -> base Bool
+  | TypeInt    _ -> base Int
+  | TypeChar   _ -> base Char
+  | TypeString _ -> base String
   | TypeVar var ->
-    base (Var { pos = var.pos; bind = var.bind })
+    base (Var { bind = var.bind })
   | TypeTuple tuple ->
     validate_tuple ctx tuple
   | TypeRecord record ->
@@ -44,15 +37,15 @@ and validate ctx (type': Model.type') =
 
 and validate_tuple ctx tuple =
   let elems = List.map (validate_proper ctx) tuple.elems in
-  base (Tuple { pos = tuple.pos; elems })
+  base (Tuple { elems })
 
 and validate_record ctx record =
   let attrs = Utils.NameMap.map (validate_record_attr ctx) record.attrs in
-  base (Record { pos = record.pos; attrs })
+  base (Record { attrs })
 
 and validate_record_attr ctx attr =
   let type' = validate_proper ctx attr.type' in
-  { pos = attr.pos; name = attr.name; type' }
+  { name = attr.name; type' }
 
 and validate_inter ctx inter =
   let left  = validate ctx inter.left  in
@@ -73,17 +66,17 @@ and validate_union ctx union =
 and validate_abs_expr ctx abs =
   let param = validate_proper ctx abs.param in
   let ret = validate_proper ctx abs.body in
-  base (AbsExpr { pos = abs.pos; param; ret })
+  base (AbsExpr { param; ret })
 
 and validate_abs_type_expr ctx abs =
   let param = validate_param ctx abs.param in
   let ret = validate_proper ctx abs.body in
-  base (AbsTypeExpr { pos = abs.pos; param; ret })
+  base (AbsTypeExpr { param; ret })
 
 and validate_abs ctx abs =
   let param = validate_param ctx abs.param in
   let body = validate ctx abs.body in
-  base (Abs { pos = abs.pos; param; body })
+  base (Abs { param; body })
 
 and validate_app ctx app =
   let abs = validate ctx app.type' in

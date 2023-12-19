@@ -17,12 +17,9 @@ and inter_is_bot ctx (inter: Type.inter) =
 
 and base_is_bot ctx (type': Type.base) =
   match type' with
-  | Bot _ ->
-    true
-  | Var var ->
-    var_is_bot ctx var
-  | _ ->
-    false
+  | Bot     -> true
+  | Var var -> var_is_bot ctx var
+  | _       -> false
 
 and var_is_bot ctx (var: Type.var) =
   let bound = TypeContext.get_bind_type ctx var.bind in
@@ -63,19 +60,19 @@ and isa_inter_2 ctx (sub: Type.inter) (sup: Type.base) =
 
 and isa_base ctx (sub: Type.base) (sup: Type.base) =
   match sub, sup with
-  |        _, Top    _ ->
+  |        _, Top    ->
     isa_top ctx sub
-  | Bot    _,        _ ->
+  | Bot    ,       _ ->
     true
-  | Unit   _, Unit   _ ->
+  | Unit   , Unit    ->
     true
-  | Bool   _, Bool   _ ->
+  | Bool   , Bool    ->
     true
-  | Int    _, Int    _ ->
+  | Int    , Int     ->
     true
-  | Char   _, Char   _ ->
+  | Char   , Char    ->
     true
-  | String _, String _ ->
+  | String , String  ->
     true
   | Var sub_var, _ ->
     isa_var ctx sub_var sup
@@ -129,13 +126,13 @@ and isa_abs_expr ctx sub_abs sup_abs =
 
 and isa_abs_type_expr ctx sub_abs sup_abs =
   is_param ctx sub_abs.param sup_abs.param &&
-  let entry = TypeContext.entry_param sub_abs.pos sub_abs.param sup_abs.param in
+  let entry = TypeContext.entry_param sub_abs.param sup_abs.param in
   let sup_ret = substitute ctx entry sup_abs.ret in
   isa ctx sub_abs.ret sup_ret
 
 and isa_abs ctx sub_abs sup_abs =
   is_param ctx sub_abs.param sup_abs.param &&
-  let entry = TypeContext.entry_param sub_abs.pos sub_abs.param sup_abs.param in
+  let entry = TypeContext.entry_param sub_abs.param sup_abs.param in
   let sup_body = substitute ctx entry sup_abs.body in
   isa ctx sub_abs.body sup_body
 
@@ -156,40 +153,40 @@ and substitute_inter ctx entry (inter: Type.inter) =
 
 and substitute_base ctx entry (type': Type.base) =
   match type' with
-  | Top    _ ->
+  | Top    ->
     Type.base type'
-  | Bot    _ ->
+  | Bot    ->
     Type.base type'
-  | Unit   _ ->
+  | Unit   ->
     Type.base type'
-  | Bool   _ ->
+  | Bool   ->
     Type.base type'
-  | Int    _ ->
+  | Int    ->
     Type.base type'
-  | Char   _ ->
+  | Char   ->
     Type.base type'
-  | String _ ->
+  | String ->
     Type.base type'
   | Var var ->
     substitute_var entry var
   | Tuple tuple ->
     let elems = List.map (substitute ctx entry) tuple.elems in
-    Type.base (Tuple { tuple with elems })
+    Type.base (Tuple { elems })
   | Record record ->
     let attrs = Utils.NameMap.map (substitute_attr ctx entry) record.attrs in
-    Type.base (Record { record with attrs })
+    Type.base (Record { attrs })
   | AbsExpr abs ->
     let param = substitute ctx entry abs.param in
     let ret = substitute ctx entry abs.ret in
-    Type.base (AbsExpr { abs with param; ret })
+    Type.base (AbsExpr { param; ret })
   | AbsTypeExpr abs ->
     let param = substitute_param ctx entry abs.param in
     let ret = substitute ctx entry abs.ret in
-    Type.base (AbsTypeExpr { abs with param; ret })
+    Type.base (AbsTypeExpr { param; ret })
   | Abs abs ->
     let param = substitute_param ctx entry abs.param in
     let body = substitute ctx entry abs.body in
-    Type.base (Abs { abs with param; body })
+    Type.base (Abs { param; body })
   | App app ->
     let abs = substitute ctx entry app.abs in
     let arg = substitute ctx entry app.arg in
@@ -226,7 +223,7 @@ and compute_base ctx (abs: Type.base) (arg: Type.type') =
     let entry = TypeContext.entry abs.param.bind arg in
     substitute ctx entry abs.body
   | _ ->
-    Type.base (Type.App { pos = Type.pos abs; abs = Type.base abs; arg })
+    Type.base (Type.App { abs = Type.base abs; arg })
 
 (* TYPE MAP *)
 
@@ -265,17 +262,16 @@ and meet_inter ctx (left: Type.inter) (right: Type.inter) =
   { Type.inter = types }
 
 and meet_base ctx (left: Type.base) (right: Type.base) =
-  let pos = Type.pos left in
   match left, right with
-  | Top    _, right    -> Some right
-  | left    , Top    _ -> Some left
-  | Bot    _,        _ -> Some (Bot    { pos })
-  |        _, Bot    _ -> Some (Bot    { pos })
-  | Unit   _, Unit   _ -> Some (Unit   { pos })
-  | Bool   _, Bool   _ -> Some (Bool   { pos })
-  | Int    _, Int    _ -> Some (Int    { pos })
-  | Char   _, Char   _ -> Some (Char   { pos })
-  | String _, String _ -> Some (String { pos })
+  | Top    , right  -> Some right
+  | left   , Top    -> Some left
+  | Bot    , _      -> Some Bot
+  | _      , Bot    -> Some Bot
+  | Unit   , Unit   -> Some Unit
+  | Bool   , Bool   -> Some Bool
+  | Int    , Int    -> Some Int
+  | Char   , Char   -> Some Char
+  | String , String -> Some String
   | Var left_var, _ ->
     meet_var ctx left_var right
   | _, Var right_var ->
@@ -296,7 +292,7 @@ and meet_base ctx (left: Type.base) (right: Type.base) =
   | _, App _ ->
     None
   | _, _ ->
-    Some (Bot { pos })
+    Some Bot
 
 and meet_var ctx var other =
   if isa_var ctx var other then
@@ -309,20 +305,20 @@ and meet_var ctx var other =
 
 and meet_tuple ctx left right =
   if List.compare_lengths left.elems right.elems != 0 then
-    Some (Bot { pos = left.pos })
+    Some Bot
   else
   let elems = List.map2 (meet ctx) left.elems right.elems in
-  Some (Tuple { pos = left.pos; elems })
+  Some (Tuple { elems })
 
 and meet_record ctx left right =
   let attrs = Utils.NameMap.merge (meet_record_attr ctx) left.attrs right.attrs in
-  Some (Record { pos = left.pos; attrs })
+  Some (Record { attrs })
 
 and meet_record_attr ctx name left right =
   match left, right with
   | Some left, Some right ->
     let type' = meet ctx left.type' right.type' in
-    Some { pos = left.pos; name; type' }
+    Some { name; type' }
   | Some left, None ->
     Some left
   | None, Some right ->
@@ -337,22 +333,22 @@ and meet_abs_expr ctx left right =
   | _, _ ->
     let param = join ctx left.param right.param in
     let ret = meet ctx left.ret right.ret in
-    Some (AbsExpr { pos = left.pos; param; ret })
+    Some (AbsExpr { param; ret })
 
 and meet_abs_type_expr ctx left right =
   if not (is_param ctx left.param right.param) then
-    Some (Bot { pos = left.pos })
+    Some Bot
   else
-  let entry = TypeContext.entry_param left.pos left.param right.param in
+  let entry = TypeContext.entry_param left.param right.param in
   let right_ret = substitute ctx entry right.ret in
   let ret = meet ctx left.ret right_ret in
-  Some (AbsTypeExpr { pos = left.pos; param = left.param; ret })
+  Some (AbsTypeExpr { param = left.param; ret })
 
 and meet_abs ctx left right =
   if not (is_param ctx left.param right.param) then
-    Some (Bot { pos = left.pos })
+    Some Bot
   else
-  let entry = TypeContext.entry_param left.pos left.param right.param in
+  let entry = TypeContext.entry_param left.param right.param in
   let right_body = substitute ctx entry right.body in
   let body = meet ctx left.body right_body in
-  Some (Abs { pos = left.pos; param = left.param; body })
+  Some (Abs { param = left.param; body })
