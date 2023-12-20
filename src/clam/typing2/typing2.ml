@@ -126,13 +126,13 @@ and isa_abs_expr ctx sub_abs sup_abs =
 
 and isa_abs_type_expr ctx sub_abs sup_abs =
   is_param ctx sub_abs.param sup_abs.param &&
-  let sup_ret = substitute_right ctx sub_abs.param sup_abs.param sup_abs.ret in
+  let sup_ret = substitute_body ctx sub_abs.param sup_abs.param sup_abs.ret in
   let ctx = TypeContext.add_bind_type ctx sub_abs.param.bind sub_abs.param.bound in
   isa ctx sub_abs.ret sup_ret
 
 and isa_abs ctx sub_abs sup_abs =
   is_param ctx sub_abs.param sup_abs.param &&
-  let sup_body = substitute_right ctx sub_abs.param sup_abs.param sup_abs.body in
+  let sup_body = substitute_body ctx sub_abs.param sup_abs.param sup_abs.body in
   let ctx = TypeContext.add_bind_type ctx sub_abs.param.bind sub_abs.param.bound in
   isa ctx sub_abs.body sup_body
 
@@ -146,16 +146,14 @@ and substitute_arg ctx bind arg type' =
   let entry = TypeContext.entry bind arg in
   substitute ctx entry type'
 
-and substitute_right ctx param_bind param_arg type' =
-  let bind = param_bind.Type.bind in
-  (* TODO: Check if this is necessary *)
-  let ctx = TypeContext.add_bind_type ctx param_bind.bind param_bind.bound in
-  let ctx = TypeContext.add_bind_type ctx param_arg.bind param_arg.bound in
-  let arg = Type.base (Var { bind = param_arg.Type.bind }) in
-  let entry = TypeContext.entry bind arg in
-  substitute ctx entry type'
+and substitute_body ctx param param_body body =
+  let ctx = TypeContext.add_bind_type ctx param.bind param.bound in
+  let ctx = TypeContext.add_bind_type ctx param_body.bind param_body.bound in
+  let var = Type.base (Var { bind = param.bind }) in
+  let entry = TypeContext.entry param_body.bind var in
+  substitute ctx entry body
 
-and substitute ctx entry (type': Type.type')  =
+and substitute ctx entry (type': Type.type') =
   map_type ctx (substitute_base ctx entry) type'
 
 and substitute_base ctx entry (type': Type.base) =
@@ -181,10 +179,12 @@ and substitute_base ctx entry (type': Type.base) =
     Type.base (AbsExpr { param; ret })
   | AbsTypeExpr abs ->
     let param = substitute_param ctx entry abs.param in
+    let ctx = TypeContext.add_bind_type ctx param.Type.bind param.bound in
     let ret = substitute ctx entry abs.ret in
     Type.base (AbsTypeExpr { param; ret })
   | Abs abs ->
     let param = substitute_param ctx entry abs.param in
+    let ctx = TypeContext.add_bind_type ctx param.bind param.bound in
     let body = substitute ctx entry abs.body in
     Type.base (Abs { param; body })
   | App app ->
@@ -335,7 +335,7 @@ and meet_abs_type_expr ctx left right =
   if not (is_param ctx left.param right.param) then
     Some Bot
   else
-  let right_ret = substitute_right ctx left.param right.param right.ret in
+  let right_ret = substitute_body ctx left.param right.param right.ret in
   let ctx = TypeContext.add_bind_type ctx left.param.bind left.param.bound in
   let ret = meet ctx left.ret right_ret in
   Some (AbsTypeExpr { param = left.param; ret })
@@ -344,7 +344,7 @@ and meet_abs ctx left right =
   if not (is_param ctx left.param right.param) then
     Some Bot
   else
-  let right_body = substitute_right ctx left.param right.param right.body in
+  let right_body = substitute_body ctx left.param right.param right.body in
   let ctx = TypeContext.add_bind_type ctx left.param.bind left.param.bound in
   let body = meet ctx left.body right_body in
   Some (Abs { param = left.param; body })

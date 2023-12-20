@@ -180,10 +180,9 @@ and check_type_abs abs constr =
   | Type.AbsTypeExpr constr_abs ->
     let* param = check_type_abs_param abs constr_abs.param in
     let* ctx = get_type_ctx in
-    let constr_ret = Typing2.substitute_right ctx param constr_abs.param constr_abs.ret in
-    let* _ = with_bind_type param.bind param.bound
-      (fun state -> check abs.body constr_ret state) in
-    return ()
+    let constr_ret = Typing2.substitute_body ctx param constr_abs.param constr_abs.ret in
+    with_bind_type param.bind param.bound
+      (check abs.body constr_ret)
   | _ ->
     TypeError.check_type_abs abs constr
 

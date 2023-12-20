@@ -69,8 +69,8 @@ module SearcherAppType = struct
 
   let with_merge_param ctx bound left right f =
     let param = make_anonymous_param bound in
-    let left_ret  = Typing2.substitute_right ctx param left.param  left.ret  in
-    let right_ret = Typing2.substitute_right ctx param right.param right.ret in
+    let left_ret  = Typing2.substitute_body ctx param left.param  left.ret  in
+    let right_ret = Typing2.substitute_body ctx param right.param right.ret in
     let ctx = TypeContext.add_bind_type ctx param.bind param.bound in
     let ret = f ctx left_ret right_ret in
     { param; ret }
