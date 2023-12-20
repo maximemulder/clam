@@ -47,6 +47,7 @@ let with_bind_type bind type' f state =
   other, { state with type_ctx = ctx }
 
 let make_state defs =
+  (* TODO: Dependency injection for primitives *)
   let dones = BindMap.of_list Primitive2.types in
   let remains = List.fold_left (fun set def -> DefSet.add def set) DefSet.empty defs in
   let expr_ctx = { remains; currents = DefSet.empty; dones } in
@@ -76,106 +77,13 @@ let return_def (def: def_expr) =
 let return_abs param returner =
   fun ret -> returner (Type.base (Type.AbsExpr { param; ret }))
 
-module type INFERER = sig
-  type t
-  val bot: t
-  val meet: TypeContext.context -> t -> t -> t
-  val join: TypeContext.context -> t -> t -> t
-end
-
-module Inferer(I: INFERER) = struct
-  let rec infer ctx f (type': Type.type') =
-    infer_union ctx f type'
-
-  and infer_union ctx f union =
-    let types = List.map (infer_inter ctx f) union.union in
-    Utils.list_option_meet types (I.join ctx)
-
-  and infer_inter ctx f inter =
-    let types = List.map (infer_base ctx f) inter.inter in
-    Utils.list_option_join types (I.meet ctx)
-
-  and infer_base ctx f type' =
-    match type' with
-    | Type.Bot ->
-      Some I.bot
-    | Type.Var var ->
-      let bound = TypeContext.get_bind_type ctx var.bind in
-      infer ctx f bound
-    | Type.App _ ->
-      (* TODO: Recurse on applied bounds ? *)
-      None
-    | _ ->
-      f type'
-end
-
-module InfererProj = struct
-  type t = Type.type'
-  let bot = Primitive2.bot
-  let join = Typing2.join
-  let meet = Typing2.meet
-end
-
-module InfererProj2 = Inferer(InfererProj)
-
-module InfererApp = struct
-  type t = { arg: Type.type'; ret: Type.type' }
-
-  let bot = { arg = Primitive2.top; ret = Primitive2.bot }
-
-  let join ctx left right =
-    let arg = Typing2.meet ctx left.arg right.arg in
-    let ret = Typing2.join ctx left.ret right.ret in
-    { arg; ret }
-
-  let meet ctx left right =
-    let arg = Typing2.join ctx left.arg right.arg in
-    let ret = Typing2.meet ctx left.ret right.ret in
-    { arg; ret }
-end
-
-module InfererApp2 = Inferer(InfererApp)
-
-module InfererAppType = struct
-  type t = { param: Type.param; ret: Type.type' }
-
-  let bot = { param = { bind = { name = "_" }; bound = Primitive2.top }; ret = Primitive2.bot }
-
-  let join ctx left right =
-    let bound = Typing2.meet ctx left.param.bound right.param.bound in
-    let param = { Type.bind = { name = "_" }; bound } in
-    let entry = TypeContext.entry_param param left.param in
-    let left_ret = Typing2.substitute ctx entry left.ret in
-    let entry = TypeContext.entry_param param right.param in
-    let right_ret = Typing2.substitute ctx entry right.ret in
-    let ret = Typing2.join ctx left_ret right_ret in
-    { param; ret }
-
-  let meet ctx left right =
-    if not (Typing2.is_param ctx left.param right.param) then
-      bot
-    else
-    let entry = TypeContext.entry_param left.param right.param in
-    let right_ret = Typing2.substitute ctx entry right.ret in
-    let ret = Typing2.meet ctx left.ret right_ret in
-    { param = left.param; ret }
-end
-
-module InfererAppType2 = Inferer(InfererAppType)
-
 let validate_type type' =
   let* ctx = get_type_ctx in
-  return (TypingValidate2.validate ctx type')
-
-let validate_type_param_with param f =
-  let* bound = validate_type param.bound in
-  let param = { Type.bind = param.bind; bound } in
-  let* other = with_bind_type param.bind param.bound f in
-  return (param, other)
+  return (TypeValidate.validate ctx type')
 
 let validate_type_proper type' =
   let* ctx = get_type_ctx in
-  return (TypingValidate2.validate_proper ctx type')
+  return (TypeValidate.validate_proper ctx type')
 
 let rec check expr (constr: Type.type') =
   check_union expr constr
@@ -239,7 +147,7 @@ and check_record_attr record constr_attr =
   | None -> TypeError.check_record_attr record constr_attr
 
 and check_if if' constr =
-  let* _ = check if'.cond Primitive2.bool in
+  let* _ = check if'.cond TypePrimitive.bool in
   let* _ = check if'.then' (Type.base constr) in
   let* _ = check if'.else' (Type.base constr) in
   return ()
@@ -258,7 +166,7 @@ and check_abs_param param constr =
   | Some type' ->
     let* param' = validate_type_proper type' in
     let* ctx = get_type_ctx in
-    if Typing2.isa ctx param' constr then
+    if Typing2.isa ctx constr param' then
       return param'
     else
       TypeError.check_abs_param param param' constr
@@ -271,11 +179,10 @@ and check_type_abs abs constr =
   match constr with
   | Type.AbsTypeExpr constr_abs ->
     let* param = check_type_abs_param abs constr_abs.param in
-    let entry = TypeContext.entry_param param constr_abs.param in
     let* ctx = get_type_ctx in
-    let constr_body = Typing2.substitute ctx entry constr_abs.ret in
+    let constr_ret = Typing2.substitute_right ctx param constr_abs.param constr_abs.ret in
     let* _ = with_bind_type param.bind param.bound
-      (check abs.body constr_body) in
+      (fun state -> check abs.body constr_ret state) in
     return ()
   | _ ->
     TypeError.check_type_abs abs constr
@@ -372,7 +279,7 @@ and infer_record_attr attr =
 and infer_elem elem returner =
   let* tuple = infer_none elem.expr in
   let* ctx = get_type_ctx in
-  let type' = InfererProj2.infer ctx (infer_elem_base elem.index) tuple in
+  let type' = TypeSearch.SearchProj.infer ctx (infer_elem_base elem.index) tuple in
   match type' with
   | Some type' ->
     returner type'
@@ -389,7 +296,7 @@ and infer_elem_base index type' =
 and infer_attr attr returner =
   let* record = infer_none attr.expr in
   let* ctx = get_type_ctx in
-  let type' = InfererProj2.infer ctx (infer_attr_base attr.name) record in
+  let type' = TypeSearch.SearchProj.infer ctx (infer_attr_base attr.name) record in
   match type' with
   | Some type' ->
     returner type'
@@ -406,10 +313,10 @@ and infer_attr_base name type' =
 and infer_app app returner =
   let* abs = infer_none app.expr in
   let* ctx = get_type_ctx in
-  let type' = InfererApp2.infer ctx infer_app_base abs in
+  let type' = TypeSearch.SearchApp.infer ctx infer_app_base abs in
   match type' with
-  | Some { arg; ret } ->
-    let* () = check app.arg arg in
+  | Some { param; ret } ->
+    let* () = check app.arg param in
     returner ret
   | _ ->
     TypeError.infer_app_kind app abs
@@ -417,23 +324,22 @@ and infer_app app returner =
 and infer_app_base type' =
   match type' with
   | Type.AbsExpr abs ->
-    Some { InfererApp.arg = abs.param; ret = abs.ret }
+    Some { param = abs.param; ret = abs.ret }
   | _ ->
     None
 
 and infer_type_app app returner =
   let* abs = infer_none app.expr in
   let* ctx = get_type_ctx in
-  let type' = InfererAppType2.infer ctx infer_type_app_base abs in
+  let type' = TypeSearch.SearchAppType.infer ctx infer_type_app_base abs in
   match type' with
   | Some { param; ret } ->
     let* arg = validate_type app.arg in
     let* ctx = get_type_ctx in
-    if Typing2.isa ctx arg param.bound then
+    if not (Typing2.isa ctx arg param.bound) then
       TypeError.infer_type_app_type app arg param.bound
     else
-    let entry = TypeContext.entry param.bind arg in
-    let ret = Typing2.substitute ctx entry ret in
+    let ret = Typing2.substitute_arg ctx param.bind arg ret in
     returner ret
   | None ->
     TypeError.infer_type_app_kind app abs
@@ -441,7 +347,7 @@ and infer_type_app app returner =
 and infer_type_app_base type' =
   match type' with
   | Type.AbsTypeExpr abs ->
-    Some { InfererAppType.param = abs.param; ret = abs.ret }
+    Some { param = abs.param; ret = abs.ret }
   | _ ->
     None
 
@@ -452,7 +358,7 @@ and infer_ascr ascr returner =
   return returned
 
 and infer_if if' returner =
-  let* _ = check if'.cond Primitive2.bool in
+  let* _ = check if'.cond TypePrimitive.bool in
   let* then' = infer_none if'.then' in
   let* else' = infer_none if'.else' in
   let* ctx = get_type_ctx in
@@ -473,9 +379,15 @@ and infer_abs_param param =
   return type'
 
 and infer_type_abs abs returner =
-  let* param, ret = validate_type_param_with abs.param
-    (infer_none abs.body) in
-  returner (Type.base (Type.AbsTypeExpr { param; ret }))
+  let* (param: Type.param) = infer_type_param abs.param in
+  with_bind_type param.bind param.bound (
+    let* ret = infer_none abs.body in
+    returner (Type.base (Type.AbsTypeExpr { param; ret }))
+  )
+
+and infer_type_param param =
+  let* bound = validate_type param.bound in
+  return { Type.bind = param.bind; bound }
 
 and infer_stmt stmt returner =
   let* _ = infer_stmt_body stmt.stmt in
@@ -521,5 +433,5 @@ let check_exprs defs =
   progress_defs (make_state defs)
 
 let check_types types =
-  let _ = List.map (TypingValidate2.validate TypeContext.empty) types in
+  let _ = List.map (TypeValidate.validate TypeContext.empty) types in
   ()

@@ -59,3 +59,10 @@ let display type' =
 
 let display_base type' =
   display_base type' false
+
+let display_context_entry (entry: TypeContext.entry) =
+    entry.bind.name ^ " <: " ^ display entry.bound
+
+let display_context (ctx: TypeContext.context) =
+  let entries = List.map display_context_entry ctx.assumptions in
+  String.concat ", " entries

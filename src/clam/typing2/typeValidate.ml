@@ -83,7 +83,8 @@ and validate_app ctx app =
   let arg = validate ctx app.arg in
   let param = validate_app_param ctx abs in
   if not (Typing2.isa ctx arg param) then
-    TypeError.validate_app_arg app param arg  else
+    TypeError.validate_app_arg app param arg
+  else
   Typing2.compute ctx abs arg
 
 and validate_app_param ctx abs =

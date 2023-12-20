@@ -63,7 +63,7 @@ and isa_base ctx (sub: Type.base) (sup: Type.base) =
   |        _, Top    ->
     isa_top ctx sub
   | Bot    ,       _ ->
-    true
+    true (* TODO: kinding *)
   | Unit   , Unit    ->
     true
   | Bool   , Bool    ->
@@ -101,7 +101,7 @@ and isa_top ctx sub =
 and isa_var ctx sub_var sup =
   var_is_bot ctx sub_var ||
   match sup with
-  | Var sup_var when sub_var.bind = sup_var.bind ->
+  | Var sup_var when sub_var.bind == sup_var.bind ->
     true
   | _ ->
     let sub_bound = TypeContext.get_bind_type ctx sub_var.bind in
@@ -126,14 +126,14 @@ and isa_abs_expr ctx sub_abs sup_abs =
 
 and isa_abs_type_expr ctx sub_abs sup_abs =
   is_param ctx sub_abs.param sup_abs.param &&
-  let entry = TypeContext.entry_param sub_abs.param sup_abs.param in
-  let sup_ret = substitute ctx entry sup_abs.ret in
+  let sup_ret = substitute_right ctx sub_abs.param sup_abs.param sup_abs.ret in
+  let ctx = TypeContext.add_bind_type ctx sub_abs.param.bind sub_abs.param.bound in
   isa ctx sub_abs.ret sup_ret
 
 and isa_abs ctx sub_abs sup_abs =
   is_param ctx sub_abs.param sup_abs.param &&
-  let entry = TypeContext.entry_param sub_abs.param sup_abs.param in
-  let sup_body = substitute ctx entry sup_abs.body in
+  let sup_body = substitute_right ctx sub_abs.param sup_abs.param sup_abs.body in
+  let ctx = TypeContext.add_bind_type ctx sub_abs.param.bind sub_abs.param.bound in
   isa ctx sub_abs.body sup_body
 
 and isa_app ctx sub_app sup_app =
@@ -142,31 +142,31 @@ and isa_app ctx sub_app sup_app =
 
 (* TYPE SUBSTITUTION *)
 
-and substitute ctx entry (type': Type.type') =
-  substitute_union ctx entry type'
+and substitute_arg ctx bind arg type' =
+  let entry = TypeContext.entry bind arg in
+  substitute ctx entry type'
 
-and substitute_union ctx entry (union: Type.union) =
-  map_union ctx (substitute_inter ctx entry) union
+and substitute_right ctx param_bind param_arg type' =
+  let bind = param_bind.Type.bind in
+  (* TODO: Check if this is necessary *)
+  let ctx = TypeContext.add_bind_type ctx param_bind.bind param_bind.bound in
+  let ctx = TypeContext.add_bind_type ctx param_arg.bind param_arg.bound in
+  let arg = Type.base (Var { bind = param_arg.Type.bind }) in
+  let entry = TypeContext.entry bind arg in
+  substitute ctx entry type'
 
-and substitute_inter ctx entry (inter: Type.inter) =
-  map_inter ctx (substitute_base ctx entry) inter
+and substitute ctx entry (type': Type.type')  =
+  map_type ctx (substitute_base ctx entry) type'
 
 and substitute_base ctx entry (type': Type.base) =
   match type' with
-  | Top    ->
-    Type.base type'
-  | Bot    ->
-    Type.base type'
-  | Unit   ->
-    Type.base type'
-  | Bool   ->
-    Type.base type'
-  | Int    ->
-    Type.base type'
-  | Char   ->
-    Type.base type'
-  | String ->
-    Type.base type'
+  | Top    -> Type.base Top
+  | Bot    -> Type.base Bot
+  | Unit   -> Type.base Unit
+  | Bool   -> Type.base Bool
+  | Int    -> Type.base Int
+  | Char   -> Type.base Char
+  | String -> Type.base String
   | Var var ->
     substitute_var entry var
   | Tuple tuple ->
@@ -193,8 +193,8 @@ and substitute_base ctx entry (type': Type.base) =
     compute ctx abs arg
 
 and substitute_var entry var =
-  if var.bind = entry.TypeContext.bind then
-    entry.type'
+  if var.bind == entry.bind then
+    entry.bound
   else
     Type.base (Var var)
 
@@ -209,23 +209,19 @@ and substitute_attr ctx entry attr =
 (* TYPE COMPUTATION *)
 
 and compute ctx (type': Type.type') (arg: Type.type') =
-  compute_union ctx type' arg
-
-and compute_union ctx (union: Type.union) (arg: Type.type') =
-  map_union ctx (Utils.flip (compute_inter ctx) arg) union
-
-and compute_inter ctx (inter: Type.inter) (arg: Type.type') =
-  map_inter ctx (Utils.flip (compute_base ctx) arg) inter
+  map_type ctx (Utils.flip (compute_base ctx) arg) type'
 
 and compute_base ctx (abs: Type.base) (arg: Type.type') =
   match abs with
   | Abs abs ->
-    let entry = TypeContext.entry abs.param.bind arg in
-    substitute ctx entry abs.body
+    substitute_arg ctx abs.param.bind arg abs.body
   | _ ->
     Type.base (Type.App { abs = Type.base abs; arg })
 
 (* TYPE MAP *)
+
+and map_type ctx f type' =
+  map_union ctx (map_inter ctx f) type'
 
 and map_union ctx f union =
   let types = List.map f union.union in
@@ -339,8 +335,8 @@ and meet_abs_type_expr ctx left right =
   if not (is_param ctx left.param right.param) then
     Some Bot
   else
-  let entry = TypeContext.entry_param left.param right.param in
-  let right_ret = substitute ctx entry right.ret in
+  let right_ret = substitute_right ctx left.param right.param right.ret in
+  let ctx = TypeContext.add_bind_type ctx left.param.bind left.param.bound in
   let ret = meet ctx left.ret right_ret in
   Some (AbsTypeExpr { param = left.param; ret })
 
@@ -348,7 +344,7 @@ and meet_abs ctx left right =
   if not (is_param ctx left.param right.param) then
     Some Bot
   else
-  let entry = TypeContext.entry_param left.param right.param in
-  let right_body = substitute ctx entry right.body in
+  let right_body = substitute_right ctx left.param right.param right.body in
+  let ctx = TypeContext.add_bind_type ctx left.param.bind left.param.bound in
   let body = meet ctx left.body right_body in
   Some (Abs { param = left.param; body })
