@@ -80,9 +80,7 @@ let tests = [
   case (abs "T" top (inline a)) (abs "T" top (inline top));
 
   (* type applications *)
-  case top (app (abs "T" top id) top);
   case (app (abs "T" top id) top) top;
-  case top (app (abs "T" top (inline top)) top);
   case (app (abs "T" top (inline top)) top) top;
 ]
 |> List.map (fun case -> case true ctx)
@@ -127,5 +125,9 @@ let tests_not = [
   (* type abstractions and variables*)
 
   case_var "T" (abs "X" top id) (fun t1 -> case_var "T" (abs "X" top id) (fun t2 -> case (app t1 top) (app t2 top)));
+
+  (* type applications *)
+  case top (app (abs "T" top id) top);
+  case top (app (abs "T" top (inline top)) top);
 ]
 |> List.map (fun case -> case false ctx)

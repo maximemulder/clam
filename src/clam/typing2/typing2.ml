@@ -334,7 +334,7 @@ and meet_record_attr ctx name left right =
 
 and meet_abs_expr ctx left right =
   match is ctx left.param right.param, is ctx left.ret right.ret with
-  | true, true ->
+  | false, false ->
     None
   | _, _ ->
     let param = join ctx left.param right.param in
