@@ -72,10 +72,10 @@ let ctx = {
 }
 
 let union types =
-  Utils.reduce_list (Typing2.join ctx) types
+  Utils.list_reduce (Typing2.join ctx) types
 
 let inter types =
-  Utils.reduce_list (Typing2.meet ctx) types
+  Utils.list_reduce (Typing2.meet ctx) types
 
 let a = var a
 let b = var b

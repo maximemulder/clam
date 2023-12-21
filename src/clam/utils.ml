@@ -30,22 +30,22 @@ let compare_maps compare map other =
     (fst entry) = (fst other_entry) && compare (snd entry) (snd other_entry)
   ) pairs
 
-let rec reduce_list f xs =
+let rec list_reduce f xs =
   match xs with
   | [x] -> x
-  | x :: xs -> f x (reduce_list f xs)
-  | _ -> invalid_arg "Utils.reduce_list"
+  | x :: xs -> f x (list_reduce f xs)
+  | _ -> invalid_arg "Utils.list_reduce"
 
 let option_join x y f =
-  match (x, y) with
-  | (Some x, Some y) -> Some (f x y)
-  | (Some x, None) -> Some x
-  | (None, Some y) -> Some y
+  match x, y with
+  | Some x, Some y -> Some (f x y)
+  | Some x, None -> Some x
+  | None, Some y -> Some y
   | _ -> None
 
 let option_meet x y f =
-  match (x, y) with
-  | (Some x, Some y) -> Some (f x y)
+  match x, y with
+  | Some x, Some y -> Some (f x y)
   | _ -> None
 
 let rec list_option_meet xs f =
@@ -66,30 +66,31 @@ let rec list_option_join xs f =
   | _ ->
     invalid_arg "list_option_join"
 
-let rec product_lists acc f l1 l2 =
-  match (l1, l2) with
-  | ([], _) | (_, []) ->
+let rec list_product acc f l1 l2 =
+  match l1, l2 with
+  | [], _ | _, [] ->
     acc
-  | (h1 :: t1, h2 :: t2) ->
-    let acc = (f h1 h2) :: acc in
-    let acc = product_lists acc f t1 l2 in
-    product_lists acc f [h1] t2
+  | h1 :: t1, h2 :: t2 ->
+    let acc = f h1 h2 :: acc in
+    let acc = list_product acc f t1 l2 in
+    list_product acc f [h1] t2
 
-let product_lists f l1 l2 =
-  product_lists [] f l1 l2
+let list_product f l1 l2 =
+  let l = list_product [] f l1 l2 in
+  List.rev l
 
-let rec collapse n xs ys zs f =
+let rec list_collapse n xs ys zs f =
   match xs with
   | [] -> (
     match ys with
-    | [] -> n :: zs
-    | y :: ys -> collapse y ys [] (n :: zs) f)
+    | [] -> zs @ [n]
+    | y :: ys -> list_collapse y ys [] (zs @ [n]) f)
   | x :: xs -> (
     match f n x with
-    | Some n -> collapse n (xs @ ys @ zs) [] [] f
-    | None -> collapse n xs (x :: ys) zs f)
+    | Some n -> list_collapse n (xs @ ys @ zs) [] [] f
+    | None -> list_collapse n xs (ys @ [x]) zs f)
 
-let collapse f xs =
+let list_collapse f xs =
   match xs with
-  | x :: xs -> collapse x xs [] [] f
-  | _ -> invalid_arg "collapse"
+  | x :: xs -> list_collapse x xs [] [] f
+  | _ -> invalid_arg "list_collapse"

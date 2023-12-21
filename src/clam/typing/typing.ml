@@ -192,7 +192,7 @@ and isa_app_type sub_app sup_app =
 (* TODO: I am not sure this function works with inter-nested unions, intersections and type abstractions *)
 (* It may be easier to implement a simplified form for types than to correct it immediatly *)
 and normalize type' =
-  let type' = Utils.reduce_list join_type (distribute_unions type') in
+  let type' = Utils.list_reduce join_type (distribute_unions type') in
   simplify type'
 
 and simplify type' =
@@ -219,7 +219,7 @@ and distribute_unions type' =
   | TypeInter { left; right; _ } ->
     let lefts = distribute_inters_over_unions left in
     let rights = distribute_inters_over_unions right in
-    Utils.product_lists (fun left right -> Utils.reduce_list meet (List.append left right)) lefts rights
+    Utils.list_product (fun left right -> Utils.list_reduce meet (List.append left right)) lefts rights
   | _ -> [type']
 
 and distribute_inters_over_unions type' =
@@ -227,7 +227,7 @@ and distribute_inters_over_unions type' =
   | TypeInter { left; right; _ } ->
     let lefts = distribute_inters_over_unions left in
     let rights = distribute_inters_over_unions right in
-    Utils.product_lists List.append lefts rights
+    Utils.list_product List.append lefts rights
   | TypeUnion { left; right; _ } ->
     let lefts = distribute_unions left in
     let rights = distribute_unions right in
@@ -257,7 +257,7 @@ and join left right =
   let types = [] in
   let types = List.append types (collect_union left)  in
   let types = List.append types (collect_union right) in
-  Utils.reduce_list join_type types
+  Utils.list_reduce join_type types
 
 and join_type left right =
   if isa left right then
@@ -275,7 +275,7 @@ and meet left right =
   let types = [] in
   let types = List.append types (collect_inter left)  in
   let types = List.append types (collect_inter right) in
-  Utils.reduce_list meet_type types
+  Utils.list_reduce meet_type types
 
 and meet_type left right =
   let pos = type_pos left in

@@ -85,7 +85,7 @@ let tests = [
   case (inter bool unit) "foo" (Some bot);
 
 (* intersections & unions *)
-  case (inter (union (record ["foo", a]) (record ["foo", b])) (record ["foo", c])) "foo" (Some (union (inter b c) (inter a c)));
+  case (inter (union (record ["foo", a]) (record ["foo", b])) (record ["foo", c])) "foo" (Some (union (inter a c) (inter b c)));
 
 (* constructors *)
   case (abs "T" top (fun a -> (record ["foo", a]))) "foo" None;

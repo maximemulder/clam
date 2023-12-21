@@ -1,26 +1,27 @@
-
-let surround string surround =
-  if surround then
+let group string grp =
+  if grp then
     "(" ^ string ^ ")"
   else
     string
 
-let rec display type' surr =
-  display_union type' surr
+let rec display (type': Type.type') grp =
+  display_union type' grp
 
-and display_union (union: Type.union) surr =
-  let surr_inner = List.length union.union <> 1 in
-  let types = List.map (Utils.flip display_inter surr_inner) union.union in
+and display_union union grp =
+  let grp_self = grp && List.length union.union <> 1 in
+  let grp_elem = grp || List.length union.union <> 1 in
+  let types = List.map (Utils.flip display_inter grp_elem) union.union in
   let types = String.concat " | " types in
-  surround types surr
+  group types grp_self
 
-and display_inter (inter: Type.inter) surr =
-  let surr_inner = List.length inter.inter <> 1 in
-  let types = List.map (Utils.flip display_base surr_inner) inter.inter in
-  let types = String.concat " | " types in
-  surround types surr
+and display_inter inter grp =
+  let grp_self = grp && List.length inter.inter <> 1 in
+  let grp_elem = grp || List.length inter.inter <> 1 in
+  let types = List.map (Utils.flip display_base grp_elem) inter.inter in
+  let types = String.concat " & " types in
+  group types grp_self
 
-and display_base (type': Type.base) surr =
+and display_base (type': Type.base) grp =
   match type' with
   | Top    -> "Top"
   | Bot    -> "Bot"
@@ -38,15 +39,16 @@ and display_base (type': Type.base) surr =
     "{" ^ (String.concat ", " attrs) ^ "}"
   | AbsExpr abs ->
     let type' = "(" ^ (display abs.param false) ^ ") -> " ^ (display abs.ret true) in
-    surround type' surr
+    group type' grp
   | AbsTypeExpr abs ->
-    "[" ^ (display_param abs.param) ^ "] -> " ^ (display abs.ret true)
+    let type' = "[" ^ (display_param abs.param) ^ "] -> " ^ (display abs.ret true) in
+    group type' grp
   | Abs abs ->
     let type' = "[" ^ (display_param abs.param) ^ "] => " ^ (display abs.body true) in
-    surround type' surr
+    group type' grp
   | App app ->
     let type' = (display app.abs true) ^ "[" ^ (display app.arg false) ^ "]" in
-    surround type' surr
+    group type' grp
 
 and display_attr_entry (_, attr) =
   attr.name ^ ": " ^ display attr.type' false

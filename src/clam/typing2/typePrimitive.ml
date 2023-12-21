@@ -1,7 +1,9 @@
-let top    = Type.base Type.Top
-let bot    = Type.base Type.Bot
-let unit   = Type.base Type.Unit
-let bool   = Type.base Type.Bool
-let int    = Type.base Type.Int
-let char   = Type.base Type.Char
-let string = Type.base Type.String
+open Type
+
+let top    = base Top
+let bot    = base Bot
+let unit   = base Unit
+let bool   = base Bool
+let int    = base Int
+let char   = base Char
+let string = base String

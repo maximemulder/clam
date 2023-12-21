@@ -83,7 +83,7 @@ let tests = [
   case (inter bool unit) (Some (top, bot));
 
   (* intersections & unions *)
-  case (inter (union (abs_expr a d) (abs_expr b e)) (abs_expr c f)) (Some (inter (union b c) (union a c), (union (inter e f) (inter d f))));
+  case (inter (union (abs_expr a d) (abs_expr b e)) (abs_expr c f)) (Some (inter (union a c) (union b c), (union (inter d f) (inter e f))));
 
   (* constructors *)
   case (abs "T" top (fun a -> (abs_expr a b))) None;

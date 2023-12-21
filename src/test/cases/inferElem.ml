@@ -88,7 +88,7 @@ let tests = [
   case (inter (tuple []) (tuple [a])) 0 (Some bot);
 
   (* intersections & unions *)
-  case (inter (union (tuple [a]) (tuple [b])) (tuple [c])) 0 (Some (union (inter b c) (inter a c)));
+  case (inter (union (tuple [a]) (tuple [b])) (tuple [c])) 0 (Some (union (inter a c) (inter b c)));
 
   (* constructors *)
   case (abs "T" top (fun a -> (tuple [a]))) 0 None;

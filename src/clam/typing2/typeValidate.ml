@@ -92,11 +92,11 @@ and validate_app_param ctx abs =
 
 and validate_app_param_union ctx union =
   let types = List.map (validate_app_param_inter ctx) union.union in
-  Utils.reduce_list (Typing2.meet ctx) types
+  Utils.list_reduce (Typing2.meet ctx) types
 
 and validate_app_param_inter ctx inter =
   let types = List.map (validate_app_param_base ctx) inter.inter in
-  Utils.reduce_list (Typing2.join ctx) types
+  Utils.list_reduce (Typing2.join ctx) types
 
 and validate_app_param_base ctx type' =
   match type' with

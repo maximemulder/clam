@@ -225,16 +225,16 @@ and map_type ctx f type' =
 
 and map_union ctx f union =
   let types = List.map f union.union in
-  Utils.reduce_list (join ctx) types
+  Utils.list_reduce (join ctx) types
 
 and map_inter ctx f inter =
   let types = List.map f inter.inter in
-  Utils.reduce_list (meet ctx) types
+  Utils.list_reduce (meet ctx) types
 
 (* TYPE JOIN *)
 
 and join ctx (left: Type.type') (right: Type.type') =
-  let types = Utils.collapse (join_inter ctx) (left.union @ right.union) in
+  let types = Utils.list_collapse (join_inter ctx) (left.union @ right.union) in
   { Type.union = types }
 
 and join_inter ctx left right =
@@ -249,12 +249,12 @@ and join_inter ctx left right =
 (* TYPE MEET *)
 
 and meet ctx left right =
-  let types = Utils.product_lists (meet_inter ctx) left.union right.union in
-  let types = Utils.collapse (join_inter ctx) types in
+  let types = Utils.list_product (meet_inter ctx) left.union right.union in
+  let types = Utils.list_collapse (join_inter ctx) types in
   { Type.union = types }
 
 and meet_inter ctx (left: Type.inter) (right: Type.inter) =
-  let types = Utils.collapse (meet_base ctx) (left.inter @ right.inter) in
+  let types = Utils.list_collapse (meet_base ctx) (left.inter @ right.inter) in
   { Type.inter = types }
 
 and meet_base ctx (left: Type.base) (right: Type.base) =
@@ -268,10 +268,12 @@ and meet_base ctx (left: Type.base) (right: Type.base) =
   | Int    , Int    -> Some Int
   | Char   , Char   -> Some Char
   | String , String -> Some String
-  | Var left_var, _ ->
-    meet_var ctx left_var right
-  | _, Var right_var ->
-    meet_var ctx right_var left
+  | Var left_var, _ when isa_var ctx left_var right ->
+    Some (Var left_var)
+  | _, Var right_var  when isa_var ctx right_var left ->
+    Some (Var right_var)
+  | Var _, _ -> None
+  | _, Var _ -> None
   | Tuple left_tuple, Tuple right_tuple ->
     meet_tuple ctx left_tuple right_tuple
   | Record left_record, Record right_record ->
@@ -289,15 +291,6 @@ and meet_base ctx (left: Type.base) (right: Type.base) =
     None
   | _, _ ->
     Some Bot
-
-and meet_var ctx var other =
-  if isa_var ctx var other then
-    Some (Var var)
-  else match other with
-  | Var other_var ->
-    Some (Var other_var)
-  | _ ->
-    None
 
 and meet_tuple ctx left right =
   if List.compare_lengths left.elems right.elems != 0 then
