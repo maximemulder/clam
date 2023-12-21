@@ -29,22 +29,22 @@ let record attrs =
   base (Record { attrs })
 
 let abs_expr param ret =
-  AbsExpr { param; ret }
+  base (AbsExpr { param; ret })
 
 let abs_expr_type (name, bound) ret =
   let bind = bind name in
   let param: Type.param = { bind; bound } in
   let ret = ret (var bind) in
-  AbsTypeExpr { param; ret }
+  base (AbsTypeExpr { param; ret })
 
 let abs name bound body =
   let bind = bind name in
   let param: Type.param = { bind; bound } in
   let body = body (var bind) in
-  Abs { param; body }
+  base (Abs { param; body })
 
 let app abs arg =
-  App { abs; arg }
+  base (App { abs; arg })
 
 let a = bind "A"
 let b = bind "B"
@@ -86,9 +86,6 @@ let f = var f
 let z = var z
 let ea = var ea
 let fa = var fa
-
-(*let with_var name type' body =
-  body (var name type')*)
 
 (* Expressions *)
 

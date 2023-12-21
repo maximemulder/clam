@@ -86,8 +86,12 @@ and isa_base ctx (sub: Type.base) (sup: Type.base) =
     isa_abs_type_expr ctx sub_abs sup_abs
   | Abs sub_abs, Abs sup_abs ->
     isa_abs ctx sub_abs sup_abs
-  | App left_app, App right_app ->
-    isa_app ctx left_app right_app
+  | App sub_app, App sup_app ->
+    isa_app ctx sub_app sup_app
+  | App sub_app, _ ->
+    let sub_abs = promote ctx sub_app.abs in
+    let sub_type = compute ctx sub_abs sub_app.arg in
+    isa ctx sub_type (Type.base sup)
   | _ ->
     false
 
@@ -139,6 +143,19 @@ and isa_abs ctx sub_abs sup_abs =
 and isa_app ctx sub_app sup_app =
   isa ctx sub_app.abs sup_app.abs &&
   is ctx sub_app.arg sup_app.arg
+
+(* TYPE PROMOTION *)
+
+and promote ctx type' =
+  map_type ctx (promote_base ctx) type'
+
+and promote_base ctx type' =
+  match type' with
+  | Type.Var var ->
+    let type' = TypeContext.get_bind_type ctx var.bind in
+    promote ctx type'
+  | _ ->
+    Type.base type'
 
 (* TYPE SUBSTITUTION *)
 

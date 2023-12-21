@@ -8,7 +8,10 @@ module NameMap = Map.Make(NameKey)
 module NameSet = Set.Make(NameKey)
 
 let flip f x y = f y x
+
 let uncurry f (x, y) = f x y
+
+let apply x f = f x
 
 let extract key map =
   let value = NameMap.find key map in

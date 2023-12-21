@@ -18,6 +18,7 @@ and get_kind_base ctx (type': Type.base) =
     get_kind ctx bound
   | Abs abs ->
     let param = get_kind ctx abs.param.bound in
+    let ctx = TypeContext.add_bind_type ctx abs.param.bind abs.param.bound in
     let body  = get_kind ctx abs.body in
     Abs (param, body)
   | App app ->

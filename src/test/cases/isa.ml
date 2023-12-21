@@ -1,22 +1,26 @@
 open Clam
-open Vars
+open Vars2
 
-let test name sub sup expect (_: unit) =
-  let result = Typing.isa sub sup in
+let test name sub sup expect ctx (_: unit) =
+  let result = Typing2.isa ctx sub sup in
   Alcotest.(check bool) name result expect
 
 let name sub sup expect =
-  let sub = TypingDisplay.display sub in
-  let sup = TypingDisplay.display sup in
+  let sub = TypeDisplay.display sub in
+  let sup = TypeDisplay.display sup in
   let suffix = if expect then "" else "!" in
   "isa" ^ suffix ^ " `" ^ sub ^ "` `" ^ sup ^ "`"
 
-let case_base sub sup expect =
+let case sub sup expect ctx =
   let name = name sub sup expect in
-  let test = test name sub sup expect in
+  let test = test name sub sup expect ctx in
   Alcotest.test_case name `Quick test
 
-let case left right = case_base left right true
+let case_var name bound case expect ctx =
+  let bind = { Model.name } in
+  let ctx = TypeContext.add_bind_type ctx bind bound in
+  let var = Type.base (Type.Var { bind }) in
+  case var expect ctx
 
 let tests = [
   (* bottom *)
@@ -24,43 +28,44 @@ let tests = [
   case bot bot;
   case bot unit;
 
-  case (var "A" bot) top;
-  case (var "A" bot) bot;
-  case (var "A" bot) unit;
-  case (var "A" bot) (var "B" bot);
-  case (var "A" (var "B" bot)) bot;
+  case_var "A" bot (fun a -> case a top);
+  case_var "A" bot (fun a -> case a bot);
+  case_var "A" bot (fun a -> case a unit);
+  case_var "A" bot (fun a -> case_var "B" bot (fun b -> case a b));
+  case_var "A" bot (fun a -> case_var "B" bot (fun b -> case a b));
+  case_var "A" bot (fun a -> case_var "B" a (fun b -> case b bot));
 
   (* variables *)
   case a a;
   case ea a;
-  case (var "A" top) top;
-  case (var "A" unit) top;
-  case (var "A" unit) unit;
+  case_var "A" top (fun a -> case a top);
+  case_var "A" unit (fun a -> case a top);
+  case_var "A" unit (fun a -> case a unit);
 
   (* unions *)
-  case a (union a b);
-  case a (union b a);
-  case (union a a) (union a a);
-  case (union a b) (union a b);
-  case (union a b) (union b a);
+  case a (union [a; b]);
+  case a (union [b; a]);
+  case (union [a; a]) (union [a; a]);
+  case (union [a; b]) (union [a; b]);
+  case (union [a; b]) (union [b; a]);
 
   (* intersections *)
-  case (inter a b) a;
-  case (inter b a) b;
-  case (inter a a) (inter a a);
-  case (inter a b) (inter a b);
-  case (inter a b) (inter b a);
+  case (inter [a; b]) a;
+  case (inter [b; a]) b;
+  case (inter [a; a]) (inter [a; a]);
+  case (inter [a; b]) (inter [a; b]);
+  case (inter [a; b]) (inter [b; a]);
 
   (* distributivity *)
-  case (union (inter a b) (inter a c)) (inter a (union b c));
-  case (inter a (union b c)) (union (inter a b) (inter a c));
+  case (union [inter [a; b]; inter [a; c]]) (inter [a; union [b; c]]);
+  case (inter [a; union [b; c]]) (union [inter [a; b]; inter [a; c]]);
 
   (* meets *)
-  case (inter (abs_expr a b) (abs_expr a c)) (abs_expr a (inter b c));
-  case (abs_expr (union a b) c) (inter (abs_expr a c) (abs_expr b c));
-  case (inter (abs_expr a b) (abs_expr a c)) (abs_expr a (inter b c));
-  case (abs_expr a (inter b c)) (inter (abs_expr a b) (abs_expr a c));
-  case (abs_expr (union a b) (inter c d)) (inter (abs_expr a c) (abs_expr b d));
+  case (inter [abs_expr a b; abs_expr a c]) (abs_expr a (inter [b; c]));
+  case (abs_expr (union [a; b]) c) (inter [abs_expr a c; abs_expr b c]);
+  case (inter [abs_expr a b; abs_expr a c]) (abs_expr a (inter [b; c]));
+  case (abs_expr a (inter [b; c])) (inter [abs_expr a b; abs_expr a c]);
+  case (abs_expr (union [a; b]) (inter [c; d])) (inter [abs_expr a c; abs_expr b d]);
 
   (* type to expression abstractions *)
   case (abs_expr_type ("T", top) id) (abs_expr_type ("T", top) id);
@@ -80,8 +85,7 @@ let tests = [
   case top (app (abs "T" top (inline top)) top);
   case (app (abs "T" top (inline top)) top) top;
 ]
-
-let case left right = case_base left right false
+|> List.map (fun case -> case true ctx)
 
 let tests_not = [
   (* bottom type *)
@@ -91,9 +95,9 @@ let tests_not = [
   case int bot;
   case string bot;
 
-  (* vars *)
+  (* variables *)
   case a b;
-  case (with_var "T" top id) (with_var "T" top id);
+  case_var "T" top (fun t1 -> case_var "T" top (fun t2 -> case t1 t2));
 
   (* tuples *)
   case (tuple [a]) (tuple []);
@@ -105,7 +109,7 @@ let tests_not = [
   case (record ["foo", top]) (record ["foo", a]);
 
   (* meets *)
-  case (inter (abs_expr a c) (abs_expr b d)) (abs_expr (union a b) (inter c d));
+  case (inter [abs_expr a c; abs_expr b d]) (abs_expr (union [a; b]) (inter [c; d]));
 
   (* type abstractions*)
   case (abs "T" top (inline a)) (abs "T" top (inline b));
@@ -120,6 +124,8 @@ let tests_not = [
   case (abs "T" top id) top;
   case (abs "T" top (inline top)) top;
 
-  (* type abstractions and vars*)
-  case (with_var "T" (abs "X" top id) (fun t -> (app t top))) (with_var "T" (abs "X" top id) (fun t -> (app t top)));
+  (* type abstractions and variables*)
+
+  case_var "T" (abs "X" top id) (fun t1 -> case_var "T" (abs "X" top id) (fun t2 -> case (app t1 top) (app t2 top)));
 ]
+|> List.map (fun case -> case false ctx)
