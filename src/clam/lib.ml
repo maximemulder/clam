@@ -14,9 +14,9 @@ let run code_name code_text writer =
   (* TODO: Refactor this *)
   let (types, all_types) = ModelizeTypes.modelize_program program in
   let (exprs, types) = ModelizeExprs.modelize_program program types all_types in
-  let _ = TypingInfer.check_types types in
-  let _ = TypingInfer.check_exprs exprs in
-  let main = (match List.find_opt (fun def -> def.Model.name = "main") exprs with
+  let _ = TypeCheck.check_types types in
+  let _ = TypeCheck.check_exprs exprs in
+  let main = (match List.find_opt (fun def -> def.Abt.name = "main") exprs with
   | Some main -> main
   | None -> Error.raise_main ()
   ) in

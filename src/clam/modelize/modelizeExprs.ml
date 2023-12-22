@@ -2,16 +2,16 @@ open Utils
 
 type scope = {
   parent: scope option;
-  types: Model.type' NameMap.t;
+  types: Abt.type' NameMap.t;
   remains: Ast.def_expr NameMap.t;
-  currents: Model.bind_expr option ref NameMap.t;
-  dones: Model.bind_expr option ref NameMap.t;
+  currents: Abt.bind_expr option ref NameMap.t;
+  dones: Abt.bind_expr option ref NameMap.t;
 }
 
 type state = {
   scope: scope;
-  all_types: Model.type' list;
-  all_exprs: Model.def_expr list;
+  all_types: Abt.type' list;
+  all_exprs: Abt.def_expr list;
   id: int;
 }
 
@@ -136,13 +136,13 @@ and modelize_def def state =
   let (expr, state) = modelize_expr remain.Ast.expr state in
   let (current, currents) = extract name state.scope.currents in
   let (id, state) = next_id state in
-  let def = { Model.pos = def.pos; id; name; type'; expr } in
-  let _ = current := Some (Model.BindExprDef def) in
+  let def = { Abt.pos = def.pos; id; name; type'; expr } in
+  let _ = current := Some (Abt.BindExprDef def) in
   let dones = NameMap.add name current state.scope.dones in
   let state = { state with scope = { state.scope with currents; dones}; all_exprs = def :: state.all_exprs } in
   (current, state)
 
-and modelize_expr (expr: Ast.expr): state -> Model.expr * state =
+and modelize_expr (expr: Ast.expr): state -> Abt.expr * state =
   let pos = fst expr in
   match snd expr with
   | ExprUnit ->
@@ -189,42 +189,42 @@ and modelize_expr (expr: Ast.expr): state -> Model.expr * state =
     modelize_stmt stmt expr
 
 and modelize_unit expr =
-  return (Model.ExprUnit { pos = fst expr })
+  return (Abt.ExprUnit { pos = fst expr })
 
 and modelize_bool expr value =
-  return (Model.ExprBool { pos = fst expr; value })
+  return (Abt.ExprBool { pos = fst expr; value })
 
 and modelize_int expr value =
   let value = parse_int expr value in
-  return (Model.ExprInt { pos = fst expr; value })
+  return (Abt.ExprInt { pos = fst expr; value })
 
 and modelize_char expr value =
   let value = parse_char value in
-  return (Model.ExprChar { pos = fst expr; value })
+  return (Abt.ExprChar { pos = fst expr; value })
 
 and modelize_string expr value =
   let value = parse_string value in
-  return (Model.ExprString { pos = fst expr; value })
+  return (Abt.ExprString { pos = fst expr; value })
 
 and modelize_bind expr name =
   let* bind = modelize_name expr name in
-  return (Model.ExprBind { pos = fst expr; bind })
+  return (Abt.ExprBind { pos = fst expr; bind })
 
 and modelize_tuple expr elems =
   let* elems = map_list modelize_expr elems in
-  return (Model.ExprTuple { pos = fst expr; elems })
+  return (Abt.ExprTuple { pos = fst expr; elems })
 
 and modelize_product expr fields =
   let fields = List.partition_map partition_field fields in
   match fields with
   | ([], []) ->
-    return (Model.ExprRecord { pos = fst expr; attrs = [] })
+    return (Abt.ExprRecord { pos = fst expr; attrs = [] })
   | (fields, []) ->
     let* elems = map_list modelize_tuple_elem fields in
-    return (Model.ExprTuple { pos = fst expr; elems })
+    return (Abt.ExprTuple { pos = fst expr; elems })
   | ([], fields) ->
     let* attrs = map_list modelize_record_attr fields in
-    return (Model.ExprRecord { pos = fst expr; attrs })
+    return (Abt.ExprRecord { pos = fst expr; attrs })
   | _ ->
     ModelizeErrors.raise_expr_product expr
 
@@ -238,22 +238,22 @@ and modelize_tuple_elem field =
 
 and modelize_record_attr field =
   let* expr = modelize_expr field.expr in
-  return { Model.pos = field.pos; Model.name = field.Ast.name; Model.expr = expr }
+  return { Abt.pos = field.pos; Abt.name = field.Ast.name; Abt.expr = expr }
 
 and modelize_elem expr index =
   let* expr2 = modelize_expr expr in
   let index = parse_int expr index in
-  return (Model.ExprElem { pos = fst expr; expr = expr2; index })
+  return (Abt.ExprElem { pos = fst expr; expr = expr2; index })
 
 and modelize_attr expr name =
   let* expr2 = modelize_expr expr in
-  return (Model.ExprAttr { pos = fst expr; expr = expr2; name })
+  return (Abt.ExprAttr { pos = fst expr; expr = expr2; name })
 
 and modelize_preop expr op operand =
   let* arg = modelize_expr operand in
   let name = get_preop_name expr op in
   let* bind = modelize_bind expr name in
-  return (Model.ExprApp { pos = fst expr; expr = bind; arg })
+  return (Abt.ExprApp { pos = fst expr; expr = bind; arg })
 
 and modelize_binop expr left op right =
   let pos = fst expr in
@@ -261,21 +261,21 @@ and modelize_binop expr left op right =
   let* right = modelize_expr right in
   let name = get_binop_name expr op in
   let* bind = modelize_bind expr name in
-  return (Model.ExprApp { pos; expr = (Model.ExprApp { pos; expr = bind; arg = left }); arg = right })
+  return (Abt.ExprApp { pos; expr = (Abt.ExprApp { pos; expr = bind; arg = left }); arg = right })
 
 and modelize_param (param: Ast.param) =
   let* type' = map_option modelize_type param.type' in
   let* id = next_id in
-  return { Model.pos = param.pos; id; name = param.name; type' }
+  return { Abt.pos = param.pos; id; name = param.name; type' }
 
-and modelize_type_param (param: Ast.param): Model.param_type t =
+and modelize_type_param (param: Ast.param): Abt.param_type t =
   let* bound = (match param.type' with
     | Some type' ->
       modelize_type type'
     | None ->
-      return (Model.TypeTop { pos = param.pos })
+      return (Abt.TypeTop { pos = param.pos })
   ) in
-  return { Model.name = param.name; Model.bound }
+  return { Abt.bind = { name = param.name }; Abt.bound }
 
 and modelize_stmt (stmt: Ast.stmt) (expr: Ast.expr) =
   match stmt with
@@ -283,26 +283,26 @@ and modelize_stmt (stmt: Ast.stmt) (expr: Ast.expr) =
     let* var_expr = modelize_expr var_expr in
     let* var_type = map_option modelize_type var_type in
     let* id = next_id in
-    let var = { Model.id = id; Model.name = var_name } in
-    let body = Model.StmtVar (var, var_type, var_expr) in
-    let* expr = with_scope (modelize_expr expr) NameMap.empty [] [(var_name, Model.BindExprVar var)] in
-    return (Model.ExprStmt { pos = Model.expr_pos expr; stmt = body; expr })
+    let var = { Abt.id = id; Abt.name = var_name } in
+    let body = Abt.StmtVar (var, var_type, var_expr) in
+    let* expr = with_scope (modelize_expr expr) NameMap.empty [] [(var_name, Abt.BindExprVar var)] in
+    return (Abt.ExprStmt { pos = Abt.expr_pos expr; stmt = body; expr })
   | StmtExpr stmt_expr ->
     let* stmt_expr = modelize_expr stmt_expr in
-    let stmt = Model.StmtExpr stmt_expr in
+    let stmt = Abt.StmtExpr stmt_expr in
     let* expr = modelize_expr expr in
-    return (Model.ExprStmt { pos = Model.expr_pos stmt_expr; stmt; expr })
+    return (Abt.ExprStmt { pos = Abt.expr_pos stmt_expr; stmt; expr })
 
 and modelize_ascr expr type' =
   let* expr2 = modelize_expr expr in
   let* type' = modelize_type type' in
-  return (Model.ExprAscr { pos = fst expr; expr = expr2; type' = type' })
+  return (Abt.ExprAscr { pos = fst expr; expr = expr2; type' = type' })
 
 and modelize_if expr cond then' else' =
   let* cond = modelize_expr cond in
   let* then' = modelize_expr then' in
   let* else' = modelize_expr else' in
-  return (Model.ExprIf { pos = fst expr; cond = cond; then'; else' })
+  return (Abt.ExprIf { pos = fst expr; cond = cond; then'; else' })
 
 and modelize_abs pos params body =
   match params with
@@ -310,9 +310,9 @@ and modelize_abs pos params body =
     modelize_expr body
   | (param :: params) ->
     let* param = modelize_param param in
-    let entries = [(param.Model.name, Model.BindExprParam param)] in
+    let entries = [(param.Abt.name, Abt.BindExprParam param)] in
     let* body = with_scope (modelize_abs pos params body) NameMap.empty [] entries in
-    return (Model.ExprAbs { pos; param; body })
+    return (Abt.ExprAbs { pos; param; body })
 
 and modelize_app pos expr args =
   match args with
@@ -320,7 +320,7 @@ and modelize_app pos expr args =
     return expr
   | (arg :: args) ->
     let* arg = modelize_expr arg in
-    let app = (Model.ExprApp { pos; expr; arg }) in
+    let app = (Abt.ExprApp { pos; expr; arg }) in
     modelize_app pos app args
 
 and modelize_type_abs pos params body state =
@@ -331,7 +331,7 @@ and modelize_type_abs pos params body state =
     let (param, state) = modelize_type_param param state in
     let entries = ModelizeTypes.modelize_abs param (translate_state state) in
     let (body, state) = with_scope (modelize_type_abs pos params body) entries [] [] state in
-    (Model.ExprTypeAbs { pos; param; body }, state)
+    (Abt.ExprTypeAbs { pos; param; body }, state)
 
 and modelize_type_app pos expr args =
   match args with
@@ -339,7 +339,7 @@ and modelize_type_app pos expr args =
     return expr
   | (arg :: args) ->
     let* arg = modelize_type arg in
-    let app = (Model.ExprTypeApp { pos; expr; arg }) in
+    let app = (Abt.ExprTypeApp { pos; expr; arg }) in
     modelize_type_app pos app args
 
 let rec modelize_defs state =
@@ -349,7 +349,7 @@ let rec modelize_defs state =
     let (_, state) = modelize_def def state in
     modelize_defs state
 
-let modelize_program (program: Ast.program) (types: Model.type' NameMap.t) (all_types: Model.type' list)=
+let modelize_program (program: Ast.program) (types: Abt.type' NameMap.t) (all_types: Abt.type' list)=
   let defs = Ast.get_program_exprs program in
   let state = make_state types defs Primitive.binds in
   let state = { state with all_types = all_types } in

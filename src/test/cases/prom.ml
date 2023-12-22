@@ -1,20 +1,22 @@
 open Clam
-open Vars
+open Vars2
 
-let test name type' expect (_: unit) =
-  let result = Typing.promote type' in
-  let result = TypingCompare.compare result expect in
-  Alcotest.(check bool) name true result
+let test ctx type' (_: unit) =
+  TypeSystem.promote ctx type'
 
 let name type' expect =
-  let type' = TypingDisplay.display type' in
-  let expect = TypingDisplay.display expect in
+  let type' = TypeDisplay.display type' in
+  let expect = TypeDisplay.display expect in
   "prom `" ^ type' ^ "` `" ^ expect ^ "`"
 
-let case type' expect =
-  let name = name type' expect in
-  let test = test name type' expect in
-  Alcotest.test_case name `Quick test
+let case type' expect ctx =
+  Case.make_case Case.type' (name type' expect) (test ctx type') expect
+
+let case_var name bound case ctx =
+  let bind = { Abt.name } in
+  let ctx = TypeContext.add_bind_type ctx bind bound in
+  let var = Type.base (Type.Var { bind }) in
+  case var ctx
 
 let tests = [
   (* primitives *)
@@ -23,9 +25,10 @@ let tests = [
   case bot bot;
 
   (* variables *)
-  case (with_var "T" top id) top;
-  case (with_var "T" int id) int;
-  case (with_var "T" (tuple [bool; int]) id) (tuple [bool; int]);
-  case (with_var "T" int (fun t -> with_var "B" t id)) int;
-  case (with_var "T" (record [("foo", int)]) (fun t -> with_var "B" t id)) (record[("foo", int)]);
+  case_var "T" top (fun t -> case t top);
+  case_var "T" int (fun t -> case t int);
+  case_var "T" (tuple [bool; int]) (fun t -> case t (tuple [bool; int]));
+  case_var "T" int (fun t -> case_var "U" t (fun u -> case u int));
+  case_var "T" (record ["foo", int]) (fun t -> case_var "U" t (fun u -> case u (record ["foo", int])));
 ]
+|> List.map (Utils.apply ctx)

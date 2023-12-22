@@ -1,5 +1,9 @@
 type pos = Lexing.position
 
+type bind_type = {
+  name: string;
+}
+
 type type' =
   | TypeTop         of type_top
   | TypeBot         of type_bot
@@ -49,6 +53,7 @@ and type_string = {
 and type_var = {
   pos: pos;
   param: param_type;
+  bind: bind_type;
 }
 
 and type_tuple = {
@@ -104,7 +109,7 @@ and attr_type = {
 }
 
 and param_type = {
-  name: string;
+  bind: bind_type;
   bound: type';
 }
 

@@ -20,19 +20,36 @@ and indent_with f =
   indent_n := indent_n.contents - 1;
   res
 
-and isa l r =
-  let res = indent_with (fun _ -> isa2 l r) in
+and isa c l r =
+  let res = indent_with (fun _ -> isa2 c l r) in
   let tab = indent indent_n.contents in
-  print_endline(tab ^ (TypingDisplay.display (normalize l)) ^ " : " ^ (TypingDisplay.display (normalize r)));
-  print_endline(tab ^ (TypingDisplay.display l) ^ " : " ^ (TypingDisplay.display r) ^ "   " ^ (string_of_bool res));
+  print_endline(tab
+    ^ (TypeDisplay.display l) ^ " < " ^ (TypeDisplay.display r)
+    ^ " |- " ^ (TypeDisplay.display_context c)
+    ^ "   " ^ (string_of_bool res));
   res
 
-and is l r =
-  let res = indent_with (fun _ -> is2 l r) in
+and is c l r =
+  let res = indent_with (fun _ -> is2 c l r) in
   let tab = indent indent_n.contents in
-  print_endline(tab ^ (TypingDisplay.display (normalize l)) ^ " = " ^ (TypingDisplay.display (normalize r)));
-  print_endline(tab ^ (TypingDisplay.display l) ^ " = " ^ (TypingDisplay.display r) ^ "   " ^ (string_of_bool res));
+  print_endline(tab
+    ^ (TypeDisplay.display l) ^ " = " ^ (TypeDisplay.display r)
+    ^ " |- " ^ (TypeDisplay.display_context c)
+    ^ "   " ^ (string_of_bool res));
   res
+
+and meet c l r =
+  let res = indent_with (fun _ -> meet_2 c l r) in
+  let tab = indent indent_n.contents in
+  print_endline(tab
+    ^ (TypeDisplay.display l) ^ " ^ " ^ (TypeDisplay.display r)
+    ^ " |- " ^ (TypeDisplay.display_context c)
+    ^ "   " ^ (string_of_bool res));
+```
+
+Print stack trace:
+```
+export OCAMLRUNPARAM=b;
 ```
 
 ## Type representation

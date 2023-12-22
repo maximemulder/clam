@@ -1,12 +1,10 @@
-open Vars
+open Vars2
 
-let test name type' (_: unit) =
-  let result = Clam.TypingDisplay.display type' in
-  Alcotest.(check string) name name result
+let test type' (_: unit) =
+  Clam.TypeDisplay.display type'
 
 let case name type' =
-  let test = test name type' in
-  Alcotest.test_case name `Quick test
+  Case.make_case Case.string name (test type') name
 
 let tests = [
   (* atomics *)
@@ -28,14 +26,11 @@ let tests = [
   case "{a: A, b: B}" (record [("a", a); ("b", b)]);
 
   (* unions and intersections *)
-  case "A & B" (inter a b);
-  case "A | B" (union a b);
-  case "(A | B) & C" (inter (union a b) c);
-  case "(A & B) | C" (union (inter a b) c);
-  case "A & (B | C)" (inter a (union b c));
-  case "A | (B & C)" (union a (inter b c));
-  case "(A & B) & (C & D)" (inter (inter a b) (inter c d));
-  case "(A | B) & (C | D)" (inter (union a b) (union c d));
-  case "(A & B) | (C & D)" (union (inter a b) (inter c d));
-  case "(A | B) | (C | D)" (union (union a b) (union c d));
+  case "A & B" (inter [a; b]);
+  case "A | B" (union [a; b]);
+  case "(A & B) | C" (union [inter [a; b]; c]);
+  case "A | (B & C)" (union [a; inter [b; c]]);
+  case "A & B & C" (inter [a; b; c]);
+  case "A | B | C" (union [a; b; c]);
+  case "(A & B) | (C & D)" (union [inter [a; b]; inter [c; d]]);
 ]

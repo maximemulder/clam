@@ -1,4 +1,4 @@
-open Model
+open Abt
 open Utils
 open RuntimeValue
 
@@ -33,7 +33,7 @@ end
 
 open Monad.Monad(Monad.ReaderMonad(Reader))
 
-let rec eval (expr: Model.expr) =
+let rec eval (expr: Abt.expr) =
   match expr with
   | ExprUnit unit ->
     eval_unit unit
@@ -119,7 +119,7 @@ and eval_expr_app_abs abs arg context =
   | VPrim prim ->
     prim { value; out = context.out }
   | VCode abs ->
-    let binds = BindMap.singleton (Model.BindExprParam abs.abs.param) value in
+    let binds = BindMap.singleton (Abt.BindExprParam abs.abs.param) value in
     let context = new_frame context abs.frame binds in
     eval abs.abs.body context
 
@@ -135,13 +135,13 @@ and eval_type_app_abs abs context =
   let context = new_frame context abs.frame BindMap.empty in
   eval abs.abs.body context
 
-and eval_tuple (expr: Model.expr) =
+and eval_tuple (expr: Abt.expr) =
   let* value = eval expr in
   match value with
   | VTuple values -> return values
   | _ -> RuntimeErrors.raise_value ()
 
-and eval_record (expr: Model.expr) =
+and eval_record (expr: Abt.expr) =
   let* value = eval expr in
   match value with
   | VRecord attrs -> return attrs

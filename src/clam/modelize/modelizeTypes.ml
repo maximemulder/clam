@@ -4,12 +4,12 @@ type scope = {
   parent: scope option;
   remains: Ast.type' NameMap.t;
   currents: Ast.type' NameMap.t;
-  dones: Model.type' NameMap.t;
+  dones: Abt.type' NameMap.t;
 }
 
 type state = {
   scope: scope;
-  all: Model.type' list
+  all: Abt.type' list
 }
 
 module State = struct
@@ -47,7 +47,7 @@ let find_done name state =
   NameMap.find_opt name state.scope.dones
 
 let make_attrs attrs =
-  List.fold_left (fun map (attr: Model.attr_type) ->
+  List.fold_left (fun map (attr: Abt.attr_type) ->
     let name = attr.name in
     if NameMap.mem name map
       then ModelizeErrors.raise_type_duplicate_attribute attr
@@ -100,11 +100,11 @@ and modelize_type (type': Ast.type') =
   | TypeInter (left, right) ->
     let* left = modelize_type left in
     let* right = modelize_type right in
-    return (Model.TypeInter { pos; left; right })
+    return (Abt.TypeInter { pos; left; right })
   | TypeUnion (left, right) ->
     let* left = modelize_type left in
     let* right = modelize_type right in
-    return (Model.TypeUnion { pos; left; right })
+    return (Abt.TypeUnion { pos; left; right })
   | TypeAbsExpr (params, body) ->
     modelize_abs_expr pos params body
   | TypeAbsExprType (params, body) ->
@@ -122,7 +122,7 @@ and modelize_abs_expr pos params body =
   | (param :: params) ->
     let* param = modelize_type param in
     let* body = modelize_abs_expr pos params body in
-    return (Model.TypeAbsExpr { pos; param; body })
+    return (Abt.TypeAbsExpr { pos; param; body })
 
 and modelize_abs_expr_type pos params body =
   match params with
@@ -130,9 +130,9 @@ and modelize_abs_expr_type pos params body =
     modelize_type body
   | (param :: params) ->
     let* param = modelize_param param in
-    let type' = (param.name, Model.TypeVar { pos = Model.type_pos param.bound; param }) in
+    let type' = (param.bind.name, Abt.TypeVar { pos = Abt.type_pos param.bound; param; bind = param.bind }) in
     let* body = with_scope (modelize_abs_expr_type pos params body) [type'] in
-    return (Model.TypeAbsExprType { pos; param; body })
+    return (Abt.TypeAbsExprType { pos; param; body })
 
 and modelize_abs pos params body =
   match params with
@@ -140,9 +140,9 @@ and modelize_abs pos params body =
     modelize_type body
   | (param :: params) ->
     let* param = modelize_param param in
-    let type' = (param.name, Model.TypeVar { pos = Model.type_pos param.bound; param }) in
+    let type' = (param.bind.name, Abt.TypeVar { pos = Abt.type_pos param.bound; param; bind = param.bind }) in
     let* body = with_scope (modelize_abs pos params body) [type'] in
-    return (Model.TypeAbs { pos; param; body })
+    return (Abt.TypeAbs { pos; param; body })
 
 and modelize_app pos type' args =
   match args with
@@ -150,30 +150,30 @@ and modelize_app pos type' args =
     return type'
   | (arg :: args) ->
     let* arg = modelize_type arg in
-    let app = (Model.TypeApp { pos; type'; arg }) in
+    let app = (Abt.TypeApp { pos; type'; arg }) in
     modelize_app pos app args
 
-and modelize_param (param: Ast.param): Model.param_type t =
+and modelize_param (param: Ast.param): Abt.param_type t =
   let* bound = (match param.type' with
     | Some type' ->
       modelize_type type'
     | None ->
-      return (Model.TypeTop { pos = param.pos })
+      return (Abt.TypeTop { pos = param.pos })
   ) in
-  return { Model.name = param.name; Model.bound }
+  return { Abt.bind = { name = param.name }; Abt.bound }
 
 and modelize_product type' fields =
   let fields = List.partition_map partition_field fields in
   match fields with
   | ([], []) ->
-    return (Model.TypeRecord { pos = fst type'; attrs = NameMap.empty })
+    return (Abt.TypeRecord { pos = fst type'; attrs = NameMap.empty })
   | (fields, []) ->
     let* elems = map_list modelize_tuple_elem fields in
-    return (Model.TypeTuple { pos = fst type'; elems })
+    return (Abt.TypeTuple { pos = fst type'; elems })
   | ([], fields) ->
     let* attrs = map_list modelize_record_attr fields in
     let attrs = make_attrs attrs in
-    return (Model.TypeRecord { pos = fst type'; attrs })
+    return (Abt.TypeRecord { pos = fst type'; attrs })
   | _ ->
     ModelizeErrors.raise_type_product type'
 
@@ -188,9 +188,9 @@ and modelize_tuple_elem field =
 and modelize_record_attr field =
   let* type' = modelize_type field.type' in
   return {
-    Model.pos = field.pos;
-    Model.name = field.name;
-    Model.type' = type'
+    Abt.pos = field.pos;
+    Abt.name = field.name;
+    Abt.type' = type'
   }
 
 let modelize_type_expr type' state =
@@ -204,14 +204,21 @@ let rec modelize_defs state =
     let (_, state) = modelize_def name remain state in
     modelize_defs state
 
+let pos = {
+  Lexing.pos_fname = "primitives.clam";
+  Lexing.pos_lnum = 0;
+  Lexing.pos_bol = 0;
+  Lexing.pos_cnum = 0;
+}
+
 let primitives = [
-  ("Top",    Primitive.top);
-  ("Bot",    Primitive.bot);
-  ("Unit",   Primitive.unit);
-  ("Bool",   Primitive.bool);
-  ("Int",    Primitive.int);
-  ("Char",   Primitive.char);
-  ("String", Primitive.string);
+  ("Top",    Abt.TypeTop    { pos });
+  ("Bot",    Abt.TypeBot    { pos });
+  ("Unit",   Abt.TypeUnit   { pos });
+  ("Bool",   Abt.TypeBool   { pos });
+  ("Int",    Abt.TypeInt    { pos });
+  ("Char",   Abt.TypeChar   { pos });
+  ("String", Abt.TypeString { pos });
 ]
 
 let modelize_program (program: Ast.program) =
@@ -220,7 +227,7 @@ let modelize_program (program: Ast.program) =
   let state = modelize_defs state in
   (state.scope.dones, state.all)
 
-let modelize_abs (param: Model.param_type) state =
-  let type' = (param.name, Model.TypeVar { pos = Model.type_pos param.bound; param}) in
+let modelize_abs (param: Abt.param_type) state =
+  let type' = (param.bind.name, Abt.TypeVar { pos = Abt.type_pos param.bound; param; bind = param.bind}) in
   let (_, state) = make_child [type'] state in
   state.scope.dones

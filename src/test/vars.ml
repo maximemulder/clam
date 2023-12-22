@@ -1,4 +1,4 @@
-open Clam.Model
+open Clam.Abt
 open Clam.Primitive
 
 let inline v _ = v
@@ -15,8 +15,11 @@ let int    = int
 let char   = char
 let string = string
 
+(* TODO: Adopt new bind system once typing is refactored *)
+
 let var name bound =
-  TypeVar { pos; param = { name; bound }}
+  let bind = { name } in
+  TypeVar { pos; param = { bind; bound }; bind}
 
 let tuple elems =
   TypeTuple { pos; elems }
@@ -38,13 +41,15 @@ let abs_expr param body =
   TypeAbsExpr { pos; param; body }
 
 let abs_expr_type (name, bound) body =
-  let param = { name; bound } in
-  let body = body (TypeVar { pos; param }) in
+  let bind = { name } in
+  let param = { bind; bound } in
+  let body = body (TypeVar { pos; param; bind }) in
   TypeAbsExprType { pos; param; body }
 
 let abs name bound body =
-  let param = { name; bound } in
-  let body = body (TypeVar { pos; param }) in
+  let bind = { name } in
+  let param = { bind; bound } in
+  let body = body (TypeVar { pos; param; bind }) in
   TypeAbs { pos; param; body }
 
 let app type' arg =
@@ -100,7 +105,8 @@ let e_app expr arg =
   ExprApp { pos; expr; arg }
 
 let e_abs_te (name, bound) body =
-  let param = { name; bound } in
+  let bind = { name } in
+  let param = { bind; bound } in
   let body = body param in
   ExprTypeAbs { pos; param; body }
 

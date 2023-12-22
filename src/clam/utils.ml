@@ -7,6 +7,12 @@ module NameMap = Map.Make(NameKey)
 
 module NameSet = Set.Make(NameKey)
 
+let flip f x y = f y x
+
+let uncurry f (x, y) = f x y
+
+let apply x f = f x
+
 let extract key map =
   let value = NameMap.find key map in
   let map = NameMap.remove key map in
@@ -27,32 +33,67 @@ let compare_maps compare map other =
     (fst entry) = (fst other_entry) && compare (snd entry) (snd other_entry)
   ) pairs
 
-let rec reduce_list f xs =
+let rec list_reduce f xs =
   match xs with
   | [x] -> x
-  | x :: xs -> f x (reduce_list f xs)
-  | _ -> invalid_arg "Utils.reduce_list"
+  | x :: xs -> f x (list_reduce f xs)
+  | _ -> invalid_arg "Utils.list_reduce"
 
-let map_option2 x y f =
-  match (x, y) with
-  | (Some x, Some y) -> Some (f x y)
+let option_join x y f =
+  match x, y with
+  | Some x, Some y -> Some (f x y)
+  | Some x, None -> Some x
+  | None, Some y -> Some y
   | _ -> None
 
-let join_option2 x y f =
-  match (x, y) with
-  | (Some x, Some y) -> Some (f x y)
-  | (Some x, None) -> Some x
-  | (None, Some y) -> Some y
+let option_meet x y f =
+  match x, y with
+  | Some x, Some y -> Some (f x y)
   | _ -> None
 
-let rec product_lists_aux acc f l1 l2 =
-  match (l1, l2) with
-  | ([], _) | (_, []) ->
+let rec list_option_meet xs f =
+  match xs with
+  | [x] ->
+    x
+  | x :: xs ->
+    option_meet x (list_option_meet xs f) f
+  | _ ->
+    invalid_arg "list_option_meet"
+
+let rec list_option_join xs f =
+  match xs with
+  | [x] ->
+    x
+  | x :: xs ->
+    option_join x (list_option_join xs f) f
+  | _ ->
+    invalid_arg "list_option_join"
+
+let rec list_product acc f l1 l2 =
+  match l1, l2 with
+  | [], _ | _, [] ->
     acc
-  | (h1 :: t1, h2 :: t2) ->
-    let acc = (f h1 h2) :: acc in
-    let acc = product_lists_aux acc f t1 l2 in
-    product_lists_aux acc f [h1] t2
+  | h1 :: t1, h2 :: t2 ->
+    let acc = f h1 h2 :: acc in
+    let acc = list_product acc f t1 l2 in
+    list_product acc f [h1] t2
 
-let product_lists f l1 l2 =
-  product_lists_aux [] f l1 l2
+let list_product f l1 l2 =
+  let l = list_product [] f l1 l2 in
+  List.rev l
+
+let rec list_collapse n xs ys zs f =
+  match xs with
+  | [] -> (
+    match ys with
+    | [] -> zs @ [n]
+    | y :: ys -> list_collapse y ys [] (zs @ [n]) f)
+  | x :: xs -> (
+    match f n x with
+    | Some n -> list_collapse n (xs @ ys @ zs) [] [] f
+    | None -> list_collapse n xs (ys @ [x]) zs f)
+
+let list_collapse f xs =
+  match xs with
+  | x :: xs -> list_collapse x xs [] [] f
+  | _ -> invalid_arg "list_collapse"

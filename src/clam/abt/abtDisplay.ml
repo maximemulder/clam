@@ -7,7 +7,7 @@ let add_surround string surround =
 let rec display type' =
   display_surround type' false
 
-and display_surround (type': Model.type') (surround: bool) =
+and display_surround (type': Abt.type') (surround: bool) =
   match type' with
   | TypeTop _    -> "Top"
   | TypeBot _    -> "Bot"
@@ -16,7 +16,7 @@ and display_surround (type': Model.type') (surround: bool) =
   | TypeInt _    -> "Int"
   | TypeChar _   -> "Char"
   | TypeString _ -> "String"
-  | TypeVar var -> var.param.name
+  | TypeVar var -> var.bind.name
   | TypeAbsExpr abs ->
     let type' = "(" ^ (display abs.param) ^ ") -> " ^ (display_surround abs.body true) in
     add_surround type' surround
@@ -45,4 +45,4 @@ and display_attr_entry (name, attr) =
   name ^ ": " ^ display attr.type'
 
 and display_param param =
-  param.name ^ ": " ^ display param.bound
+  param.bind.name ^ ": " ^ display param.bound
