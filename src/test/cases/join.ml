@@ -1,10 +1,9 @@
 open Clam
 open Vars
 
-let test name left right expect (_: unit) =
+let test left right expect (_: unit) =
   let result = Typing.join left right in
-  let result = TypingCompare.compare result expect in
-  Alcotest.(check bool) name true result
+  TypingCompare.compare result expect
 
 let name left right expect =
   let left   = TypingDisplay.display left   in
@@ -13,9 +12,7 @@ let name left right expect =
   "join `" ^ left ^ "` `" ^ right ^ "` `" ^ expect ^ "`"
 
 let case left right expect =
-  let name = name left right expect in
-  let test = test name left right expect in
-  Alcotest.test_case name `Quick test
+  Case.make_case (name left right expect) (test left right expect) true
 
 let tests = [
   (* top *)

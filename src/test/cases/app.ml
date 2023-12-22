@@ -1,11 +1,10 @@
 open Clam
 open Vars
 
-let test name entry_param entry_type type' expect (_: unit) =
+let test entry_param entry_type type' expect (_: unit) =
   let entry = TypingApp.entry entry_param entry_type in
   let result = TypingApp.apply type' entry in
-  let result = TypingCompare.compare result expect in
-  Alcotest.(check bool) name true result
+  TypingCompare.compare result expect
 
 let name param sub type' expect =
   let param = (param: Model.param_type).bind.name in
@@ -19,9 +18,7 @@ let case pair type' expect =
   let entry_param = { Model.bind; bound = top } in
   let entry_type = snd pair in
   let type' =  type' (Model.TypeVar { pos = Primitive.pos; param = entry_param; bind }) in
-  let name = name entry_param entry_type type' expect in
-  let test = test name entry_param entry_type type' expect in
-  Alcotest.test_case name `Quick test
+  Case.make_case (name entry_param entry_type type' expect) (test entry_param entry_type type' expect) true
 
 let tests = [
   (* primitives *)

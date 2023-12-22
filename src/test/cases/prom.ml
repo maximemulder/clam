@@ -1,10 +1,9 @@
 open Clam
 open Vars
 
-let test name type' expect (_: unit) =
+let test type' expect (_: unit) =
   let result = Typing.promote type' in
-  let result = TypingCompare.compare result expect in
-  Alcotest.(check bool) name true result
+  TypingCompare.compare result expect
 
 let name type' expect =
   let type' = TypingDisplay.display type' in
@@ -12,9 +11,7 @@ let name type' expect =
   "prom `" ^ type' ^ "` `" ^ expect ^ "`"
 
 let case type' expect =
-  let name = name type' expect in
-  let test = test name type' expect in
-  Alcotest.test_case name `Quick test
+  Case.make_case (name type' expect) (test type' expect) true
 
 let tests = [
   (* primitives *)

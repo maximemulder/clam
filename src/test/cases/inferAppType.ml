@@ -1,7 +1,7 @@
 open Clam
 open Vars
 
-let test name _type' _arg _expect (_: unit) =
+let test _type' _arg _expect (_: unit) =
   (* TODO: Clean type inference and add real tests *)
   (* let (result, _) = TypingInfer.infer_type (TypingInfer.infer_type_app_final arg) type' (TypingInfer.make_progress []) in
   let result = match (result, expect) with
@@ -9,8 +9,7 @@ let test name _type' _arg _expect (_: unit) =
   | (None, None) -> true
   | (_, _) -> false
   in *)
-  let result = true in
-  Alcotest.(check bool) name true result
+  true
 
 let name type' arg expect =
   let type' = TypingDisplay.display type' in
@@ -21,9 +20,7 @@ let name type' arg expect =
   "app `" ^ type' ^ "` `" ^ arg ^ "` `" ^ expect ^ "`"
 
 let case type' arg expect =
-  let name = name type' arg expect in
-  let test = test name type' arg expect in
-  Alcotest.test_case name `Quick test
+  Case.make_case (name type' arg expect) (test type' arg expect) true
 
 let tests = [
     (* primitives *)

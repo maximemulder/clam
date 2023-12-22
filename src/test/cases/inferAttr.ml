@@ -1,14 +1,12 @@
 open Clam
 open Vars
 
-let test name type' name' expect (_: unit) =
+let test type' name' expect (_: unit) =
   let result = TypingInfer.InfererProj2.infer (TypingInfer.infer_attr_base name') type' in
-  let result = match (result, expect) with
-  | (Some result, Some expect) -> TypingCompare.compare result expect
-  | (None, None) -> true
-  | (_, _) -> false
-  in
-  Alcotest.(check bool) name true result
+  match result, expect with
+  | Some result, Some expect -> TypingCompare.compare result expect
+  | None, None -> true
+  | _, _ -> false
 
 let name type' name' expect =
   let type' = TypingDisplay.display type' in
@@ -18,9 +16,7 @@ let name type' name' expect =
   "attr `" ^ type' ^ "` `" ^ name' ^ "` `" ^ expect ^ "`"
 
 let case type' name' expect =
-  let name = name type' name' expect in
-  let test = test name type' name' expect in
-  Alcotest.test_case name `Quick test
+  Case.make_case (name type' name' expect) (test type' name' expect) true
 
 let tests = [
   (* primitives *)

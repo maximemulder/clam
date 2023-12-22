@@ -1,9 +1,8 @@
 open Clam
 open Vars2
 
-let test name sub sup expect ctx (_: unit) =
-  let result = Typing2.isa ctx sub sup in
-  Alcotest.(check bool) name result expect
+let test ctx sub sup (_: unit) =
+  Typing2.isa ctx sub sup
 
 let name sub sup expect =
   let sub = TypeDisplay.display sub in
@@ -12,9 +11,7 @@ let name sub sup expect =
   "isa" ^ suffix ^ " `" ^ sub ^ "` `" ^ sup ^ "`"
 
 let case sub sup expect ctx =
-  let name = name sub sup expect in
-  let test = test name sub sup expect ctx in
-  Alcotest.test_case name `Quick test
+  Case.make_case2 Case.bool (name sub sup expect) (test ctx sub sup) expect
 
 let case_var name bound case expect ctx =
   let bind = { Model.name } in
@@ -80,8 +77,8 @@ let tests = [
   case (abs "T" top (inline a)) (abs "T" top (inline top));
 
   (* type applications *)
-  case (app (abs "T" top id) top) top;
-  case (app (abs "T" top (inline top)) top) top;
+  case_var "T" (abs "T" top id) (fun t -> case (app t top) top);
+  case_var "T" (abs "T" top (inline top)) (fun t -> case (app t top) top);
 ]
 |> List.map (fun case -> case true ctx)
 
@@ -127,7 +124,7 @@ let tests_not = [
   case_var "T" (abs "X" top id) (fun t1 -> case_var "T" (abs "X" top id) (fun t2 -> case (app t1 top) (app t2 top)));
 
   (* type applications *)
-  case top (app (abs "T" top id) top);
-  case top (app (abs "T" top (inline top)) top);
+  case_var "T" (abs "T" top id) (fun t -> case top (app t top));
+  case_var "T" (abs "T" top (inline top)) (fun t -> case top (app t top));
 ]
 |> List.map (fun case -> case false ctx)

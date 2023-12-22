@@ -1,14 +1,12 @@
 open Clam
 open Vars
 
-let test name type' index expect (_: unit) =
+let test type' index expect (_: unit) =
   let result = TypingInfer.InfererProj2.infer (TypingInfer.infer_elem_base index) type' in
-  let result = match (result, expect) with
-  | (Some result, Some expect) -> TypingCompare.compare result expect
-  | (None, None) -> true
-  | (_, _) -> false
-  in
-  Alcotest.(check bool) name true result
+  match result, expect with
+  | Some result, Some expect -> TypingCompare.compare result expect
+  | None, None -> true
+  | _, _ -> false
 
 let name type' index expect =
   let type' = TypingDisplay.display type' in
@@ -20,9 +18,7 @@ let name type' index expect =
   "elem `" ^ type' ^ "` `" ^ index ^ "` `" ^ expect ^ "`"
 
 let case type' index expect =
-  let name = name type' index expect in
-  let test = test name type' index expect in
-  Alcotest.test_case name `Quick test
+  Case.make_case (name type' index expect) (test type' index expect) true
 
 let tests = [
   (* primitives *)

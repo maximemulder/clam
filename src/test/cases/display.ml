@@ -1,12 +1,10 @@
 open Vars2
 
-let test name type' (_: unit) =
-  let result = Clam.TypeDisplay.display type' in
-  Alcotest.(check string) name name result
+let test type' (_: unit) =
+  Clam.TypeDisplay.display type'
 
 let case name type' =
-  let test = test name type' in
-  Alcotest.test_case name `Quick test
+  Case.make_case2 Case.string name (test type') name
 
 let tests = [
   (* atomics *)

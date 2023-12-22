@@ -1,16 +1,14 @@
 open Clam
 open Vars
 
-let test name abs expect (_: unit) =
+let test abs expect (_: unit) =
   let result = TypingInfer.InfererApp2.infer TypingInfer.infer_app_base abs in
-  let result = match (result, expect) with
-  | (Some result, Some expect) ->
+  match result, expect with
+  | Some result, Some expect ->
     TypingCompare.compare result.arg (fst expect)
     && TypingCompare.compare result.ret (snd expect)
-  | (None, None) -> true
-  | (_, _) -> false
-  in
-  Alcotest.(check bool) name true result
+  | None, None -> true
+  | _, _ -> false
 
 let name abs expect =
   let abs = TypingDisplay.display abs in
@@ -23,9 +21,7 @@ let name abs expect =
   "app `" ^ abs ^ "` `" ^ expect_arg ^ "` `" ^ expect_ret ^ "`"
 
 let case abs expect =
-  let name = name abs expect in
-  let test = test name abs expect in
-  Alcotest.test_case name `Quick test
+  Case.make_case (name abs expect) (test abs expect) true
 
 let tests = [
   (* primitives *)
