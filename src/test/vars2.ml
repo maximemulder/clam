@@ -13,7 +13,7 @@ include TypePrimitive
 (* TODO: Adopt new bind system once typing is refactored *)
 
 let bind name =
-  { Model.name }
+  { Abt.name }
 
 let var bind =
   base (Var { bind })
@@ -72,10 +72,10 @@ let ctx = {
 }
 
 let union types =
-  Utils.list_reduce (Typing2.join ctx) types
+  Utils.list_reduce (TypeSystem.join ctx) types
 
 let inter types =
-  Utils.list_reduce (Typing2.meet ctx) types
+  Utils.list_reduce (TypeSystem.meet ctx) types
 
 let a = var a
 let b = var b
@@ -131,3 +131,15 @@ let e_abs_te (name, bound) body =
 
 let e_app_te expr arg =
   ExprTypeApp { pos; expr; arg }*)
+
+(*
+  TODO: Although the tests have been ported to the new archtitecture, they haven't
+  yet be updated to better match the new type structure. This work should eventually
+  be done, with notably union and inter no longer using join and meet.
+
+  union (p: union list):
+    each p must have a single intersection
+
+  inter (p: union list)
+    p must have a single intersection and base
+*)

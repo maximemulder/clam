@@ -1,9 +1,9 @@
 type entry = {
-  bind: Model.bind_type;
+  bind: Abt.bind_type;
   bound: Type.type';
 }
 
-let entry (bind: Model.bind_type) (bound: Type.type') =
+let entry (bind: Abt.bind_type) (bound: Type.type') =
   { bind; bound }
 
 let entry_param (left: Type.param) (right: Type.param) =

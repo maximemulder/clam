@@ -1,5 +1,5 @@
 open Utils
-open Model
+open Abt
 
 module DefKey = struct
   type t = def_expr
@@ -48,7 +48,7 @@ let with_bind_type bind type' f state =
 
 let make_state defs =
   (* TODO: Dependency injection for primitives *)
-  let dones = BindMap.of_list Primitive2.types in
+  let dones = BindMap.of_list Primitive.types in
   let remains = List.fold_left (fun set def -> DefSet.add def set) DefSet.empty defs in
   let expr_ctx = { remains; currents = DefSet.empty; dones } in
   let type_ctx = TypeContext.empty in
@@ -119,7 +119,7 @@ and check_base expr constr =
 and check_infer expr constr =
   let* type' = infer_none expr in
   let* ctx = get_type_ctx in
-  if not (Typing2.isa ctx type' constr) then
+  if not (TypeSystem.isa ctx type' constr) then
     TypeError.check_type expr type' constr
   else
     return ()
@@ -166,7 +166,7 @@ and check_abs_param param constr =
   | Some type' ->
     let* param' = validate_type_proper type' in
     let* ctx = get_type_ctx in
-    if Typing2.isa ctx constr param' then
+    if TypeSystem.isa ctx constr param' then
       return param'
     else
       TypeError.check_abs_param param param' constr
@@ -180,7 +180,7 @@ and check_type_abs abs constr =
   | Type.AbsTypeExpr constr_abs ->
     let* param = check_type_abs_param abs constr_abs.param in
     let* ctx = get_type_ctx in
-    let constr_ret = Typing2.substitute_body ctx param constr_abs.param constr_abs.ret in
+    let constr_ret = TypeSystem.substitute_body ctx param constr_abs.param constr_abs.ret in
     with_bind_type param.bind param.bound
       (check abs.body constr_ret)
   | _ ->
@@ -189,7 +189,7 @@ and check_type_abs abs constr =
 and check_type_abs_param abs constr_param =
   let* bound = validate_type abs.param.bound in
   let* ctx = get_type_ctx in
-  if Typing2.is ctx bound constr_param.bound then
+  if TypeSystem.is ctx bound constr_param.bound then
     return { Type.bind = abs.param.bind; bound }
   else
     TypeError.check_type_abs_param abs bound constr_param
@@ -278,7 +278,7 @@ and infer_record_attr attr =
 and infer_elem elem returner =
   let* tuple = infer_none elem.expr in
   let* ctx = get_type_ctx in
-  let type' = TypeSearch.SearchProj.infer ctx (infer_elem_base elem.index) tuple in
+  let type' = TypeSearch.search_proj ctx (infer_elem_base elem.index) tuple in
   match type' with
   | Some type' ->
     returner type'
@@ -295,7 +295,7 @@ and infer_elem_base index type' =
 and infer_attr attr returner =
   let* record = infer_none attr.expr in
   let* ctx = get_type_ctx in
-  let type' = TypeSearch.SearchProj.infer ctx (infer_attr_base attr.name) record in
+  let type' = TypeSearch.search_proj ctx (infer_attr_base attr.name) record in
   match type' with
   | Some type' ->
     returner type'
@@ -312,7 +312,7 @@ and infer_attr_base name type' =
 and infer_app app returner =
   let* abs = infer_none app.expr in
   let* ctx = get_type_ctx in
-  let type' = TypeSearch.SearchApp.infer ctx infer_app_base abs in
+  let type' = TypeSearch.search_app ctx infer_app_base abs in
   match type' with
   | Some { param; ret } ->
     let* () = check app.arg param in
@@ -330,15 +330,15 @@ and infer_app_base type' =
 and infer_type_app app returner =
   let* abs = infer_none app.expr in
   let* ctx = get_type_ctx in
-  let type' = TypeSearch.SearchAppType.infer ctx infer_type_app_base abs in
+  let type' = TypeSearch.search_app_type ctx infer_type_app_base abs in
   match type' with
   | Some { param; ret } ->
     let* arg = validate_type app.arg in
     let* ctx = get_type_ctx in
-    if not (Typing2.isa ctx arg param.bound) then
+    if not (TypeSystem.isa ctx arg param.bound) then
       TypeError.infer_type_app_type app arg param.bound
     else
-    let ret = Typing2.substitute_arg ctx param.bind arg ret in
+    let ret = TypeSystem.substitute_arg ctx param.bind arg ret in
     returner ret
   | None ->
     TypeError.infer_type_app_kind app abs
@@ -361,7 +361,7 @@ and infer_if if' returner =
   let* then' = infer_none if'.then' in
   let* else' = infer_none if'.else' in
   let* ctx = get_type_ctx in
-  returner (Typing2.join ctx then' else')
+  returner (TypeSystem.join ctx then' else')
 
 and infer_abs abs returner =
   let* param = infer_abs_param abs.param in

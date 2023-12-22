@@ -1,4 +1,4 @@
-open Clam.Model
+open Clam.Abt
 open Clam.Primitive
 
 let inline v _ = v

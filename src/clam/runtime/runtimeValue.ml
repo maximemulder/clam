@@ -1,9 +1,9 @@
 open Utils
 
 module BindKey = struct
-  type t = Model.bind_expr
+  type t = Abt.bind_expr
 
-  let compare x y  = Stdlib.compare (Model.bind_expr_id x) (Model.bind_expr_id y)
+  let compare x y  = Stdlib.compare (Abt.bind_expr_id x) (Abt.bind_expr_id y)
 end
 
 module BindMap = Map.Make(BindKey)
@@ -28,12 +28,12 @@ and abs_expr =
 and abs_expr_prim = context -> value
 
 and abs_expr_code = {
-  abs: Model.expr_abs;
+  abs: Abt.expr_abs;
   frame: frame
 }
 
 and abs_type = {
-  abs: Model.expr_type_abs;
+  abs: Abt.expr_type_abs;
   frame: frame;
 }
 

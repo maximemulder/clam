@@ -2,7 +2,7 @@ open Clam
 open Vars2
 
 let test ctx sub sup (_: unit) =
-  Typing2.isa ctx sub sup
+  TypeSystem.isa ctx sub sup
 
 let name sub sup expect =
   let sub = TypeDisplay.display sub in
@@ -11,10 +11,10 @@ let name sub sup expect =
   "isa" ^ suffix ^ " `" ^ sub ^ "` `" ^ sup ^ "`"
 
 let case sub sup expect ctx =
-  Case.make_case2 Case.bool (name sub sup expect) (test ctx sub sup) expect
+  Case.make_case Case.bool (name sub sup expect) (test ctx sub sup) expect
 
 let case_var name bound case expect ctx =
-  let bind = { Model.name } in
+  let bind = { Abt.name } in
   let ctx = TypeContext.add_bind_type ctx bind bound in
   let var = Type.base (Type.Var { bind }) in
   case var expect ctx

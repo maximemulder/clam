@@ -1,30 +1,30 @@
-open Model
+open Abt
 
 let raise message pos =
   Error.raise "TYPE ERROR" (message ^ "\n" ^ Error.display_pos pos)
 
-let validate_proper (type': Model.type') =
+let validate_proper (type': Abt.type') =
   let pos = type_pos type' in
-  let type' = TypingDisplay.display type' in
+  let type' = AbtDisplay.display type' in
   raise
     ("expected proper type but found type `" ^ type' ^ "`")
     pos
 
-let validate_inter_kind (inter: Model.type_inter) =
+let validate_inter_kind (inter: Abt.type_inter) =
   let pos = inter.pos in
-  let inter = TypingDisplay.display (TypeInter inter) in
+  let inter = AbtDisplay.display (TypeInter inter) in
   raise
     ("both operands of intersection `" ^ inter ^ "` must be of the same kind")
     pos
 
-let validate_union_kind (union: Model.type_union) =
+let validate_union_kind (union: Abt.type_union) =
   let pos = union.pos in
-  let union = TypingDisplay.display (TypeUnion union) in
+  let union = AbtDisplay.display (TypeUnion union) in
   raise
     ("both operands of union `" ^ union ^ "` must be of the same kind")
     pos
 
-let validate_app_arg (app: Model.type_app) (param: Type.type') (arg: Type.type') =
+let validate_app_arg (app: Abt.type_app) (param: Type.type') (arg: Type.type') =
   let pos = app.pos in
   let param = TypeDisplay.display param in
   let arg = TypeDisplay.display arg in
@@ -40,14 +40,14 @@ let check_type expr (type': Type.type') (constr: Type.type') =
     ("expected expression of type `" ^ constr ^ "` but found expression of type `" ^ type' ^ "`")
     pos
 
-let check_tuple (expr: Model.expr_tuple) (constr: Type.base) =
+let check_tuple (expr: Abt.expr_tuple) (constr: Type.base) =
   let pos = expr.pos in
   let constr = TypeDisplay.display_base constr in
   raise
     ("expected expression of type `" ^ constr ^ "` but found a tuple")
     pos
 
-let check_tuple_arity (expr: Model.expr_tuple) (constr: Type.tuple) =
+let check_tuple_arity (expr: Abt.expr_tuple) (constr: Type.tuple) =
   let pos = expr.pos in
   let arity = string_of_int (List.length expr.elems) in
   let constr_arity = string_of_int (List.length constr.elems) in
@@ -62,7 +62,7 @@ let check_record (expr: expr_record) (constr: Type.base) =
     ("expected expression of type `" ^ constr ^ "` but found a record")
     pos
 
-let check_record_attr (expr: Model.expr_record) (constr: Type.attr) =
+let check_record_attr (expr: Abt.expr_record) (constr: Type.attr) =
   let pos = expr.pos in
   let name = constr.name in
   let type' = TypeDisplay.display constr.type' in
@@ -70,14 +70,14 @@ let check_record_attr (expr: Model.expr_record) (constr: Type.attr) =
     ("expected attribute `" ^ name ^ "` of type `" ^ type' ^ "` but found no attribute with this name")
     pos
 
-let check_abs (expr: Model.expr_abs) (constr: Type.base) =
+let check_abs (expr: Abt.expr_abs) (constr: Type.base) =
   let pos = expr.pos in
   let constr = TypeDisplay.display_base constr in
   raise
     ("expected expression of type `" ^ constr ^ "` but found abstraction")
     pos
 
-let check_abs_param (param: Model.param_expr) (param': Type.type') (constr: Type.type') =
+let check_abs_param (param: Abt.param_expr) (param': Type.type') (constr: Type.type') =
   let pos = param.pos in
   let param' = TypeDisplay.display param' in
   let constr = TypeDisplay.display constr in

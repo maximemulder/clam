@@ -7,7 +7,7 @@ let rec validate_proper ctx type' =
   else
     type''
 
-and validate ctx (type': Model.type') =
+and validate ctx (type': Abt.type') =
   match type' with
   | TypeTop    _ -> base Top
   | TypeBot    _ -> base Bot
@@ -53,7 +53,7 @@ and validate_inter ctx inter =
   if TypeKind.get_kind ctx left <> TypeKind.get_kind ctx right then
     TypeError.validate_inter_kind inter
   else
-  Typing2.meet ctx left right
+  TypeSystem.meet ctx left right
 
 and validate_union ctx union =
   let left  = validate ctx union.left  in
@@ -61,7 +61,7 @@ and validate_union ctx union =
   if TypeKind.get_kind ctx left <> TypeKind.get_kind ctx right then
     TypeError.validate_union_kind union
   else
-  Typing2.join ctx left right
+  TypeSystem.join ctx left right
 
 and validate_abs_expr ctx abs =
   let param = validate_proper ctx abs.param in
@@ -82,21 +82,21 @@ and validate_app ctx app =
   let abs = validate ctx app.type' in
   let arg = validate ctx app.arg in
   let param = validate_app_param ctx abs in
-  if not (Typing2.isa ctx arg param) then
+  if not (TypeSystem.isa ctx arg param) then
     TypeError.validate_app_arg app param arg
   else
-  Typing2.compute ctx abs arg
+  TypeSystem.compute ctx abs arg
 
 and validate_app_param ctx abs =
   validate_app_param_union ctx abs
 
 and validate_app_param_union ctx union =
   let types = List.map (validate_app_param_inter ctx) union.union in
-  Utils.list_reduce (Typing2.meet ctx) types
+  Utils.list_reduce (TypeSystem.meet ctx) types
 
 and validate_app_param_inter ctx inter =
   let types = List.map (validate_app_param_base ctx) inter.inter in
-  Utils.list_reduce (Typing2.join ctx) types
+  Utils.list_reduce (TypeSystem.join ctx) types
 
 and validate_app_param_base ctx type' =
   match type' with

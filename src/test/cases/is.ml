@@ -2,7 +2,7 @@ open Clam
 open Vars2
 
 let test ctx left right (_: unit) =
-  Typing2.is ctx left right
+  TypeSystem.is ctx left right
 
 let name left right expect =
   let left  = TypeDisplay.display left in
@@ -11,10 +11,10 @@ let name left right expect =
   "is" ^ suffix ^ " `" ^ left ^ "` `" ^ right ^ "`"
 
 let case left right expect ctx =
-  Case.make_case2 Case.bool (name left right expect) (test ctx left right) expect
+  Case.make_case Case.bool (name left right expect) (test ctx left right) expect
 
 let case_var name bound case expect ctx =
-  let bind = { Model.name } in
+  let bind = { Abt.name } in
   let ctx = TypeContext.add_bind_type ctx bind bound in
   let var = Type.base (Type.Var { bind }) in
   case var expect ctx

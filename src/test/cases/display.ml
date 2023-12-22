@@ -4,7 +4,7 @@ let test type' (_: unit) =
   Clam.TypeDisplay.display type'
 
 let case name type' =
-  Case.make_case2 Case.string name (test type') name
+  Case.make_case Case.string name (test type') name
 
 let tests = [
   (* atomics *)

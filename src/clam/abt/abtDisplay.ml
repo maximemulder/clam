@@ -7,7 +7,7 @@ let add_surround string surround =
 let rec display type' =
   display_surround type' false
 
-and display_surround (type': Model.type') (surround: bool) =
+and display_surround (type': Abt.type') (surround: bool) =
   match type' with
   | TypeTop _    -> "Top"
   | TypeBot _    -> "Bot"

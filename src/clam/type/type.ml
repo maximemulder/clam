@@ -25,7 +25,7 @@ and base =
   | App         of app
 
 and var = {
-  bind: Model.bind_type;
+  bind: Abt.bind_type;
 }
 
 and tuple = {
@@ -62,7 +62,7 @@ and attr = {
 }
 
 and param = {
-  bind: Model.bind_type;
+  bind: Abt.bind_type;
   bound: type';
 }
 
