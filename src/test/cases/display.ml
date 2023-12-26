@@ -13,7 +13,6 @@ let tests = [
   case "Unit" unit;
   case "Bool" bool;
   case "Int" int;
-  case "Char" char;
   case "String" string;
   case "A" a;
 

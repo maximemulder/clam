@@ -60,7 +60,6 @@ rule read =
   | ')'      { read_parenthesis_right lexbuf }
   | "+"      { PLUS }
   | ';'      { SEMICOLON }
-  | '\''     { read_char (Buffer.create 2) lexbuf }
   | '"'      { read_string (Buffer.create 16) lexbuf }
   | _        { raise (Error ("unexpected character: `" ^ Lexing.lexeme lexbuf ^ "`")) }
   | eof      { EOF }
@@ -71,28 +70,6 @@ and read_parenthesis_right =
   | line  { next_line lexbuf; read_parenthesis_right lexbuf }
   | "->"  { PARENTHESIS_RIGHT_ARROW }
   | ""    { PARENTHESIS_RIGHT }
-
-and read_char buf =
-  parse
-  | '\\' '/'  { Buffer.add_char buf '/'; read_char_end buf lexbuf }
-  | '\\' '\\' { Buffer.add_char buf '\\'; read_char_end buf lexbuf }
-  | '\\' 'b'  { Buffer.add_char buf '\b'; read_char_end buf lexbuf }
-  | '\\' 'f'  { Buffer.add_char buf '\012'; read_char_end buf lexbuf }
-  | '\\' 'n'  { Buffer.add_char buf '\n'; read_char_end buf lexbuf }
-  | '\\' 'r'  { Buffer.add_char buf '\r'; read_char_end buf lexbuf }
-  | '\\' 't'  { Buffer.add_char buf '\t'; read_char_end buf lexbuf }
-  | [^ '\'' '\\']+
-    { Buffer.add_string buf (Lexing.lexeme lexbuf);
-      read_char_end buf lexbuf
-    }
-  | _ { raise (Error ("invalid literal character: `" ^ Lexing.lexeme lexbuf ^ "`")) }
-  | eof { raise (Error ("character literal is not terminated")) }
-
-and read_char_end buf =
-  parse
-  | '\'' { CHAR (Buffer.contents buf) }
-  | _    { raise (Error ("invalid literal character: `" ^ Lexing.lexeme lexbuf ^ "`")) }
-  | eof  { raise (Error ("character literal is not terminated")) }
 
 and read_string buf =
   parse

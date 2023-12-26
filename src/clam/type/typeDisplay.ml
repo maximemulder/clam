@@ -28,7 +28,6 @@ and display_base (type': Type.base) grp =
   | Unit   -> "Unit"
   | Bool   -> "Bool"
   | Int    -> "Int"
-  | Char   -> "Char"
   | String -> "String"
   | Var var -> var.bind.name
   | Tuple tuple ->

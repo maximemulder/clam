@@ -217,7 +217,6 @@ let primitives = [
   ("Unit",   Abt.TypeUnit   { pos });
   ("Bool",   Abt.TypeBool   { pos });
   ("Int",    Abt.TypeInt    { pos });
-  ("Char",   Abt.TypeChar   { pos });
   ("String", Abt.TypeString { pos });
 ]
 

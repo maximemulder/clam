@@ -14,7 +14,6 @@ and base =
   | Unit
   | Bool
   | Int
-  | Char
   | String
   | Var         of var
   | Tuple       of tuple

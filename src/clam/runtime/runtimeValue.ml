@@ -14,7 +14,6 @@ type value =
 | VUnit
 | VBool    of bool
 | VInt     of int
-| VChar    of char
 | VString  of string
 | VTuple   of value list
 | VRecord  of value NameMap.t
@@ -51,8 +50,6 @@ let rec compare left right =
   | (VBool left, VBool right) ->
     left = right
   | (VInt left, VInt right) ->
-    left = right
-  | (VChar left, VChar right) ->
     left = right
   | (VString left, VString right) ->
     left = right

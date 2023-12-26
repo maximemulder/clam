@@ -41,8 +41,6 @@ let rec eval (expr: Abt.expr) =
     eval_bool bool
   | ExprInt int ->
     eval_int int
-  | ExprChar char ->
-    eval_char char
   | ExprString string ->
     eval_string string
   | ExprBind bind ->
@@ -89,9 +87,6 @@ and eval_bool bool =
 
 and eval_int int =
   return (VInt int.value)
-
-and eval_char char =
-  return (VChar char.value)
 
 and eval_string string =
   return (VString string.value)

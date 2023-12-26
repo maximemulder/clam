@@ -81,9 +81,6 @@ let parse_int expr (value: string) =
   | Some int -> int
   | None     -> ModelizeErrors.raise_expr_integer expr value
 
-let parse_char (value: string) =
-  value.[0]
-
 let parse_string (value: string) =
   value
 
@@ -153,8 +150,6 @@ and modelize_expr (expr: Ast.expr): state -> Abt.expr * state =
     modelize_bool expr false
   | ExprInt value ->
     modelize_int expr value
-  | ExprChar value ->
-    modelize_char expr value
   | ExprString value ->
     modelize_string expr value
   | ExprBind name ->
@@ -197,10 +192,6 @@ and modelize_bool expr value =
 and modelize_int expr value =
   let value = parse_int expr value in
   return (Abt.ExprInt { pos = fst expr; value })
-
-and modelize_char expr value =
-  let value = parse_char value in
-  return (Abt.ExprChar { pos = fst expr; value })
 
 and modelize_string expr value =
   let value = parse_string value in

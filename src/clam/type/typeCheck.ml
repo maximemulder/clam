@@ -202,8 +202,6 @@ and infer expr returner =
     infer_bool bool returner
   | ExprInt int ->
     infer_int int returner
-  | ExprChar char ->
-    infer_char char returner
   | ExprString string ->
     infer_string string returner
   | ExprBind bind ->
@@ -242,9 +240,6 @@ and infer_bool _ returner =
 
 and infer_int _ returner =
   returner (Type.base Type.Int)
-
-and infer_char _ returner =
-  returner (Type.base Type.Char)
 
 and infer_string _ returner =
   returner (Type.base Type.String)

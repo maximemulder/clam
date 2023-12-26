@@ -70,8 +70,6 @@ and isa_base ctx (sub: Type.base) (sup: Type.base) =
     true
   | Int    , Int     ->
     true
-  | Char   , Char    ->
-    true
   | String , String  ->
     true
   | Var sub_var, _ ->
@@ -180,7 +178,6 @@ and substitute_base ctx entry (type': Type.base) =
   | Unit   -> Type.base Unit
   | Bool   -> Type.base Bool
   | Int    -> Type.base Int
-  | Char   -> Type.base Char
   | String -> Type.base String
   | Var var ->
     substitute_var entry var
@@ -283,7 +280,6 @@ and meet_base ctx (left: Type.base) (right: Type.base) =
   | Unit   , Unit   -> Some Unit
   | Bool   , Bool   -> Some Bool
   | Int    , Int    -> Some Int
-  | Char   , Char   -> Some Char
   | String , String -> Some String
   | Var left_var, _ when isa_var ctx left_var right ->
     Some (Var left_var)

@@ -7,7 +7,6 @@
 %token TRUE
 %token FALSE
 %token <string> INT
-%token <string> CHAR
 %token <string> STRING
 
 %token AND
@@ -149,8 +148,6 @@ let expr_1 :=
     { $startpos, ExprFalse }
   | int = INT;
     { $startpos, ExprInt int }
-  | char = CHAR;
-    { $startpos, ExprChar char }
   | string = STRING;
     { $startpos, ExprString string }
   | name = IDENT;

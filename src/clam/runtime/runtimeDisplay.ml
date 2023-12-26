@@ -6,7 +6,6 @@ let rec display value =
   | VUnit -> "unit"
   | VBool bool -> string_of_bool bool
   | VInt int -> string_of_int int
-  | VChar char -> "'" ^ (String.escaped (String.make 1 char)) ^ "'"
   | VString string -> "\"" ^ (String.escaped string) ^ "\""
   | VTuple values ->
     let values = List.map display values in

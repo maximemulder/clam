@@ -28,7 +28,6 @@ let tests = [
   case unit unit unit;
   case bool bool bool;
   case int int int;
-  case char char char;
   case string string string;
 
   (* variables *)

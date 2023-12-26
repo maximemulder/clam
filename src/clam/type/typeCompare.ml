@@ -16,7 +16,6 @@ and substitute_base type' bind other =
   | Unit   -> Unit
   | Bool   -> Bool
   | Int    -> Int
-  | Char   -> Char
   | String -> String
   | Var var ->
     if var.bind == bind then
@@ -68,7 +67,6 @@ and compare_base left right =
   | Unit   , Unit   -> true
   | Bool   , Bool   -> true
   | Int    , Int    -> true
-  | Char   , Char   -> true
   | String , String -> true
   | Var left_var, Var right_var ->
     left_var.bind == right_var.bind

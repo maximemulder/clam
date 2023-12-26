@@ -40,7 +40,6 @@ and expr_data =
   | ExprTrue
   | ExprFalse
   | ExprInt     of string
-  | ExprChar    of string
   | ExprString  of string
   | ExprBind    of string
   | ExprTuple   of expr list

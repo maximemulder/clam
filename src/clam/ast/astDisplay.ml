@@ -39,7 +39,6 @@ let node_name node =
     | ExprTrue      -> "true"
     | ExprFalse     -> "false"
     | ExprInt     _ -> "int"
-    | ExprChar    _ -> "char"
     | ExprString  _ -> "string"
     | ExprBind    _ -> "bind"
     | ExprTuple   _ -> "tuple"
@@ -96,8 +95,6 @@ let node_attrs node =
     | ExprTrue -> []
     | ExprFalse -> []
     | ExprInt value ->
-      [("value", AString value)]
-    | ExprChar value ->
       [("value", AString value)]
     | ExprString value ->
       [("value", AString value)]

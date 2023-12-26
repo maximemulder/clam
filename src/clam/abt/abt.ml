@@ -10,7 +10,6 @@ type type' =
   | TypeUnit        of type_unit
   | TypeBool        of type_bool
   | TypeInt         of type_int
-  | TypeChar        of type_char
   | TypeString      of type_string
   | TypeVar         of type_var
   | TypeTuple       of type_tuple
@@ -39,10 +38,6 @@ and type_bool = {
 }
 
 and type_int = {
-  pos: pos;
-}
-
-and type_char = {
   pos: pos;
 }
 
@@ -120,7 +115,6 @@ let type_pos type' =
   | TypeUnit        type' -> type'.pos
   | TypeBool        type' -> type'.pos
   | TypeInt         type' -> type'.pos
-  | TypeChar        type' -> type'.pos
   | TypeString      type' -> type'.pos
   | TypeVar         type' -> type'.pos
   | TypeTuple       type' -> type'.pos
@@ -136,7 +130,6 @@ type expr =
   | ExprUnit    of expr_unit
   | ExprBool    of expr_bool
   | ExprInt     of expr_int
-  | ExprChar    of expr_char
   | ExprString  of expr_string
   | ExprBind    of expr_bind
   | ExprTuple   of expr_tuple
@@ -163,11 +156,6 @@ and expr_bool = {
 and expr_int = {
   pos: pos;
   value: int;
-}
-
-and expr_char = {
-  pos: pos;
-  value: char;
 }
 
 and expr_string = {
@@ -293,7 +281,6 @@ let expr_pos expr =
   | ExprUnit    expr -> expr.pos
   | ExprBool    expr -> expr.pos
   | ExprInt     expr -> expr.pos
-  | ExprChar    expr -> expr.pos
   | ExprString  expr -> expr.pos
   | ExprBind    expr -> expr.pos
   | ExprTuple   expr -> expr.pos

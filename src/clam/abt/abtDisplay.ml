@@ -14,7 +14,6 @@ and display_surround (type': Abt.type') (surround: bool) =
   | TypeUnit _   -> "Unit"
   | TypeBool _   -> "Bool"
   | TypeInt _    -> "Int"
-  | TypeChar _   -> "Char"
   | TypeString _ -> "String"
   | TypeVar var -> var.bind.name
   | TypeAbsExpr abs ->

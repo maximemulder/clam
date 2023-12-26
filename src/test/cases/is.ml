@@ -33,7 +33,6 @@ let tests = [
   case unit unit;
   case bool bool;
   case int int;
-  case char char;
   case string string;
   case a a;
 
@@ -91,8 +90,7 @@ let tests_not = [
   (* primitives *)
   case unit bool;
   case bool int;
-  case int char;
-  case char string;
+  case int string;
   case string unit;
 
   (* variables *)

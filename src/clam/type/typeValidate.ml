@@ -14,7 +14,6 @@ and validate ctx (type': Abt.type') =
   | TypeUnit   _ -> base Unit
   | TypeBool   _ -> base Bool
   | TypeInt    _ -> base Int
-  | TypeChar   _ -> base Char
   | TypeString _ -> base String
   | TypeVar var ->
     base (Var { bind = var.bind })
