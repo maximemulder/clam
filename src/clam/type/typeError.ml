@@ -120,7 +120,7 @@ let infer_attr (attr: expr_attr) type' =
 
 let infer_abs_param (param: param_expr) =
   raise
-    ("require type annotation for parameter `" ^ param.name ^ "`")
+    ("require type annotation for parameter `" ^ param.bind.name ^ "`")
     param.pos
 
 let infer_app_kind (app: expr_app) type' =

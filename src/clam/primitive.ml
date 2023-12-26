@@ -10,7 +10,7 @@ type primitive = {
 
 let make_primitives primitives =
   let (_, primitives) = List.fold_left (fun (id, res) (name, type', value) ->
-    id - 1, { bind = BindExprPrim id; name; type'; value } :: res
+    id - 1, { bind = BindExprVar { id; name }; name; type'; value } :: res
   ) (-1, []) primitives in
   primitives
 

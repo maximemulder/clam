@@ -173,7 +173,7 @@ and check_abs_param param constr =
   | None ->
     return constr
   in
-  add_expr_bind (BindExprParam param) type'
+  add_expr_bind (BindExprVar param.bind) type'
 
 and check_type_abs abs constr =
   match constr with
@@ -368,7 +368,7 @@ and infer_abs_param param =
   | Some type' -> validate_type_proper type'
   | None -> TypeError.infer_abs_param param
   in
-  let bind = BindExprParam param in
+  let bind = BindExprVar param.bind in
   let* _ = add_expr_bind bind type' in
   return type'
 

@@ -114,7 +114,7 @@ and eval_expr_app_abs abs arg context =
   | VPrim prim ->
     prim { value; out = context.out }
   | VCode abs ->
-    let binds = BindMap.singleton (Abt.BindExprParam abs.abs.param) value in
+    let binds = BindMap.singleton (Abt.BindExprVar abs.abs.param.bind) value in
     let context = new_frame context abs.frame binds in
     eval abs.abs.body context
 

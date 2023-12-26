@@ -257,7 +257,8 @@ and modelize_binop expr left op right =
 and modelize_param (param: Ast.param) =
   let* type' = map_option modelize_type param.type' in
   let* id = next_id in
-  return { Abt.pos = param.pos; id; name = param.name; type' }
+  let bind = { Abt.id; name = param.name } in
+  return { Abt.pos = param.pos; bind; type' }
 
 and modelize_type_param (param: Ast.param): Abt.param_type t =
   let* bound = (match param.type' with
@@ -301,7 +302,7 @@ and modelize_abs pos params body =
     modelize_expr body
   | (param :: params) ->
     let* param = modelize_param param in
-    let entries = [(param.Abt.name, Abt.BindExprParam param)] in
+    let entries = [(param.Abt.bind.name, Abt.BindExprVar param.bind)] in
     let* body = with_scope (modelize_abs pos params body) NameMap.empty [] entries in
     return (Abt.ExprAbs { pos; param; body })
 
