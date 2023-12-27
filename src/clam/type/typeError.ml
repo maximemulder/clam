@@ -141,3 +141,9 @@ let infer_type_app_type (app: expr_type_app) arg bound =
   raise
     ("expected subtype of `" ^ bound ^ "` but found type `" ^ arg ^ "`")
     app.pos
+
+
+let infer_recursive_type (def: def_expr) =
+  raise
+    ("cannot infer recursive type for definition `" ^ def.bind.name ^ "`")
+    def.pos

@@ -3,3 +3,4 @@
 - Should the language implement implied bounds for type parameters ?
 - It is possible for unions and intersections to support higher-kinded types ?
 - Should universal type abstrations be evaluated on introduction ?
+- Is the recursive type `µT. T` equivalent to the bottom type ?

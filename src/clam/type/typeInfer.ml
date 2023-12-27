@@ -97,11 +97,21 @@ open Monad.Monad(Monad.StateMonad(struct
   type s = state
 end))
 
+let counter = ref 0
+
 let fresh_var (_: unit) =
-  let bind = { Abt.name = "'A" } in
+  let name = "'" ^ string_of_int counter.contents in
+  counter := counter.contents + 1;
+  let bind = { Abt.name } in
   bind, Type.base (Type.Var { bind })
 
 let unwrap_base type' = List.nth (List.nth (type'.Type.union) 0).inter 0
+
+(* VALIDATE *)
+
+let validate_proper type' =
+  let* ctx = get_context in
+  return (TypeValidate.validate_proper ctx type')
 
 (* TYPE INFERENCE *)
 
@@ -172,8 +182,7 @@ and infer_if if' =
 and infer_abs abs =
   match abs.param.type' with
   | Some type' ->
-    let* ctx = get_context in
-    let type' = TypeValidate.validate ctx type' in
+    let* type' = validate_proper type' in
     let* ret = with_bind abs.param.bind type'
       (infer abs.body) in
     return (Type.base (Type.AbsExpr { param = type'; ret }))
@@ -201,19 +210,29 @@ and infer_app app =
 
 and infer_def def =
   let* () = remove_def def.bind in
-  let* type' = match def.type' with
-  | Some type' ->
-    let* ctx = get_context in
-    let type' = TypeValidate.validate ctx type' in
-    with_bind def.bind type'
-      (infer def.expr)
-  | None ->
-    let _, var = fresh_var () in
-    with_bind def.bind var
-      (infer def.expr)
-  in
+  let* type' = infer_def_type def in
   let* () = add_bind def.bind type' in
   return type'
+
+and infer_def_type def =
+  match def.type' with
+  | Some def_type ->
+    let* def_type = validate_proper def_type in
+    let* body_type = with_bind def.bind def_type
+      (infer def.expr) in
+    let* () = constrain body_type def_type in
+    return def_type
+  | None ->
+    let var_bind, var_type = fresh_var () in
+    let* () = add_var var_bind Positive in
+    let* body_type = with_bind def.bind var_type
+      (infer def.expr) in
+    let* bound_type = get_bound var_bind in
+    let* () = constrain bound_type body_type in
+    if TypeUtils.contains body_type var_bind then
+      TypeError.infer_recursive_type def
+    else
+      return body_type
 
 let rec check_defs state =
   match state.defs with
