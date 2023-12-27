@@ -3,7 +3,7 @@ open Utils
 module BindKey = struct
   type t = Abt.bind_expr
 
-  let compare x y  = Stdlib.compare (Abt.bind_expr_id x) (Abt.bind_expr_id y)
+  let compare x y  = Stdlib.compare x.Abt.id y.Abt.id
 end
 
 module BindMap = Map.Make(BindKey)

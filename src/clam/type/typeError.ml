@@ -102,7 +102,7 @@ let check_type_abs_param (expr: expr_type_abs) bound (constr: Type.param) =
 
 let infer_recursive def =
   raise
-    ("recursive definition `" ^ def.name ^ "`, type annotation needed")
+    ("recursive definition `" ^ def.bind.name ^ "`, type annotation needed")
     def.pos
 
 let infer_elem elem type' =

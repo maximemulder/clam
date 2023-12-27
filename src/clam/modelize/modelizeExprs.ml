@@ -133,8 +133,9 @@ and modelize_def def state =
   let (expr, state) = modelize_expr remain.Ast.expr state in
   let (current, currents) = extract name state.scope.currents in
   let (id, state) = next_id state in
-  let def = { Abt.pos = def.pos; id; name; type'; expr } in
-  let _ = current := Some (Abt.BindExprDef def) in
+  let bind = { Abt.id; name } in
+  let def = { Abt.pos = def.pos; bind; type'; expr } in
+  let _ = current := Some def.bind in
   let dones = NameMap.add name current state.scope.dones in
   let state = { state with scope = { state.scope with currents; dones}; all_exprs = def :: state.all_exprs } in
   (current, state)
@@ -275,9 +276,9 @@ and modelize_stmt (stmt: Ast.stmt) (expr: Ast.expr) =
     let* var_expr = modelize_expr var_expr in
     let* var_type = map_option modelize_type var_type in
     let* id = next_id in
-    let var = { Abt.id = id; Abt.name = var_name } in
-    let body = Abt.StmtVar (var, var_type, var_expr) in
-    let* expr = with_scope (modelize_expr expr) NameMap.empty [] [(var_name, Abt.BindExprVar var)] in
+    let var_bind = { Abt.id = id; Abt.name = var_name } in
+    let body = Abt.StmtVar (var_bind, var_type, var_expr) in
+    let* expr = with_scope (modelize_expr expr) NameMap.empty [] [var_name, var_bind] in
     return (Abt.ExprStmt { pos = Abt.expr_pos expr; stmt = body; expr })
   | StmtExpr stmt_expr ->
     let* stmt_expr = modelize_expr stmt_expr in
@@ -302,7 +303,7 @@ and modelize_abs pos params body =
     modelize_expr body
   | (param :: params) ->
     let* param = modelize_param param in
-    let entries = [(param.Abt.bind.name, Abt.BindExprVar param.bind)] in
+    let entries = [param.Abt.bind.name, param.bind] in
     let* body = with_scope (modelize_abs pos params body) NameMap.empty [] entries in
     return (Abt.ExprAbs { pos; param; body })
 

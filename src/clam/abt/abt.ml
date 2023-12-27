@@ -4,6 +4,11 @@ type bind_type = {
   name: string;
 }
 
+type bind_expr = {
+  id: int;
+  name: string;
+}
+
 type type' =
   | TypeTop         of type_top
   | TypeBot         of type_bot
@@ -247,31 +252,21 @@ and attr_expr = {
 }
 
 and stmt =
-  | StmtVar  of bind_var * (type' option) * expr
+  | StmtVar  of bind_expr * (type' option) * expr
   | StmtExpr of expr
 
 and param_expr = {
   pos: pos;
-  bind: bind_var;
+  bind: bind_expr;
   type': type' option;
-}
-
-and bind_var = {
-  id: int;
-  name: string;
 }
 
 and def_expr = {
   pos: pos;
-  id: int;
-  name: string;
+  bind: bind_expr;
   type': type' option;
   expr: expr;
 }
-
-and bind_expr =
-  | BindExprDef of def_expr
-  | BindExprVar of bind_var
 
 let expr_pos expr =
   match expr with
@@ -291,13 +286,3 @@ let expr_pos expr =
   | ExprTypeAbs expr -> expr.pos
   | ExprTypeApp expr -> expr.pos
   | ExprStmt    expr -> expr.pos
-
-let bind_expr_id bind =
-  match bind with
-  | BindExprDef def   -> def.id
-  | BindExprVar var   -> var.id
-
-let bind_expr_name bind =
-  match bind with
-  | BindExprDef def   -> def.name
-  | BindExprVar var   -> var.name

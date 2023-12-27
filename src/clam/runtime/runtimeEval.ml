@@ -4,14 +4,15 @@ open RuntimeValue
 
 type context = {
   out: writer;
+  defs: def_expr BindMap.t;
   frame: frame;
 }
 
 let root =
   { parent = None; binds = BindMap.of_list Primitive.values }
 
-let new_empty out =
-  { out; frame = { parent = Some root; binds = BindMap.empty } }
+let new_empty defs out =
+  { out; defs; frame = { parent = Some root; binds = BindMap.empty } }
 
 let new_scope context binds =
   { context with frame = { parent = Some context.frame; binds } }
@@ -92,9 +93,11 @@ and eval_string string =
   return (VString string.value)
 
 and eval_bind bind context =
-  match (Option.get !(bind.bind)) with
-  | BindExprDef def -> eval def.expr (new_empty context.out)
-  | bind -> get_bind bind context.frame
+  let bind = Option.get !(bind.bind) in
+  match BindMap.find_opt bind context.defs with
+  | Some def -> eval def.expr (new_empty context.defs context.out)
+  | None ->
+  get_bind bind context.frame
 
 and eval_expr_app app context =
   let value = eval app.expr context in
@@ -114,7 +117,7 @@ and eval_expr_app_abs abs arg context =
   | VPrim prim ->
     prim { value; out = context.out }
   | VCode abs ->
-    let binds = BindMap.singleton (Abt.BindExprVar abs.abs.param.bind) value in
+    let binds = BindMap.singleton abs.abs.param.bind value in
     let context = new_frame context abs.frame binds in
     eval abs.abs.body context
 
@@ -146,13 +149,14 @@ and eval_stmt stmt context =
   let context = match stmt.stmt with
   | StmtVar (var, _, expr) ->
     let value = eval expr context in
-    new_scope context (BindMap.singleton (BindExprVar var) value)
+    new_scope context (BindMap.singleton var value)
   | StmtExpr expr ->
     let _ = eval expr context in
     context
   in
   eval stmt.expr context
 
-let eval_def def stdout =
-  eval def.expr (new_empty stdout)
-
+let eval_def def defs stdout =
+  let defs = List.map (fun def -> def.bind, def) defs in
+  let defs = BindMap.of_list defs in
+  eval def.expr (new_empty defs stdout)

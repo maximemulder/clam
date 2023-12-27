@@ -1,24 +1,17 @@
 open Utils
 open Abt
 
-module DefKey = struct
-  type t = def_expr
-  let compare x y = Stdlib.compare x.id y.id
-end
-
-module DefSet = Set.Make(DefKey)
-
 module BindKey = struct
   type t = bind_expr
 
-  let compare x y  = Stdlib.compare (bind_expr_id x) (bind_expr_id y)
+  let compare x y  = Stdlib.compare x.id y.id
 end
 
 module BindMap = Map.Make(BindKey)
 
 type expr_context = {
-  remains: DefSet.t;
-  currents: DefSet.t;
+  remains: def_expr BindMap.t;
+  currents: def_expr BindMap.t;
   dones: Type.type' BindMap.t;
 }
 
@@ -49,21 +42,21 @@ let with_bind_type bind type' f state =
 let make_state defs =
   (* TODO: Dependency injection for primitives *)
   let dones = BindMap.of_list Primitive.types in
-  let remains = List.fold_left (fun set def -> DefSet.add def set) DefSet.empty defs in
-  let expr_ctx = { remains; currents = DefSet.empty; dones } in
+  let remains = List.fold_left (fun set def -> BindMap.add def.bind def set) BindMap.empty defs in
+  let expr_ctx = { remains; currents = BindMap.empty; dones } in
   let type_ctx = TypeContext.empty in
   { expr_ctx; type_ctx }
 
 let start_progress state def =
   let ctx = state.expr_ctx in
-  let remains = DefSet.remove def ctx.remains in
-  let currents = DefSet.add def ctx.currents in
+  let remains = BindMap.remove def.bind ctx.remains in
+  let currents = BindMap.add def.bind def ctx.currents in
   { state with expr_ctx = { ctx with remains; currents } }
 
 let end_progress state def type' =
   let ctx = state.expr_ctx in
-  let currents = DefSet.remove def ctx.currents in
-  let dones = BindMap.add (BindExprDef def) type' ctx.dones in
+  let currents = BindMap.remove def.bind ctx.currents in
+  let dones = BindMap.add def.bind type' ctx.dones in
   { state with expr_ctx = { ctx with currents; dones } }
 
 let add_expr_bind bind type' state =
@@ -173,7 +166,7 @@ and check_abs_param param constr =
   | None ->
     return constr
   in
-  add_expr_bind (BindExprVar param.bind) type'
+  add_expr_bind param.bind type'
 
 and check_type_abs abs constr =
   match constr with
@@ -247,13 +240,15 @@ and infer_string _ returner =
 and infer_bind bind returner =
   let* ctx = get_expr_ctx in
   let bind = Option.get !(bind.bind) in
-  match bind with
-  | BindExprDef def when DefSet.mem def ctx.remains ->
+  match BindMap.find_opt bind ctx.remains with
+  | Some def ->
     let* type' = check_def def in
     returner type'
-  | BindExprDef def when DefSet.mem def ctx.currents ->
+  | None ->
+  match BindMap.find_opt bind ctx.currents with
+  | Some def ->
     TypeError.infer_recursive def
-  | _ ->
+  | None ->
     returner (BindMap.find bind ctx.dones)
 
 and infer_tuple tuple returner =
@@ -368,8 +363,7 @@ and infer_abs_param param =
   | Some type' -> validate_type_proper type'
   | None -> TypeError.infer_abs_param param
   in
-  let bind = BindExprVar param.bind in
-  let* _ = add_expr_bind bind type' in
+  let* _ = add_expr_bind param.bind type' in
   return type'
 
 and infer_type_abs abs returner =
@@ -398,7 +392,7 @@ and infer_stmt_body body =
     | None ->
       infer_none expr
     in
-    let* _ = add_expr_bind (BindExprVar var) type' in
+    let* _ = add_expr_bind var type' in
     return ()
   | StmtExpr expr ->
     let* _ = infer_none expr in
@@ -417,9 +411,9 @@ and check_def def state =
     (type', state)
 
 let rec progress_defs state =
-  match DefSet.choose_opt state.expr_ctx.remains with
+  match BindMap.choose_opt state.expr_ctx.remains with
   | None -> state
-  | Some def ->
+  | Some (_, def) ->
     let (_, state) = check_def def state in
     progress_defs state
 
