@@ -1,11 +1,10 @@
 def main = unit
 
 def a = 1 + 1
-def b = (p) -> p + 1
-def c = (p) -> p
-def d = (p) -> 1
-def e = (p) ->
-  if true then
-    p + 1
-  else
-    p
+def b = if true then 1 else "Hello"
+def c = (p) -> 1
+def d = (p) -> p + 1
+def e = (p) -> if true then p + 1 else p
+def f = (p) -> if true then p + 1 else p ++ " World !"
+def g = (p) -> p
+def h = h

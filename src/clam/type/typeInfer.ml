@@ -7,6 +7,8 @@ let cmp_bind a b =
 
 (* CONTEXTS *)
 
+type polarity = Positive | Negative
+
 type def_entry = {
   bind: Abt.bind_expr;
   def: Abt.def_expr;
@@ -19,7 +21,8 @@ type bind_entry = {
 
 type bound_entry = {
   bind: Abt.bind_type;
-  bound: Type.type' list;
+  polarity: polarity;
+  bound: Type.type';
 }
 
 (* STATE *)
@@ -34,6 +37,10 @@ let make_state defs binds =
   let defs = List.map (fun def -> { bind = def.Abt.bind; def }) defs in
   { defs; binds; bounds = [] }
 
+let get_context state =
+  let assumptions = List.map (fun entry -> { TypeContext.bind = entry.bind; bound = entry.bound }) state.bounds in
+  { TypeContext.assumptions }, state
+
 let get_bind_def bind state =
   let entry = List.find (fun (entry: def_entry) -> cmp_bind entry.bind bind) state.defs in
   entry.def, state
@@ -47,9 +54,14 @@ let get_bound bind state =
   let entry = List.find (fun (entry: bound_entry) -> entry.bind == bind) state.bounds in
   entry.bound, state
 
-let add_bound bind type' state =
+let add_bound bind bound state =
   let bounds = List.map (fun (entry: bound_entry) -> if entry.bind == bind then
-    { entry with bound = type' :: entry.bound }
+    let ctx, _ = get_context state in
+    let bound = match entry.polarity with
+    | Positive -> TypeSystem.join ctx entry.bound bound
+    | Negative -> TypeSystem.meet ctx entry.bound bound
+    in
+    { entry with bound }
   else
     entry) state.bounds in
   (), { state with bounds }
@@ -64,8 +76,12 @@ let add_bind bind type' state =
   let state = { state with binds } in
   (), state
 
-let add_var bind state =
-  let bounds = { bind; bound = [] } :: state.bounds in
+let add_var bind polarity state =
+  let bound = match polarity with
+  | Positive -> Type.base (Type.Bot)
+  | Negative -> Type.base (Type.Top)
+  in
+  let bounds = { bind; polarity; bound } :: state.bounds in
   let state = { state with bounds } in
   (), state
 
@@ -84,16 +100,6 @@ end))
 let fresh_var (_: unit) =
   let bind = { Abt.name = "'A" } in
   bind, Type.base (Type.Var { bind })
-
-let get_positive bind =
-  let* bounds = get_bound bind in
-  let bound = List.fold_left (TypeSystem.join TypeContext.empty) (Type.base Type.Bot) bounds in
-  return bound
-
-let get_negative bind =
-  let* bounds = get_bound bind in
-  let bound = List.fold_left (TypeSystem.meet TypeContext.empty) (Type.base Type.Top) bounds in
-  return bound
 
 let unwrap_base type' = List.nth (List.nth (type'.Type.union) 0).inter 0
 
@@ -160,21 +166,23 @@ and infer_if if' =
   let* () = constrain cond' (Type.base Type.Bool) in
   let* then' = infer if'.then' in
   let* else' = infer if'.else' in
-  return (TypeSystem.meet TypeContext.empty then' else')
+  let* ctx = get_context in
+  return (TypeSystem.join ctx then' else')
 
 and infer_abs abs =
   match abs.param.type' with
   | Some type' ->
-    let type' = TypeValidate.validate TypeContext.empty type' in
+    let* ctx = get_context in
+    let type' = TypeValidate.validate ctx type' in
     let* ret = with_bind abs.param.bind type'
       (infer abs.body) in
     return (Type.base (Type.AbsExpr { param = type'; ret }))
   | None ->
     let param_bind, param_type = fresh_var () in
-    let* () = add_var param_bind in
+    let* () = add_var param_bind Negative in
     let* ret = with_bind abs.param.bind param_type
       (infer abs.body) in
-    let* param_bound = get_negative param_bind in
+    let* param_bound = get_bound param_bind in
     if TypeUtils.contains ret param_bind then
       let abs = Type.base (Type.AbsExpr { param = param_type; ret }) in
       return (Type.base (Type.AbsTypeExpr { param = { bind = param_bind; bound = param_bound }; ret = abs }))
@@ -195,7 +203,8 @@ and infer_def def =
   let* () = remove_def def.bind in
   let* type' = match def.type' with
   | Some type' ->
-    let type' = TypeValidate.validate TypeContext.empty type' in
+    let* ctx = get_context in
+    let type' = TypeValidate.validate ctx type' in
     with_bind def.bind type'
       (infer def.expr)
   | None ->
