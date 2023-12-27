@@ -15,9 +15,11 @@ let run code_name code_text writer =
   let (types, all_types) = ModelizeTypes.modelize_program program in
   let (exprs, types) = ModelizeExprs.modelize_program program types all_types in
   let _ = TypeCheck.check_types types in
-  let _ = TypeCheck.check_exprs exprs in
-  let main = (match List.find_opt (fun def -> def.Abt.name = "main") exprs with
+  (* let _ = TypeCheck.check_exprs exprs in *)
+  print_endline "====";
+  let _ = TypeInfer.check_defs exprs Primitive.types in
+  let main = (match List.find_opt (fun def -> def.Abt.bind.name = "main") exprs with
   | Some main -> main
   | None -> Error.raise_main ()
   ) in
-  let _ = RuntimeEval.eval_def main writer in ()
+  let _ = RuntimeEval.eval_def main exprs writer in ()

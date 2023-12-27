@@ -1,1 +1,11 @@
-def main = print("Hello world !")
+def main = unit
+
+def a = 1 + 1
+def b = (p) -> p + 1
+def c = (p) -> p
+def d = (p) -> 1
+def e = (p) ->
+  if true then
+    p + 1
+  else
+    p
