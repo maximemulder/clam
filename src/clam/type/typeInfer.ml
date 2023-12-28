@@ -87,11 +87,6 @@ let add_bind bind type' state =
   let state = { state with types } in
   (), state
 
-let add_var bind state =
-  let bound = { bind; lower = TypePrimitive.bot; upper = TypePrimitive.top } in
-  let state = { state with bounds = bound :: state.bounds } in
-  (), state
-
 let with_bind bind type' f state =
   let types = { bind; type' } :: state.types in
   let state = { state with types } in
@@ -106,11 +101,15 @@ end))
 
 let counter = ref 0
 
-let fresh_var (_: unit) =
+(* TODO: Use a "with" function instead to constrain each bound to its scope *)
+let make_var state =
   let name = "'" ^ string_of_int counter.contents in
   counter := counter.contents + 1;
   let bind = { Abt.name } in
-  bind, Type.base (Type.Var { bind })
+  let type' = Type.base (Type.Var { bind }) in
+  let bound = { bind; lower = TypePrimitive.bot; upper = TypePrimitive.top } in
+  let state = { state with bounds = bound :: state.bounds } in
+  (bind, type'), state
 
 let unwrap_base type' = List.nth (List.nth (type'.Type.union) 0).inter 0
 
@@ -123,6 +122,7 @@ let validate_proper type' =
 (* TYPE INFERENCE *)
 
 let constrain sub sup =
+  print_endline("constrain " ^ TypeDisplay.display sub ^ " " ^ TypeDisplay.display sup);
   match unwrap_base sub, unwrap_base sup with
   | Type.Var sub_var, Type.Var sup_var when sub_var.bind == sup_var.bind ->
     return ()
@@ -188,13 +188,13 @@ and infer_tuple tuple =
   return (Type.base (Type.Tuple { elems }))
 
 and infer_if if' =
+  (* TODO: Do not join but constrain context to both then and else *)
   let* cond' = infer if'.cond in
   let* () = constrain cond' (Type.base Type.Bool) in
   let* then' = infer if'.then' in
   let* else' = infer if'.else' in
   let* ctx = get_context in
-  let a = (TypeSystem.join ctx then' else') in
-  return a
+  return (TypeSystem.join ctx then' else')
 
 and infer_abs abs returner =
   match abs.param.type' with
@@ -204,15 +204,22 @@ and infer_abs abs returner =
       (infer abs.body) in
     return (Type.base (Type.AbsExpr { param = type'; ret }))
   | None ->
-    let param_bind, param_type = fresh_var () in
-    let ret_bind, ret_type = fresh_var () in
-    let* () = add_var param_bind in
-    let* () = add_var ret_bind in
+    let* param_bind, param_type = make_var in
+    let* ret_bind, ret_type = make_var in
     let abs_type = (Type.base (Type.AbsExpr { param = param_type; ret = ret_type })) in
     let* _ = returner abs_type in
     let* ret = with_bind abs.param.bind param_type
       (infer abs.body) in
     let* param_bound = get_upper_bound param_bind in
+    let* lower = get_lower_bound param_bind in
+    let* upper = get_upper_bound param_bind in
+    print_endline("lower param " ^ TypeDisplay.display lower);
+    print_endline("upper param " ^ TypeDisplay.display upper);
+    let* lower = get_lower_bound ret_bind in
+    let* upper = get_upper_bound ret_bind in
+    print_endline("ret " ^ TypeDisplay.display ret);
+    print_endline("lower ret " ^ TypeDisplay.display lower);
+    print_endline("upper ret " ^ TypeDisplay.display upper);
     if TypeUtils.contains ret param_bind then
       let abs = Type.base (Type.AbsExpr { param = param_type; ret }) in
       return (Type.base (Type.AbsTypeExpr { param = { bind = param_bind; bound = param_bound }; ret = abs }))
@@ -237,6 +244,8 @@ and infer_app_type abs arg =
     raise todo
 
 and infer_def def =
+  print_endline("");
+  print_endline("infer def " ^ def.bind.name);
   let* () = remove_def def.bind in
   let* type' = infer_def_type def in
   let* () = add_bind def.bind type' in
@@ -251,8 +260,7 @@ and infer_def_type def =
     let* () = constrain body_type def_type in
     return def_type
   | None ->
-    let var_bind, var_type = fresh_var () in
-    let* () = add_var var_bind in
+    let* var_bind, var_type = make_var in
     let* body_type = with_bind def.bind var_type
       (infer_return def.expr (update_upper_bound var_bind)) in
     let* lower_bound = get_lower_bound var_bind in
