@@ -7,8 +7,6 @@ let cmp_bind a b =
 
 (* CONTEXTS *)
 
-type polarity = Positive | Negative
-
 type entry_def = {
   bind: Abt.bind_expr;
   def: Abt.def_expr;
@@ -21,7 +19,6 @@ type entry_type = {
 
 type entry_bounds = {
   bind: Abt.bind_type;
-  polarity: polarity;
   lower: Type.type';
   upper: Type.type';
 }
@@ -90,8 +87,8 @@ let add_bind bind type' state =
   let state = { state with types } in
   (), state
 
-let add_var bind polarity state =
-  let bound = { bind; polarity; lower = TypePrimitive.bot; upper = TypePrimitive.top } in
+let add_var bind state =
+  let bound = { bind; lower = TypePrimitive.bot; upper = TypePrimitive.top } in
   let state = { state with bounds = bound :: state.bounds } in
   (), state
 
@@ -209,8 +206,8 @@ and infer_abs abs returner =
   | None ->
     let param_bind, param_type = fresh_var () in
     let ret_bind, ret_type = fresh_var () in
-    let* () = add_var param_bind Negative in
-    let* () = add_var ret_bind Positive in
+    let* () = add_var param_bind in
+    let* () = add_var ret_bind in
     let abs_type = (Type.base (Type.AbsExpr { param = param_type; ret = ret_type })) in
     let* _ = returner abs_type in
     let* ret = with_bind abs.param.bind param_type
@@ -255,7 +252,7 @@ and infer_def_type def =
     return def_type
   | None ->
     let var_bind, var_type = fresh_var () in
-    let* () = add_var var_bind Positive in
+    let* () = add_var var_bind in
     let* body_type = with_bind def.bind var_type
       (infer_return def.expr (update_upper_bound var_bind)) in
     let* lower_bound = get_lower_bound var_bind in
