@@ -112,7 +112,7 @@ let make_var state =
   (bind, type'), state
 
 let remove_var bind state =
-  let bounds = List.filter (fun entry -> entry.bind == bind) state.bounds in
+  let bounds = List.filter (fun entry -> not(entry.bind == bind)) state.bounds in
   (), { state with bounds }
 
 let unwrap_base type' = List.nth (List.nth (type'.Type.union) 0).inter 0
@@ -144,7 +144,7 @@ and infer_negative (expr: Abt.expr) =
   let* bind, type' = make_var in
   let* _ = infer_return expr type' in
   let* type' = get_lower_bound bind in
-  (* let* () = remove_var bind in *)
+  let* () = remove_var bind in
   (* print_endline("infer negative " ^ bind.name ^ " " ^ TypeDisplay.display type'); *)
   return type'
 
