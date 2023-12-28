@@ -7,9 +7,9 @@ def d = (p) -> p + 1
 def e = (p) -> if true then p + 1 else p
 def f = (p) -> if true then p + 1 else p ++ " World !"
 def g = (p) -> p
-def h = "h"
+def h = h
 def i = i + 1
-def j = "(p) -> j"
+def j = (p) -> j
 def k = (p) -> k(p)
 def l = (p) -> if p == 0 then l(p - 1) else unit
 def m = (p) -> if true then p else m(p)
