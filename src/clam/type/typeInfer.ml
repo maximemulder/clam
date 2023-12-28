@@ -126,8 +126,9 @@ let validate_proper type' =
 (* TYPE INFERENCE *)
 
 let constrain sub sup =
-  print_endline("constrain " ^ TypeDisplay.display sub ^ " <: " ^ TypeDisplay.display sup);
   match unwrap_base sub, unwrap_base sup with
+  | Type.Var sub_var, Type.Var sup_var when sub_var.bind == sup_var.bind ->
+    return ()
   | Type.Var var, _ ->
     update_upper_bound var.bind sup
   | _, Type.Var var ->
@@ -215,7 +216,6 @@ and infer_abs abs returner =
     let* ret = with_bind abs.param.bind param_type
       (infer abs.body) in
     let* param_bound = get_upper_bound param_bind in
-    let* ret_bound = get_lower_bound ret_bind in
     if TypeUtils.contains ret param_bind then
       let abs = Type.base (Type.AbsExpr { param = param_type; ret }) in
       return (Type.base (Type.AbsTypeExpr { param = { bind = param_bind; bound = param_bound }; ret = abs }))
@@ -240,7 +240,6 @@ and infer_app_type abs arg =
     raise todo
 
 and infer_def def =
-  print_endline("infer def " ^ def.bind.name);
   let* () = remove_def def.bind in
   let* type' = infer_def_type def in
   let* () = add_bind def.bind type' in
@@ -258,7 +257,7 @@ and infer_def_type def =
     let var_bind, var_type = fresh_var () in
     let* () = add_var var_bind Positive in
     let* body_type = with_bind def.bind var_type
-      (infer_return def.expr (return_void)) in
+      (infer_return def.expr (update_upper_bound var_bind)) in
     let* lower_bound = get_lower_bound var_bind in
     let* upper_bound = get_upper_bound var_bind in
     let* () = constrain lower_bound body_type in
