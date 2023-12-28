@@ -9,88 +9,98 @@ let cmp_bind a b =
 
 type polarity = Positive | Negative
 
-type def_entry = {
+type entry_def = {
   bind: Abt.bind_expr;
   def: Abt.def_expr;
 }
 
-type bind_entry = {
+type entry_type = {
   bind: Abt.bind_expr;
   type': Type.type';
 }
 
-type bound_entry = {
+type entry_bounds = {
   bind: Abt.bind_type;
   polarity: polarity;
-  bound: Type.type';
+  lower: Type.type';
+  upper: Type.type';
 }
 
 (* STATE *)
 
 type state = {
-  defs: def_entry list;
-  binds: bind_entry list;
-  bounds: bound_entry list;
+  defs: entry_def list;
+  types: entry_type list;
+  bounds: entry_bounds list;
 }
 
-let make_state defs binds =
+let make_state defs types =
   let defs = List.map (fun def -> { bind = def.Abt.bind; def }) defs in
-  { defs; binds; bounds = [] }
+  { defs; types; bounds = [] }
 
 let get_context state =
-  let assumptions = List.map (fun entry -> { TypeContext.bind = entry.bind; bound = entry.bound }) state.bounds in
+  (* TODO: bounds ??? *)
+  let assumptions = List.map (fun entry -> { TypeContext.bind = entry.bind; bound = entry.upper }) state.bounds in
   { TypeContext.assumptions }, state
 
 let get_bind_def bind state =
-  let entry = List.find (fun (entry: def_entry) -> cmp_bind entry.bind bind) state.defs in
+  let entry = List.find (fun (entry: entry_def) -> cmp_bind entry.bind bind) state.defs in
   entry.def, state
 
 let get_bind_type bind state =
-  let entry = List.find_opt (fun (entry: bind_entry) -> cmp_bind entry.bind bind) state.binds in
+  let entry = List.find_opt (fun (entry: entry_type) -> cmp_bind entry.bind bind) state.types in
   let type' = Option.map (fun entry -> entry.type')  entry in
   type', state
 
-let get_bound bind state =
-  let entry = List.find (fun (entry: bound_entry) -> entry.bind == bind) state.bounds in
-  entry.bound, state
+let get_lower_bound bind state =
+  let entry = List.find (fun (entry: entry_bounds) -> entry.bind == bind) state.bounds in
+  entry.lower, state
 
-let add_bound bind bound state =
-  let bounds = List.map (fun (entry: bound_entry) -> if entry.bind == bind then
-    let ctx, _ = get_context state in
-    let bound = match entry.polarity with
-    | Positive -> TypeSystem.join ctx entry.bound bound
-    | Negative -> TypeSystem.meet ctx entry.bound bound
-    in
-    { entry with bound }
-  else
-    entry) state.bounds in
+let get_upper_bound bind state =
+  let entry = List.find (fun (entry: entry_bounds) -> entry.bind == bind) state.bounds in
+  entry.upper, state
+
+let update_upper_bound bind bound state =
+  let bounds = List.map (fun (entry: entry_bounds) ->
+    if entry.bind == bind then
+      let ctx, _ = get_context state in
+      { entry with upper = TypeSystem.meet ctx entry.upper bound }
+    else
+      entry
+    ) state.bounds in
+  (), { state with bounds }
+
+let update_lower_bound bind bound state =
+  let bounds = List.map (fun (entry: entry_bounds) ->
+    if entry.bind == bind then
+      let ctx, _ = get_context state in
+      { entry with lower = TypeSystem.join ctx entry.lower bound }
+    else
+      entry
+    ) state.bounds in
   (), { state with bounds }
 
 let remove_def bind state =
-  let defs = List.filter (fun (entry: def_entry) -> not (cmp_bind entry.bind bind)) state.defs in
+  let defs = List.filter (fun (entry: entry_def) -> not (cmp_bind entry.bind bind)) state.defs in
   let state = { state with defs } in
   (), state
 
 let add_bind bind type' state =
-  let binds = { bind; type' } :: state.binds in
-  let state = { state with binds } in
+  let types = { bind; type' } :: state.types in
+  let state = { state with types } in
   (), state
 
 let add_var bind polarity state =
-  let bound = match polarity with
-  | Positive -> Type.base (Type.Bot)
-  | Negative -> Type.base (Type.Top)
-  in
-  let bounds = { bind; polarity; bound } :: state.bounds in
-  let state = { state with bounds } in
+  let bound = { bind; polarity; lower = TypePrimitive.bot; upper = TypePrimitive.top } in
+  let state = { state with bounds = bound :: state.bounds } in
   (), state
 
 let with_bind bind type' f state =
-  let binds = { bind; type' } :: state.binds in
-  let state = { state with binds } in
+  let types = { bind; type' } :: state.types in
+  let state = { state with types } in
   let x, state = f state in
-  let binds = List.filter (fun (entry: bind_entry) -> not (cmp_bind entry.bind bind)) state.binds in
-  let state = { state with binds } in
+  let types = List.filter (fun (entry: entry_type) -> not (cmp_bind entry.bind bind)) state.types in
+  let state = { state with types } in
   x, state
 
 open Monad.Monad(Monad.StateMonad(struct
@@ -116,13 +126,21 @@ let validate_proper type' =
 (* TYPE INFERENCE *)
 
 let constrain sub sup =
-  match unwrap_base sub, sup with
+  print_endline("constrain " ^ TypeDisplay.display sub ^ " <: " ^ TypeDisplay.display sup);
+  match unwrap_base sub, unwrap_base sup with
   | Type.Var var, _ ->
-    add_bound var.bind sup
+    update_upper_bound var.bind sup
+  | _, Type.Var var ->
+    update_lower_bound var.bind sub
   | _, _ ->
     return ()
 
+let return_void _ state = (), state
+
 let rec infer (expr: Abt.expr) =
+  infer_return expr return_void
+
+and infer_return expr returner =
   match expr with
   | ExprUnit unit ->
     infer_unit unit
@@ -139,7 +157,7 @@ let rec infer (expr: Abt.expr) =
   | ExprIf if' ->
     infer_if if'
   | ExprAbs abs ->
-    infer_abs abs
+    infer_abs abs returner
   | ExprApp app ->
     infer_app app
   | _ ->
@@ -177,9 +195,10 @@ and infer_if if' =
   let* then' = infer if'.then' in
   let* else' = infer if'.else' in
   let* ctx = get_context in
-  return (TypeSystem.join ctx then' else')
+  let a = (TypeSystem.join ctx then' else') in
+  return a
 
-and infer_abs abs =
+and infer_abs abs returner =
   match abs.param.type' with
   | Some type' ->
     let* type' = validate_proper type' in
@@ -188,10 +207,15 @@ and infer_abs abs =
     return (Type.base (Type.AbsExpr { param = type'; ret }))
   | None ->
     let param_bind, param_type = fresh_var () in
+    let ret_bind, ret_type = fresh_var () in
     let* () = add_var param_bind Negative in
+    let* () = add_var ret_bind Positive in
+    let abs_type = (Type.base (Type.AbsExpr { param = param_type; ret = ret_type })) in
+    let* _ = returner abs_type in
     let* ret = with_bind abs.param.bind param_type
       (infer abs.body) in
-    let* param_bound = get_bound param_bind in
+    let* param_bound = get_upper_bound param_bind in
+    let* ret_bound = get_lower_bound ret_bind in
     if TypeUtils.contains ret param_bind then
       let abs = Type.base (Type.AbsExpr { param = param_type; ret }) in
       return (Type.base (Type.AbsTypeExpr { param = { bind = param_bind; bound = param_bound }; ret = abs }))
@@ -201,14 +225,22 @@ and infer_abs abs =
 and infer_app app =
   let* abs = infer app.expr in
   let* arg = infer app.arg in
+  infer_app_type abs arg
+
+and infer_app_type abs arg =
   match unwrap_base abs with
   | AbsExpr abs ->
     let* () = constrain arg abs.param in
     return abs.ret
+  | Var _ ->
+    let* ctx = get_context in
+    let abs = TypeSystem.promote ctx abs in
+    infer_app_type abs arg
   | _ ->
     raise todo
 
 and infer_def def =
+  print_endline("infer def " ^ def.bind.name);
   let* () = remove_def def.bind in
   let* type' = infer_def_type def in
   let* () = add_bind def.bind type' in
@@ -226,9 +258,11 @@ and infer_def_type def =
     let var_bind, var_type = fresh_var () in
     let* () = add_var var_bind Positive in
     let* body_type = with_bind def.bind var_type
-      (infer def.expr) in
-    let* bound_type = get_bound var_bind in
-    let* () = constrain bound_type body_type in
+      (infer_return def.expr (return_void)) in
+    let* lower_bound = get_lower_bound var_bind in
+    let* upper_bound = get_upper_bound var_bind in
+    let* () = constrain lower_bound body_type in
+    let* () = constrain body_type upper_bound in
     if TypeUtils.contains body_type var_bind then
       TypeError.infer_recursive_type def
     else
@@ -246,4 +280,4 @@ let check_defs defs primitives =
   let primitives = List.map (fun primitive -> { bind = fst primitive; type' = snd primitive }) primitives in
   let state = make_state defs primitives in
   let state = check_defs state in
-  List.iter (fun (e: bind_entry) -> print_endline(e.bind.name ^ ": " ^ TypeDisplay.display e.type')) state.binds
+  List.iter (fun (e: entry_type) -> print_endline(e.bind.name ^ ": " ^ TypeDisplay.display e.type')) state.types

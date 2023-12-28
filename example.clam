@@ -10,4 +10,5 @@ def g = (p) -> p
 def h = "h"
 def i = i + 1
 def j = "(p) -> j"
-def k = (p) -> if p == 0 then k(p - 1) else unit
+def k = "(p) -> if p == 0 then k(p - 1) else unit"
+def l = "(p) -> if true then p else l(p)"
