@@ -59,7 +59,7 @@ let get_upper_bound bind state =
   let entry = List.find (fun (entry: entry_bounds) -> entry.bind == bind) state.bounds in
   entry.upper, state
 
-let update_upper_bound bind bound state =
+let set_upper_bound bind bound state =
   let bounds = List.map (fun (entry: entry_bounds) ->
     if entry.bind == bind then
       let ctx, _ = get_context state in
@@ -69,7 +69,7 @@ let update_upper_bound bind bound state =
     ) state.bounds in
   (), { state with bounds }
 
-let update_lower_bound bind bound state =
+let set_lower_bound bind bound state =
   let bounds = List.map (fun (entry: entry_bounds) ->
     if entry.bind == bind then
       let ctx, _ = get_context state in
@@ -78,6 +78,10 @@ let update_lower_bound bind bound state =
       entry
     ) state.bounds in
   (), { state with bounds }
+
+let get_level bind state =
+  let entry = List.find (fun (entry: entry_bounds) -> entry.bind == bind) state.bounds in
+  entry.level, state
 
 let remove_def bind state =
   let defs = List.filter (fun (entry: entry_def) -> not (cmp_bind entry.bind bind)) state.defs in
@@ -97,39 +101,51 @@ let with_bind bind type' f state =
   let state = { state with types } in
   x, state
 
+let with_level level f state =
+  let save = state.level in
+  let state = { state with level } in
+  let x, state = f state in
+  let state = { state with level = save } in
+  x, state
+
+let with_level_inc f state =
+  with_level (state.level + 1) f state
+
 open Monad.Monad(Monad.StateMonad(struct
   type s = state
 end))
 
+(* I use a global counter so that each variable has a distinct name, which is easier for debugging *)
 let counter = ref 0
 
-(* TODO: Use a "with" function instead to constrain each bound to its scope *)
 let make_var state =
-  let name = "'" ^ string_of_int counter.contents in
+  let bind = { Abt.name = "'" ^ string_of_int counter.contents } in
   counter := counter.contents + 1;
-  let bind = { Abt.name } in
   let type' = Type.base (Type.Var { bind }) in
   let bound = { bind; level = state.level; lower = TypePrimitive.bot; upper = TypePrimitive.top } in
   let state = { state with bounds = bound :: state.bounds } in
   (bind, type'), state
 
+(* TODO: The variable should always be the first in the list. Check that is the case and change this function *)
 let remove_var bind state =
   let bounds = List.filter (fun entry -> entry.bind != bind) state.bounds in
   (), { state with bounds }
 
 let with_var f =
   let* bind, type' = make_var in
-  let* type' = f bind type' in
-  let* type' = if TypeUtils.contains type' bind then
-    let* bound = get_upper_bound bind in
-    let param = { Type.bind; Type.bound } in
-    return (Type.base (Type.AbsTypeExpr { param; ret = type' }))
-  else
+  with_level_inc (
+    let* type' = f bind type' in
+    let* type' = if TypeUtils.contains type' bind then
+      let* bound = get_upper_bound bind in
+      let param = { Type.bind; Type.bound } in
+      return (Type.base (Type.AbsTypeExpr { param; ret = type' }))
+    else
+      return type'
+    in
+    (* TODO: Prevent variables from escaping and uncomment this *)
+    (* let* () = remove_var bind in *)
     return type'
-  in
-  (* TODO: Prevent variables from escaping and uncomment this *)
-  (* let* () = remove_var bind in *)
-  return type'
+  )
 
 let unwrap_base type' = List.nth (List.nth (type'.Type.union) 0).inter 0
 
@@ -168,16 +184,20 @@ and search_base ctx f type' =
 
 (* TYPE INFERENCE *)
 
-let constrain sub sup =
+let rec constrain sub sup =
   print_endline("constrain `" ^ TypeDisplay.display sub ^ "` < `" ^ TypeDisplay.display sup ^ "`");
   match unwrap_base sub, unwrap_base sup with
   (* TODO: Var escape *)
   | Type.Var sub_var, Type.Var sup_var when sub_var.bind == sup_var.bind ->
     return ()
-  | _, Type.Var var ->
-    update_lower_bound var.bind sub
-  | Type.Var var, _ ->
-    update_upper_bound var.bind sup
+  | _, Type.Var sup_var ->
+    let* () = set_lower_bound sup_var.bind sub in
+    let* sup_upper = get_upper_bound sup_var.bind in
+    constrain sub sup_upper
+  | Type.Var sub_var, _ ->
+    let* () = set_upper_bound sub_var.bind sup in
+    let* sub_lower = get_lower_bound sub_var.bind in
+    constrain sub_lower sup
   | _, _ ->
     return ()
 
@@ -287,8 +307,6 @@ and infer_attr_type name record =
     | _ ->
       None
 
-(* TODO: It is probably wrong that the function is instanciated multiples times *)
-(* Also the variables are not constrained to their scope *)
 and infer_abs abs parent =
   let* type' = match abs.param.type' with
   | Some type' ->
@@ -352,22 +370,25 @@ and infer_def def =
 and infer_def_type def =
   print_endline("");
   print_endline("infer def " ^ def.bind.name);
-  match def.type' with
-  | Some def_type ->
-    let* def_type = validate_proper def_type in
-    let* body_type = with_bind def.bind def_type
-      (infer def.expr) in
-    let* () = constrain body_type def_type in
-    return def_type
-  | None ->
-    let* var_bind, var_type = make_var in
-    let* () = with_bind def.bind var_type
-      (infer_parent def.expr var_type) in
-    let* lower_bound = get_lower_bound var_bind in
-    if TypeUtils.contains lower_bound var_bind then
-      TypeError.infer_recursive_type def
-    else
-      return lower_bound
+  with_level 0 (
+    match def.type' with
+    | Some def_type ->
+      let* def_type = validate_proper def_type in
+      let* body_type = with_bind def.bind def_type
+        (infer def.expr) in
+      let* () = constrain body_type def_type in
+      return def_type
+    | None ->
+      with_var (fun var_bind var_type ->
+        let* () = with_bind def.bind var_type
+          (infer_parent def.expr var_type) in
+        let* lower_bound = get_lower_bound var_bind in
+        if TypeUtils.contains lower_bound var_bind then
+          TypeError.infer_recursive_type def
+        else
+          return lower_bound
+      )
+  )
 
 let rec check_defs state =
   match state.defs with
