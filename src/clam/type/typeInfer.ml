@@ -19,6 +19,7 @@ type entry_type = {
 
 type entry_bounds = {
   bind: Abt.bind_type;
+  level: int;
   lower: Type.type';
   upper: Type.type';
 }
@@ -26,6 +27,7 @@ type entry_bounds = {
 (* STATE *)
 
 type state = {
+  level: int;
   defs: entry_def list;
   types: entry_type list;
   bounds: entry_bounds list;
@@ -33,7 +35,7 @@ type state = {
 
 let make_state defs types =
   let defs = List.map (fun def -> { bind = def.Abt.bind; def }) defs in
-  { defs; types; bounds = [] }
+  { level = 0; defs; types; bounds = [] }
 
 let get_context state =
   (* TODO: bounds ??? *)
@@ -107,7 +109,7 @@ let make_var state =
   counter := counter.contents + 1;
   let bind = { Abt.name } in
   let type' = Type.base (Type.Var { bind }) in
-  let bound = { bind; lower = TypePrimitive.bot; upper = TypePrimitive.top } in
+  let bound = { bind; level = state.level; lower = TypePrimitive.bot; upper = TypePrimitive.top } in
   let state = { state with bounds = bound :: state.bounds } in
   (bind, type'), state
 
@@ -118,7 +120,15 @@ let remove_var bind state =
 let with_var f =
   let* bind, type' = make_var in
   let* type' = f bind type' in
-  let* () = remove_var bind in
+  let* type' = if TypeUtils.contains type' bind then
+    let* bound = get_upper_bound bind in
+    let param = { Type.bind; Type.bound } in
+    return (Type.base (Type.AbsTypeExpr { param; ret = type' }))
+  else
+    return type'
+  in
+  (* TODO: Prevent variables from escaping and uncomment this *)
+  (* let* () = remove_var bind in *)
   return type'
 
 let unwrap_base type' = List.nth (List.nth (type'.Type.union) 0).inter 0
@@ -156,17 +166,12 @@ and search_base ctx f type' =
   | _ ->
     f type'
 
-module SearcherProj = struct
-  type t = Type.type'
-  let bot = TypePrimitive.bot
-  let join = TypeSystem.join
-  let meet = TypeSystem.meet
-end
-
 (* TYPE INFERENCE *)
 
 let constrain sub sup =
+  print_endline("constrain `" ^ TypeDisplay.display sub ^ "` < `" ^ TypeDisplay.display sup ^ "`");
   match unwrap_base sub, unwrap_base sup with
+  (* TODO: Var escape *)
   | Type.Var sub_var, Type.Var sup_var when sub_var.bind == sup_var.bind ->
     return ()
   | _, Type.Var var ->
@@ -285,26 +290,26 @@ and infer_attr_type name record =
 (* TODO: It is probably wrong that the function is instanciated multiples times *)
 (* Also the variables are not constrained to their scope *)
 and infer_abs abs parent =
-  match abs.param.type' with
+  let* type' = match abs.param.type' with
   | Some type' ->
     let* type' = validate_proper type' in
     let* ret = with_bind abs.param.bind type'
       (infer abs.body) in
-    constrain (Type.base (Type.AbsExpr { param = type'; ret })) parent
+    return (Type.base (Type.AbsExpr { param = type'; ret }))
   | None ->
-    let* param_bind, param_type = make_var in
-    let* ret_bind, ret_type = make_var in
-    let abs_type = (Type.base (Type.AbsExpr { param = param_type; ret = ret_type })) in
-    let* () = constrain parent abs_type in
-    let* () = with_bind abs.param.bind param_type
-      (infer_parent abs.body ret_type) in
-    let* param_bound = get_upper_bound param_bind in
-    let* ret_bound = get_lower_bound ret_bind in
-    if TypeUtils.contains ret_bound param_bind then
-      let abs = Type.base (Type.AbsExpr { param = param_type; ret = ret_bound }) in
-      constrain (Type.base (Type.AbsTypeExpr { param = { bind = param_bind; bound = param_bound }; ret = abs })) parent
-    else
-      constrain (Type.base (Type.AbsExpr { param = param_bound; ret = ret_bound })) parent
+    with_var (fun param_bind param_type ->
+      with_var (fun ret_bind ret_type ->
+        let abs_type = (Type.base (Type.AbsExpr { param = param_type; ret = ret_type })) in
+        let* () = constrain parent abs_type in
+        let* () = with_bind abs.param.bind param_type
+          (infer_parent abs.body ret_type) in
+        let* param_bound = get_upper_bound param_bind in
+        let* ret_bound = get_lower_bound ret_bind in
+        return (Type.base (Type.AbsExpr { param = param_bound; ret = ret_bound }))
+      )
+    )
+  in
+  constrain type' parent
 
 and infer_app app parent =
   let* abs = infer app.expr in
@@ -345,6 +350,8 @@ and infer_def def =
   return type'
 
 and infer_def_type def =
+  print_endline("");
+  print_endline("infer def " ^ def.bind.name);
   match def.type' with
   | Some def_type ->
     let* def_type = validate_proper def_type in

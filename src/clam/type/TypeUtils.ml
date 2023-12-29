@@ -15,13 +15,13 @@ and contains_base bind type' =
   | Record record ->
     Utils.NameMap.exists (contains_attr bind) record.attrs
   | AbsExpr abs ->
-    contains bind abs.param && contains bind abs.ret
+    contains bind abs.param || contains bind abs.ret
   | AbsTypeExpr abs ->
-    contains_param bind abs.param && contains bind abs.ret
+    contains_param bind abs.param || contains bind abs.ret
   | Abs abs ->
-    contains_param bind abs.param && contains bind abs.body
+    contains_param bind abs.param || contains bind abs.body
   | App app ->
-    contains bind app.abs && contains bind app.arg
+    contains bind app.abs || contains bind app.arg
   | _ -> false
 
 and contains_param bind param =
