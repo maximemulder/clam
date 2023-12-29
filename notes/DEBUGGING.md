@@ -1,12 +1,11 @@
 # Subtyping
 
-## Unions and intersections
+## Print stack trace
+```
+export OCAMLRUNPARAM=b;
+```
 
-The order of the subtyping pattern matching is important. Notably, the left union should appear before the right union and intersection, which should appear before the left intersection.
-
-## Debugging subtyping
-
-The following code can be used to debug subtyping by printing the subtyping steps. The `isa` function must be renamed to `isa2`.
+## Print subtyping
 
 ```
 and indent_n = ref 0
@@ -47,38 +46,18 @@ and meet c l r =
     ^ "   " ^ (string_of_bool res));
 ```
 
-Print stack trace:
+## Print inference
+
 ```
-export OCAMLRUNPARAM=b;
+print_endline("constrain `" ^ TypeDisplay.display sub ^ "` < `" ^ TypeDisplay.display sup ^ "`");
+
+let* lower = get_lower_bound param_bind in
+let* upper = get_upper_bound param_bind in
+print_endline("param `" ^ TypeDisplay.display lower ^ "` < `" ^ TypeDisplay.display upper ^ "`");
+let* lower = get_lower_bound ret_bind in
+let* upper = get_upper_bound ret_bind in
+print_endline("ret `" ^ TypeDisplay.display lower ^ "` < `" ^ TypeDisplay.display upper ^ "`");
+
+print_endline("");
+print_endline("infer def " ^ def.bind.name);
 ```
-
-## Type representation
-
-It may be a good idea to create a (OCaml) type for normalized (Clam) types.
-
-All types would always be in their DNF form. And applications would always be applied when possible.
-
-Example:
-```
-type type' =
-  type_literal list list
-
-type_literal =
-  | Int type_int
-  | Tuple type_tuple
-  ...
-
-type_int {
-  pos: pos;
-}
-
-type_tuple {
-  pos: pos;
-  elems: type'
-}
-```
-
-## TODO
-
-- Finish higher order subtyping
-- Add more tests
