@@ -2,143 +2,10 @@
 
 let todo = (Failure "TODO")
 
-let cmp_bind a b =
-  a.Abt.id = b.Abt.id
-
-(* CONTEXTS *)
-
-type entry_def = {
-  bind: Abt.bind_expr;
-  def: Abt.def_expr;
-}
-
-type entry_type = {
-  bind: Abt.bind_expr;
-  type': Type.type';
-}
-
-type entry_bounds = {
-  bind: Abt.bind_type;
-  level: int;
-  lower: Type.type';
-  upper: Type.type';
-}
-
-(* STATE *)
-
-type state = {
-  level: int;
-  defs: entry_def list;
-  types: entry_type list;
-  bounds: entry_bounds list;
-}
-
-let make_state defs types =
-  let defs = List.map (fun def -> { bind = def.Abt.bind; def }) defs in
-  { level = 0; defs; types; bounds = [] }
-
-let get_context state =
-  (* TODO: bounds ??? *)
-  let assumptions = List.map (fun entry -> { TypeContext.bind = entry.bind; bound = entry.upper }) state.bounds in
-  { TypeContext.assumptions }, state
-
-let get_bind_def bind state =
-  let entry = List.find (fun (entry: entry_def) -> cmp_bind entry.bind bind) state.defs in
-  entry.def, state
-
-let get_bind_type bind state =
-  let entry = List.find_opt (fun (entry: entry_type) -> cmp_bind entry.bind bind) state.types in
-  let type' = Option.map (fun entry -> entry.type')  entry in
-  type', state
-
-let get_lower_bound bind state =
-  let entry = List.find (fun (entry: entry_bounds) -> entry.bind == bind) state.bounds in
-  entry.lower, state
-
-let get_upper_bound bind state =
-  let entry = List.find (fun (entry: entry_bounds) -> entry.bind == bind) state.bounds in
-  entry.upper, state
-
-let set_upper_bound bind bound state =
-  let bounds = List.map (fun (entry: entry_bounds) ->
-    if entry.bind == bind then
-      let ctx, _ = get_context state in
-      { entry with upper = TypeSystem.meet ctx entry.upper bound }
-    else
-      entry
-    ) state.bounds in
-  (), { state with bounds }
-
-let set_lower_bound bind bound state =
-  let bounds = List.map (fun (entry: entry_bounds) ->
-    if entry.bind == bind then
-      let ctx, _ = get_context state in
-      { entry with lower = TypeSystem.join ctx entry.lower bound }
-    else
-      entry
-    ) state.bounds in
-  (), { state with bounds }
-
-let get_level bind state =
-  let entry = List.find (fun (entry: entry_bounds) -> entry.bind == bind) state.bounds in
-  entry.level, state
-
-let remove_def bind state =
-  let defs = List.filter (fun (entry: entry_def) -> not (cmp_bind entry.bind bind)) state.defs in
-  let state = { state with defs } in
-  (), state
-
-let add_bind bind type' state =
-  let types = { bind; type' } :: state.types in
-  let state = { state with types } in
-  (), state
-
-let with_bind bind type' f state =
-  let types = { bind; type' } :: state.types in
-  let state = { state with types } in
-  let x, state = f state in
-  let types = List.filter (fun (entry: entry_type) -> not (cmp_bind entry.bind bind)) state.types in
-  let state = { state with types } in
-  x, state
-
-let with_level level f state =
-  let save = state.level in
-  let state = { state with level } in
-  let x, state = f state in
-  let state = { state with level = save } in
-  x, state
-
-let with_level_inc f state =
-  with_level (state.level + 1) f state
-
-open Monad.Monad(Monad.StateMonad(struct
-  type s = state
-end))
-
-(* I use a global counter so that each variable has a distinct name, which is easier for debugging *)
-let counter = ref 0
-
-let make_var state =
-  let bind = { Abt.name = "'" ^ string_of_int counter.contents } in
-  counter := counter.contents + 1;
-  let type' = Type.base (Type.Var { bind }) in
-  let bound = { bind; level = state.level; lower = TypePrimitive.bot; upper = TypePrimitive.top } in
-  let state = { state with bounds = bound :: state.bounds } in
-  (bind, type'), state
-
-(* TODO: The variable should always be the first in the list. Check that is the case and change this function *)
-let remove_var bind state =
-  let bounds = List.filter (fun entry -> entry.bind != bind) state.bounds in
-  (), { state with bounds }
-
-let with_var f =
-  let* bind, type' = make_var in
-  let* type' = with_level_inc (f bind type') in
-  (* TODO: Prevent variables from escaping and uncomment this *)
-  (* let* () = remove_var bind in *)
-  return type'
-
 let unwrap_base type' = List.nth (List.nth (type'.Type.union) 0).inter 0
+
+open TypeState
+open TypeConstrain
 
 (* VALIDATE *)
 
@@ -175,117 +42,80 @@ and search_base ctx f type' =
 
 (* TYPE INFERENCE *)
 
-let rec constrain sub sup =
-  print_endline("constrain `" ^ TypeDisplay.display sub ^ "` < `" ^ TypeDisplay.display sup ^ "`");
-  match unwrap_base sub, unwrap_base sup with
-  | Type.Var sub_var, Type.Var sup_var ->
-    let* sub_level = get_level sub_var.bind in
-    let* sup_level = get_level sup_var.bind in
-    if sub_level < sup_level then
-      constrain_var_sup sup_var sub
-    else
-    if sub_level > sup_level then
-      constrain_var_sub sub_var sup
-    else
-      return ()
-  | Type.Var sub_var, _ ->
-    constrain_var_sub sub_var sup
-  | _, Type.Var sup_var ->
-    constrain_var_sup sup_var sub
-  | _, _ ->
-    return ()
-
-and constrain_var_sub sub_var sup =
-  let* () = set_upper_bound sub_var.bind sup in
-  let* sub_lower = get_lower_bound sub_var.bind in
-  constrain sub_lower sup
-
-and constrain_var_sup sup_var sub =
-  let* () = set_lower_bound sup_var.bind sub in
-  let* sup_upper = get_upper_bound sup_var.bind in
-  constrain sub sup_upper
-
-
 let rec infer (expr: Abt.expr) =
-  with_var (fun bind type' ->
-    let* () = infer_parent expr type' in
-    get_lower_bound bind
-  )
-
-and infer_parent expr parent =
   match expr with
   | ExprUnit unit ->
-    infer_unit unit parent
+    infer_unit unit
   | ExprBool bool ->
-    infer_bool bool parent
+    infer_bool bool
   | ExprInt int ->
-    infer_int int parent
+    infer_int int
   | ExprString string ->
-    infer_string string parent
+    infer_string string
   | ExprBind bind ->
-    infer_bind bind parent
+    infer_bind bind
   | ExprTuple tuple ->
-    infer_tuple tuple parent
+    infer_tuple tuple
   | ExprRecord record ->
-    infer_record record parent
+    infer_record record
   | ExprElem elem ->
-    infer_elem elem parent
+    infer_elem elem
   | ExprAttr attr ->
-    infer_attr attr parent
+    infer_attr attr
   | ExprIf if' ->
-    infer_if if' parent
+    infer_if if'
   | ExprAbs abs ->
-    infer_abs abs parent
+    infer_abs abs
   | ExprApp app ->
-    infer_app app parent
+    infer_app app
   | ExprAscr ascr ->
-    infer_ascr ascr parent
+    infer_ascr ascr
   | _ ->
     print_endline "TODO INFER";
     raise todo
 
-and infer_unit _ parent =
-  constrain TypePrimitive.unit parent
+and infer_unit _ =
+  return TypePrimitive.unit
 
-and infer_bool _ parent =
-  constrain TypePrimitive.bool parent
+and infer_bool _ =
+  return TypePrimitive.bool
 
-and infer_int _ parent =
-  constrain TypePrimitive.int parent
+and infer_int _ =
+  return TypePrimitive.int
 
-and infer_string _ parent =
-  constrain TypePrimitive.string parent
+and infer_string _ =
+  return TypePrimitive.string
 
-and infer_bind bind parent =
+and infer_bind bind =
   let bind = Option.get !(bind.bind) in
   let* type' = get_bind_type bind in
   match type' with
   | Some type' ->
-    constrain type' parent
+    return type'
   | None ->
-  let* def = get_bind_def bind in
-  let* type' = infer_def def in
-  constrain type' parent
+    let* def = get_bind_def bind in
+    let* type' = infer_def def in
+    return type'
 
-and infer_tuple tuple parent =
+and infer_tuple tuple =
   let* elems = map_list infer tuple.elems in
-  constrain (Type.base (Type.Tuple { elems })) parent
+  return (Type.base (Type.Tuple { elems }))
 
-and infer_record record parent =
+and infer_record record =
   let* attrs = map_list infer_record_attr record.attrs in
   let attrs = List.fold_left (fun map (attr: Type.attr) -> Utils.NameMap.add attr.name attr map) Utils.NameMap.empty attrs in
-  constrain (Type.base (Type.Record { attrs })) parent
+  return (Type.base (Type.Record { attrs }))
 
 and infer_record_attr attr =
   let* type' = infer attr.expr in
   return { Type.name = attr.name; type' }
 
-and infer_elem elem parent =
+and infer_elem elem =
   let* tuple = infer elem.expr in
   let* ctx = get_context in
   match search ctx (infer_elem_type elem.index) tuple with
   | Some type' ->
-    constrain type' parent
+    return type'
   | None ->
     TypeError.infer_elem elem tuple
 
@@ -296,25 +126,25 @@ and infer_elem_type index tuple  =
   | _ ->
     None
 
-and infer_attr attr parent =
+and infer_attr attr =
   let* record = infer attr.expr in
   let* ctx = get_context in
   match search ctx (infer_attr_type attr.name) record with
   | Some type' ->
-    constrain type' parent
+    return type'
   | None ->
     TypeError.infer_attr attr record
 
 and infer_attr_type name record =
-    match record with
-    | Record record ->
-      Utils.NameMap.find_opt name record.attrs
-      |> Option.map (fun (attr: Type.attr) -> attr.type')
-    | _ ->
-      None
+  match record with
+  | Record record ->
+    Utils.NameMap.find_opt name record.attrs
+    |> Option.map (fun (attr: Type.attr) -> attr.type')
+  | _ ->
+    None
 
-and infer_abs abs parent =
-  let* type' = match abs.param.type' with
+and infer_abs abs =
+  match abs.param.type' with
   | Some type' ->
     let* type' = validate_proper type' in
     let* ret = with_bind abs.param.bind type'
@@ -323,10 +153,9 @@ and infer_abs abs parent =
   | None ->
     with_var (fun param_bind param_type ->
       with_var (fun ret_bind ret_type ->
-        let abs_type = (Type.base (Type.AbsExpr { param = param_type; ret = ret_type })) in
-        let* () = constrain parent abs_type in
-        let* () = with_bind abs.param.bind param_type
-          (infer_parent abs.body ret_type) in
+        let* body = with_bind abs.param.bind param_type
+          (infer abs.body) in
+        let* () = constrain body ret_type in
         let* param_bound = get_upper_bound param_bind in
         let* ret_bound = get_lower_bound ret_bind in
         if TypeUtils.contains ret_bound param_bind then
@@ -336,41 +165,31 @@ and infer_abs abs parent =
           return (Type.base (Type.AbsExpr { param = param_bound; ret = ret_bound }))
       )
     )
-  in
-  constrain type' parent
 
-and infer_app app parent =
-  let* abs = infer app.expr in
-  let* arg = infer app.arg in
-  let* type' = infer_app_type abs arg in
-  constrain type' parent
+and infer_app app =
+  with_var (fun ret_bind ret_type ->
+    let* abs = infer app.expr in
+    let* arg = infer app.arg in
+    let abs_type = Type.base (Type.AbsExpr { param = arg; ret = ret_type }) in
+    let* () = constrain abs abs_type in
+    let* ret = get_lower_bound ret_bind in
+    return ret
+  )
 
-and infer_app_type abs arg =
-  match unwrap_base abs with
-  | AbsExpr abs ->
-    let* () = constrain arg abs.param in
-    return abs.ret
-  | Var _ ->
-    let* ctx = get_context in
-    let abs = TypeSystem.promote ctx abs in
-    infer_app_type abs arg
-  | _ ->
-    print_endline("TODO APP " ^ TypeDisplay.display abs);
-    raise todo
-
-and infer_ascr ascr parent =
+and infer_ascr ascr =
   let* type' = validate_proper ascr.type' in
-  let* () = infer_parent ascr.expr type' in
-  constrain type' parent
+  let* body = infer ascr.expr in
+  let* () = constrain body type' in
+  return type'
 
-and infer_if if' parent =
+and infer_if if' =
   let* cond' = infer if'.cond in
   let* () = constrain cond' TypePrimitive.bool in
   let* then' = infer if'.then' in
   let* else' = infer if'.else' in
-  let* () = constrain then' parent in
-  let* () = constrain else' parent in
-  return ()
+  let* ctx = get_context in
+  let type' = TypeSystem.join ctx then' else' in
+  return type'
 
 and infer_def def =
   let* () = remove_def def.bind in
@@ -391,8 +210,9 @@ and infer_def_type def =
       return def_type
     | None ->
       with_var (fun var_bind var_type ->
-        let* () = with_bind def.bind var_type
-          (infer_parent def.expr var_type) in
+        let* body = with_bind def.bind var_type
+          (infer def.expr) in
+        let* () = constrain body var_type in
         let* lower_bound = get_lower_bound var_bind in
         if TypeUtils.contains lower_bound var_bind then
           TypeError.infer_recursive_type def
