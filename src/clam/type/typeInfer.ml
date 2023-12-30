@@ -133,19 +133,10 @@ let remove_var bind state =
 
 let with_var f =
   let* bind, type' = make_var in
-  with_level_inc (
-    let* type' = f bind type' in
-    let* type' = if TypeUtils.contains type' bind then
-      let* bound = get_upper_bound bind in
-      let param = { Type.bind; Type.bound } in
-      return (Type.base (Type.AbsTypeExpr { param; ret = type' }))
-    else
-      return type'
-    in
-    (* TODO: Prevent variables from escaping and uncomment this *)
-    (* let* () = remove_var bind in *)
-    return type'
-  )
+  let* type' = with_level_inc (f bind type') in
+  (* TODO: Prevent variables from escaping and uncomment this *)
+  (* let* () = remove_var bind in *)
+  return type'
 
 let unwrap_base type' = List.nth (List.nth (type'.Type.union) 0).inter 0
 
@@ -187,19 +178,33 @@ and search_base ctx f type' =
 let rec constrain sub sup =
   print_endline("constrain `" ^ TypeDisplay.display sub ^ "` < `" ^ TypeDisplay.display sup ^ "`");
   match unwrap_base sub, unwrap_base sup with
-  (* TODO: Var escape *)
-  | Type.Var sub_var, Type.Var sup_var when sub_var.bind == sup_var.bind ->
-    return ()
-  | _, Type.Var sup_var ->
-    let* () = set_lower_bound sup_var.bind sub in
-    let* sup_upper = get_upper_bound sup_var.bind in
-    constrain sub sup_upper
+  | Type.Var sub_var, Type.Var sup_var ->
+    let* sub_level = get_level sub_var.bind in
+    let* sup_level = get_level sup_var.bind in
+    if sub_level < sup_level then
+      constrain_var_sup sup_var sub
+    else
+    if sub_level > sup_level then
+      constrain_var_sub sub_var sup
+    else
+      return ()
   | Type.Var sub_var, _ ->
-    let* () = set_upper_bound sub_var.bind sup in
-    let* sub_lower = get_lower_bound sub_var.bind in
-    constrain sub_lower sup
+    constrain_var_sub sub_var sup
+  | _, Type.Var sup_var ->
+    constrain_var_sup sup_var sub
   | _, _ ->
     return ()
+
+and constrain_var_sub sub_var sup =
+  let* () = set_upper_bound sub_var.bind sup in
+  let* sub_lower = get_lower_bound sub_var.bind in
+  constrain sub_lower sup
+
+and constrain_var_sup sup_var sub =
+  let* () = set_lower_bound sup_var.bind sub in
+  let* sup_upper = get_upper_bound sup_var.bind in
+  constrain sub sup_upper
+
 
 let rec infer (expr: Abt.expr) =
   with_var (fun bind type' ->
@@ -236,6 +241,7 @@ and infer_parent expr parent =
   | ExprAscr ascr ->
     infer_ascr ascr parent
   | _ ->
+    print_endline "TODO INFER";
     raise todo
 
 and infer_unit _ parent =
@@ -323,7 +329,11 @@ and infer_abs abs parent =
           (infer_parent abs.body ret_type) in
         let* param_bound = get_upper_bound param_bind in
         let* ret_bound = get_lower_bound ret_bind in
-        return (Type.base (Type.AbsExpr { param = param_bound; ret = ret_bound }))
+        if TypeUtils.contains ret_bound param_bind then
+          let abs = Type.base (Type.AbsExpr { param = param_type; ret = ret_bound }) in
+          return (Type.base (Type.AbsTypeExpr { param = { bind = param_bind; bound = param_bound }; ret = abs }))
+        else
+          return (Type.base (Type.AbsExpr { param = param_bound; ret = ret_bound }))
       )
     )
   in
@@ -345,6 +355,7 @@ and infer_app_type abs arg =
     let abs = TypeSystem.promote ctx abs in
     infer_app_type abs arg
   | _ ->
+    print_endline("TODO APP " ^ TypeDisplay.display abs);
     raise todo
 
 and infer_ascr ascr parent =
