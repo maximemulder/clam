@@ -1,5 +1,3 @@
-def main = unit
-
 def a = 1 + 1
 def b = if true then 1 else "Hello"
 def c = (p) -> 1
@@ -15,13 +13,13 @@ def l = (p) -> if p == 0 then l(p - 1) else unit
 def m = (p) -> if true then p else m(p)
 def n = (f) -> f(0)
 
-def e_unit = unit
-def e_bool = true
-def e_int = 0
-def e_string = "Hello world !"
-def e_tuple = {0, "Hello"}
-def e_record = {foo = 0, bar = "Hello"}
-def e_elem_0 = {0, "Hello"}.0
-def e_elem_1 = {0, "Hello"}.1
-def e_attr_0 = e_record.foo
-def e_attr_1 = e_record.bar
+def z_unit = unit
+def z_bool = true
+def z_int = 0
+def z_string = "Hello world !"
+def z_tuple = {0, "Hello"}
+def z_record = {foo = 0, bar = "Hello"}
+def z_elem_0 = {0, "Hello"}.0
+def z_elem_1 = {0, "Hello"}.1
+def z_attr_0 = z_record.foo
+def z_attr_1 = z_record.bar
