@@ -196,24 +196,26 @@ and infer_abs abs =
   )
 
 and infer_app app parent =
-  let* abs = infer app.expr in
-  let* arg = infer app.arg in
-  let abs_type = Type.base (Type.AbsExpr { param = arg; ret = parent }) in
-  let* () = constrain abs abs_type in
-  return ()
+  with_var (fun param_bind param_type ->
+    with_var (fun ret_bind ret_type ->
+      let abs_type = Type.base (Type.AbsExpr { param = param_type; ret = ret_type }) in
+      let* () = infer_with app.expr abs_type in
+      let* () = infer_with app.arg param_type in
+      let* () = constrain ret_type parent in
+      return ()
+    )
+  )
 
 and infer_ascr ascr =
   with_constrain (
     let* type' = validate_proper ascr.type' in
-    let* body = infer ascr.expr in
-    let* () = constrain body type' in
+    let* () = infer_with ascr.expr type' in
     return type'
   )
 
 and infer_if if' =
   with_constrain (
-    let* cond' = infer if'.cond in
-    let* () = constrain cond' TypePrimitive.bool in
+    let* () = infer_with if'.cond TypePrimitive.bool in
     let* then' = infer if'.then' in
     let* else' = infer if'.else' in
     let* ctx = get_context in
