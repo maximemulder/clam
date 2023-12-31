@@ -130,4 +130,5 @@ let with_var f =
   let* type' = with_level_inc (f bind type') in
   (* TODO: Prevent variables from escaping and uncomment this *)
   (* let* () = remove_var bind in *)
+  (* TODO: Find variables that are of level >= to this variable in the type *)
   return type'

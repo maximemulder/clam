@@ -12,6 +12,8 @@ def k = (p) -> k(p)
 def l = (p) -> if p == 0 then l(p - 1) else unit
 def m = (p) -> if true then p else m(p)
 def n = (f) -> f(0)
+def o = (f) -> f(0) + 1
+def p = (f) -> f(0) + f("Hello")
 
 def z_unit = unit
 def z_bool = true

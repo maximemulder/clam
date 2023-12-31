@@ -49,7 +49,10 @@ and meet c l r =
 ## Print inference
 
 ```
-print_endline("constrain `" ^ TypeDisplay.display sub ^ "` < `" ^ TypeDisplay.display sup ^ "`");
+if not (sub = TypePrimitive.bot) && not (sup = TypePrimitive.top) then
+  print_endline("constrain " ^ TypeDisplay.display sub ^ "  <  " ^ TypeDisplay.display sup ^ "")
+else
+  ();
 
 let* lower = get_lower_bound param_bind in
 let* upper = get_upper_bound param_bind in

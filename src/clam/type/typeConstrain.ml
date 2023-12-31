@@ -3,7 +3,6 @@ open TypeState
 let unwrap_base type' = List.nth (List.nth (type'.Type.union) 0).inter 0
 
 let rec constrain sub sup =
-  print_endline("constrain `" ^ TypeDisplay.display sub ^ "` < `" ^ TypeDisplay.display sup ^ "`");
   match unwrap_base sub, unwrap_base sup with
   | Type.Var sub_var, Type.Var sup_var ->
     let* sub_level = get_level sub_var.bind in
@@ -16,7 +15,8 @@ let rec constrain sub sup =
     else
       return ()
     (* let* () = constrain_var_sup sup_var sub in
-    constrain_var_sub sub_var sup *)
+    let* () = constrain_var_sub sub_var sup in
+    return () *)
   | Type.Var sub_var, _ ->
     constrain_var_sub sub_var sup
   | _, Type.Var sup_var ->
