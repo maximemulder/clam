@@ -14,6 +14,7 @@ def m = (p) -> if true then p else m(p)
 def n = (f) -> f(0)
 def o = (f) -> f(0) + 1
 def p = (f) -> f(0) + f("Hello")
+def q = (f, p) -> f(p)
 
 def z_unit = unit
 def z_bool = true

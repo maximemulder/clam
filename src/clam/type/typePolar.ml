@@ -7,53 +7,147 @@ let inv pol =
   | Pos -> Neg
   | Neg -> Pos
 
-let exists_in_lower_bounds bind state =
-  let level, _ = get_level bind state in
-  List.exists (fun (entry: entry_bounds) -> if entry.level < level then
-    TypeUtils.contains entry.upper bind || TypeUtils.contains entry.lower bind
+let rec occurs (type': Type.type') bind =
+  list_any (fun type' -> occurs_inter type' bind) type'.union
+
+and occurs_inter (inter: Type.inter) bind =
+  list_any (fun type' -> occurs_base type' bind) inter.inter
+
+and occurs_base (type': Type.base) bind =
+  match type' with
+  | Var var ->
+    occurs_bind var bind
+  | AbsExpr abs ->
+    let* param = occurs abs.param bind in
+    let* ret = occurs abs.ret bind in
+    return (param || ret)
+  | _ ->
+    return false
+
+and occurs_bind var bind =
+  if var.bind == bind then
+    return true
   else
-    false
-  ) state.bounds, state
+  let* lower = get_lower_bound var.bind in
+  let* upper = get_upper_bound var.bind in
+  let* lower = occurs lower bind in
+  let* upper = occurs upper bind in
+  return (lower || upper)
 
-let rec get_type (type': Type.type') pol =
-  get_union type' pol
+let occurs_in_lower_vars bind state =
+  let level, _ = get_level bind state in
+  List.filter (fun (entry: entry_bounds) -> entry.level < level) state.bounds
+  |> List.map (fun entry -> entry.bind)
+  |> List.exists (fun var -> fst (occurs_bind { bind = var } bind state)), state
 
-and get_union union pol =
+(* TEST *)
+
+let rec inline (type': Type.type') var pol =
+  inline_union type' var pol
+
+and inline_union union var pol =
   let* ctx = get_context in
-  let* types = map_list (fun type' -> get_inter type' pol) union.union in
+  let* types = map_list (fun type' -> inline_inter type' var pol) union.union in
   return (Utils.list_reduce (TypeSystem.join ctx) types)
 
-and get_inter inter pol =
+and inline_inter inter var pol =
   let* ctx = get_context in
-  let* types = map_list (fun type' -> get_base type' pol) inter.inter in
+  let* types = map_list (fun type' -> inline_base type' var pol) inter.inter in
   return (Utils.list_reduce (TypeSystem.meet ctx) types)
 
-and get_base type' pol =
+and inline_base type' var' pol =
   match type' with
-  | Type.Var var -> (
+  | Type.Var var when var.bind == var' -> (
     match pol with
     | Pos ->
       let* bound = get_upper_bound var.bind in
-      let* cond = exists_in_lower_bounds var.bind in
+      let* cond = occurs_in_lower_vars var.bind in
       if not cond then
-        get_type bound Pos
+        inline bound var' Pos
       else
         return bound
     | Neg ->
       let* bound = get_lower_bound var.bind in
-      let* cond = exists_in_lower_bounds var.bind in
+      let* cond = occurs_in_lower_vars var.bind in
       if not cond then
-        get_type bound Neg
+        inline bound var' Neg
       else
         return bound
   )
   | AbsExpr abs ->
-    let* param = get_type abs.param (inv pol) in
-    let* ret = get_type abs.ret pol in
+    let* param = inline abs.param var' (inv pol) in
+    let* ret = inline abs.ret var' pol in
     return (Type.base (Type.AbsExpr { param; ret }))
   | _ ->
     return (Type.base type')
 
-let get_pos type' = get_type type' Pos
+let rec appears (type': Type.type') var pol =
+  appears_union type' var pol
 
-let get_neg type' = get_type type' Neg
+and appears_union union var pol =
+  let types = List.map (fun type' -> appears_inter type' var pol) union.union in
+  Utils.list_reduce (List.append) types
+
+and appears_inter inter var pol =
+  let types = List.map (fun type' -> appears_base type' var pol) inter.inter in
+  Utils.list_reduce (List.append) types
+
+and appears_base type' var pol =
+  match type' with
+  | Type.Var var' when var'.bind == var ->
+    [pol]
+  | AbsExpr abs ->
+    let param = appears abs.param var (inv pol) in
+    let ret = appears abs.ret var pol in
+    List.append param ret
+  | _ ->
+    []
+
+let inline_state bind state =
+  let bounds = List.map (fun entry -> { entry with
+    upper = fst(inline entry.upper bind Neg state);
+    lower = fst(inline entry.lower bind Pos state);
+  }) state.bounds in
+  (), { state with bounds }
+
+(* Returns variables that appear in this type and are equal or higher to the current state level *)
+let get_variables type' state =
+  List.filter (fun (entry: entry_bounds) -> entry.level >= state.level) state.bounds
+  |> List.map (fun entry -> entry.bind)
+  |> List.filter (fun bind -> TypeUtils.contains type' bind), state
+
+(* Returns variables that do not appear in lower variables *)
+let filter_variables vars state =
+  List.filter (fun bind -> not(fst (occurs_in_lower_vars bind state))) vars, state
+
+let should_quantify pols =
+  List.exists (fun pol -> pol = Pos) pols && List.exists (fun pol -> pol = Neg) pols
+
+let exists bind state =
+  List.exists (fun entry -> entry.bind == bind) state.bounds, state
+
+let rec treat type' =
+  let* vars = get_variables type' in
+  let* vars = filter_variables vars in
+  fold_list (fun type' bind ->
+    let* exists = exists bind in
+    if not exists then
+      return type'
+    else if should_quantify (appears type' bind Neg) then
+      let* bound = get_upper_bound bind in
+      print_endline("quantify " ^ bind.name);
+      return (Type.base (Type.AbsTypeExpr { param = { bind; bound }; ret = type' }))
+    else
+      let* t = (inline type' bind Neg) in
+      let* () = inline_state bind in
+      print_endline("inline " ^ bind.name ^ " " ^ TypeDisplay.display type' ^ " " ^ TypeDisplay.display t);
+      let* () = remove_var bind in
+      treat t
+  ) type' vars
+
+let with_var f =
+  let* bind, type' = make_var in
+  print_endline("var_start " ^ bind.name);
+  let* type' = with_level_inc (f type') in
+  print_endline("var_end " ^ bind.name);
+  treat type'

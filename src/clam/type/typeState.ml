@@ -124,11 +124,3 @@ let remove_var bind state =
 include Monad.Monad(Monad.StateMonad(struct
   type s = state
 end))
-
-let with_var f =
-  let* bind, type' = make_var in
-  let* type' = with_level_inc (f bind type') in
-  (* TODO: Prevent variables from escaping and uncomment this *)
-  (* let* () = remove_var bind in *)
-  (* TODO: Find variables that are of level >= to this variable in the type *)
-  return type'

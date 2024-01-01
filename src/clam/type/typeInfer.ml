@@ -51,9 +51,9 @@ let with_constrain f parent =
   constrain type' parent
 
 let rec infer (expr: Abt.expr) =
-  with_var (fun _ var_type ->
+  with_var (fun var_type ->
     let* () = infer_with expr var_type in
-    get_neg var_type
+    return var_type
   )
 
 and infer_with (expr: Abt.expr) =
@@ -176,35 +176,26 @@ and infer_abs abs =
         (infer abs.body) in
       return (Type.base (Type.AbsExpr { param = type'; ret }))
     | None ->
-      with_var (fun param_bind param_type ->
-        with_var (fun ret_bind ret_type ->
+      with_var (fun param_type ->
+        with_var (fun ret_type ->
           let* () = with_bind abs.param.bind param_type
             (infer_with abs.body ret_type) in
-          let* param_bound = get_pos param_type in
-          let* ret_bound = get_neg ret_type in
-          if TypeUtils.contains ret_bound param_bind then
-            let abs = Type.base (Type.AbsExpr { param = param_type; ret = ret_bound }) in
-            return (Type.base (Type.AbsTypeExpr { param = { bind = param_bind; bound = param_bound }; ret = abs }))
-          else if TypeUtils.contains param_bound ret_bind then
-            let abs = Type.base (Type.AbsExpr { param = param_bound; ret = ret_type }) in
-            return (Type.base (Type.AbsTypeExpr { param = { bind = ret_bind; bound = ret_bound }; ret = abs }))
-          else
-            return (Type.base (Type.AbsExpr { param = param_bound; ret = ret_bound }))
+          return (Type.base (Type.AbsExpr { param = param_type; ret = ret_type }))
         )
       )
   )
 
-and infer_app app =
-  with_constrain (
-    with_var (fun _ param_type ->
-      with_var (fun _ ret_type ->
-        let abs_type = Type.base (Type.AbsExpr { param = param_type; ret = ret_type }) in
-        let* () = infer_with app.expr abs_type in
-        let* () = infer_with app.arg param_type in
-        return ret_type
-      )
+and infer_app app parent =
+  let* _ = with_var (fun param_type ->
+    with_var (fun ret_type ->
+      let abs_type = Type.base (Type.AbsExpr { param = param_type; ret = ret_type }) in
+      let* () = infer_with app.expr abs_type in
+      let* () = infer_with app.arg param_type in
+      let* () = constrain ret_type parent in
+      return ret_type
     )
-  )
+  ) in
+  return ()
 
 and infer_ascr ascr =
   with_constrain (
@@ -231,6 +222,8 @@ and infer_def def =
 
 and infer_def_type def =
   with_level 0 (
+    print_endline("");
+    print_endline("def " ^ def.bind.name);
     match def.type' with
     | Some def_type ->
       let* def_type = validate_proper def_type in
@@ -238,14 +231,10 @@ and infer_def_type def =
         (infer_with def.expr def_type) in
       return def_type
     | None ->
-      with_var (fun var_bind var_type ->
+      with_var (fun var_type ->
         let* () = with_bind def.bind var_type
           (infer_with def.expr var_type) in
-        let* lower_bound = get_neg var_type in
-        if TypeUtils.contains lower_bound var_bind then
-          TypeError.infer_recursive_type def
-        else
-          return lower_bound
+          return var_type
       )
   )
 
