@@ -108,9 +108,8 @@ and inline_attr attr bind pol =
   let* type' = inline attr.type' bind pol in
   return { attr with type' }
 
-and inline_param param bind _pol =
-  (* TODO: Polarity ??? *)
-  let* bound = inline param.bound bind Neg in
+and inline_param param bind pol =
+  let* bound = inline param.bound bind (inv pol) in
   return { param with bound }
 
 (* POLARITY *)
@@ -185,7 +184,7 @@ and appears_attr attr bind pol =
   appears attr.type' bind pol
 
 and appears_param param bind pol =
-  appears param.bound bind pol
+  appears param.bound bind (inv pol)
 
 let inline_state bind state =
   let bounds = List.map (fun entry -> { entry with

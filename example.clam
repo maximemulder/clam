@@ -32,3 +32,5 @@ def z_b = (p) -> {a = p.i(123), b = p.s("Hello")}
 
 def x = y
 def y = x
+
+def zz = (p) -> {p, p(1)}
