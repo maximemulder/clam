@@ -146,24 +146,14 @@ and infer_elem_type index tuple  =
   | _ ->
     None
 
-and infer_attr attr =
-  with_constrain (
-    let* record = infer attr.expr in
-    let* ctx = get_context in
-    match search ctx (infer_attr_type attr.name) record with
-    | Some type' ->
-      return type'
-    | None ->
-      TypeError.infer_attr attr record
-  )
-
-and infer_attr_type name record =
-  match record with
-  | Record record ->
-    Utils.NameMap.find_opt name record.attrs
-    |> Option.map (fun (attr: Type.attr) -> attr.type')
-  | _ ->
-    None
+and infer_attr attr parent =
+  let* _ = with_var (fun ret ->
+    let record = Type.record (Utils.NameMap.singleton attr.name { Type.name = attr.name; type' = ret }) in
+    let* () = infer_with attr.expr record in
+    let* () = constrain ret parent in
+    return ret
+  ) in
+  return ()
 
 and infer_abs abs =
   with_constrain (
@@ -186,8 +176,8 @@ and infer_abs abs =
 and infer_app app parent =
   let* _ = with_var (fun param ->
     with_var (fun ret ->
-      let abs_type = Type.abs_expr param ret in
-      let* () = infer_with app.expr abs_type in
+      let abs = Type.abs_expr param ret in
+      let* () = infer_with app.expr abs in
       let* () = infer_with app.arg param in
       let* () = constrain ret parent in
       return ret

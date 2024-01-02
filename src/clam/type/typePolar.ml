@@ -183,8 +183,8 @@ and appears_param param bind pol =
 
 let inline_state bind state =
   let bounds = List.map (fun entry -> { entry with
-    upper = fst(inline entry.upper bind Neg state);
-    lower = fst(inline entry.lower bind Pos state);
+    upper = fst(inline entry.upper bind Pos state);
+    lower = fst(inline entry.lower bind Neg state);
   }) state.bounds in
   (), { state with bounds }
 

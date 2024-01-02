@@ -21,7 +21,7 @@ and constrain_inter_2 sub sup =
 
 and constrain_base sub sup =
   match sub, sup with
-  | Type.Var sub_var, Type.Var sup_var ->
+  | Var sub_var, Var sup_var ->
     let* sub_level = get_level sub_var.bind in
     let* sup_level = get_level sup_var.bind in
     if sub_level < sup_level then
@@ -38,11 +38,20 @@ and constrain_base sub sup =
     constrain_var_sub sub_var (Type.base sup)
   | _, Type.Var sup_var ->
     constrain_var_sup sup_var (Type.base sub)
-  | Type.AbsExpr sub_abs, Type.AbsExpr sup_abs ->
+  | Record sub_record, Record sup_record ->
+    iter_map (fun sup_attr -> constrain_record_attr sub_record sup_attr) sup_record.attrs
+  | AbsExpr sub_abs, AbsExpr sup_abs ->
     let* () = constrain sup_abs.param sub_abs.param in
     let* () = constrain sub_abs.ret sup_abs.ret in
     return ()
   | _, _ ->
+    return ()
+
+and constrain_record_attr sub_record sup_attr =
+  match Utils.NameMap.find_opt sup_attr.name sub_record.attrs with
+  | Some sub_attr ->
+    constrain sub_attr.type' sup_attr.type'
+  | None ->
     return ()
 
 and constrain_var_sub sub_var sup =
