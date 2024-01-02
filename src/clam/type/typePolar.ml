@@ -17,6 +17,12 @@ and occurs_base (type': Type.base) bind =
   match type' with
   | Var var ->
     occurs_bind var bind
+  | Tuple tuple ->
+    list_any (fun elem -> occurs elem bind) tuple.elems
+  | Record record ->
+    Utils.NameMap.to_list record.attrs
+    |> List.map snd
+    |> list_any (fun (attr: Type.attr) -> occurs attr.type' bind)
   | AbsExpr abs ->
     let* param = occurs abs.param bind in
     let* ret = occurs abs.ret bind in

@@ -27,7 +27,8 @@ def z_elem_1 = {0, "Hello"}.1
 def z_attr_0 = z_record.foo
 def z_attr_1 = z_record.bar
 
-def super_f = (f) -> {f(123), f("Hello")}
+def z_a = (f) -> {f(123), f("Hello")}
+def z_b = (p) -> {a = p.i(123), b = p.s("Hello")}
 
 def x = y
 def y = x
