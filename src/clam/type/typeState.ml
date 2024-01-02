@@ -113,3 +113,6 @@ let remove_var bind state =
 include Monad.Monad(Monad.StateMonad(struct
   type s = state
 end))
+
+let get_state state =
+  state, state

@@ -14,28 +14,35 @@ let validate_proper type' =
 
 (* SEARCH *)
 
-let rec search ctx f (type': Type.type') =
-  search_union ctx f type'
+(* This is just a remnant of the old system that works decently with tuples
+  however, tuples are uncompatible with type inference as envisioned and will
+  eventually be removed in the future *)
 
-and search_union ctx f union =
-  let types = List.map (search_inter ctx f) union.union in
+let rec search state f (type': Type.type') =
+  search_union state f type'
+
+and search_union state f union =
+  let ctx, _ = get_context state in
+  let types = List.map (search_inter state f) union.union in
   Utils.list_option_meet types (TypeSystem.join ctx)
 
-and search_inter ctx f inter =
-  let types = List.map (search_base ctx f) inter.inter in
+and search_inter state f inter =
+  let ctx, _ = get_context state in
+  let types = List.map (search_base state f) inter.inter in
   Utils.list_option_join types (TypeSystem.meet ctx)
 
-and search_base ctx f type' =
+and search_base state f type' =
+  let ctx, _ = get_context state in
   match type' with
   | Type.Bot ->
     Some Type.bot
   | Type.Var var ->
-    let bound = TypeContext.get_bind_type ctx var.bind in
-    search ctx f bound
+    let bound, _ = get_lower_bound var.bind state in
+    search state f bound
   | Type.App app ->
     let abs = TypeSystem.promote ctx app.abs in
     let type' = TypeSystem.compute ctx abs app.arg in
-    search ctx f type'
+    search state f type'
   | _ ->
     f type'
 
@@ -131,8 +138,8 @@ and infer_record_attr attr =
 and infer_elem elem =
   with_constrain (
     let* tuple = infer elem.expr in
-    let* ctx = get_context in
-    match search ctx (infer_elem_type elem.index) tuple with
+    let* state = get_state in
+    match search state (infer_elem_type elem.index) tuple with
     | Some type' ->
       return type'
     | None ->
