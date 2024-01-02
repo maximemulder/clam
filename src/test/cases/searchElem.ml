@@ -19,7 +19,7 @@ let case type' index expect ctx =
 let case_var name bound case ctx =
   let bind = { Abt.name } in
   let ctx = TypeContext.add_bind_type ctx bind bound in
-  let var = Type.base (Type.Var { bind }) in
+  let var = Type.var bind in
   case var ctx
 
 let tests = [

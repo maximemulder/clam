@@ -37,7 +37,7 @@ end
 
 module SearcherProj = struct
   type t = Type.type'
-  let bot = TypePrimitive.bot
+  let bot = Type.bot
   let join = TypeSystem.join
   let meet = TypeSystem.meet
 end
@@ -45,7 +45,7 @@ end
 module SearcherApp = struct
   type t = { param: Type.type'; ret: Type.type' }
 
-  let bot = { param = TypePrimitive.top; ret = TypePrimitive.bot }
+  let bot = { param = Type.top; ret = Type.bot }
 
   let join ctx left right =
     let param = TypeSystem.meet ctx left.param right.param in
@@ -61,7 +61,7 @@ end
 module SearcherAppType = struct
   type t = { param: Type.param; ret: Type.type' }
 
-  let bot = { param = make_anonymous_param TypePrimitive.top; ret = TypePrimitive.bot }
+  let bot = { param = make_anonymous_param Type.top; ret = Type.bot }
 
   let with_merge_param ctx bound left right f =
     let param = make_anonymous_param bound in

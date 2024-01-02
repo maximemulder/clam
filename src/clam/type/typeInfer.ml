@@ -30,7 +30,7 @@ and search_inter ctx f inter =
 and search_base ctx f type' =
   match type' with
   | Type.Bot ->
-    Some TypePrimitive.bot
+    Some Type.bot
   | Type.Var var ->
     let bound = TypeContext.get_bind_type ctx var.bind in
     search ctx f bound
@@ -89,16 +89,16 @@ and infer_with (expr: Abt.expr) =
     raise todo
 
 and infer_unit _ =
-  with_type TypePrimitive.unit
+  with_type Type.unit
 
 and infer_bool _ =
-  with_type TypePrimitive.bool
+  with_type Type.bool
 
 and infer_int _ =
-  with_type TypePrimitive.int
+  with_type Type.int
 
 and infer_string _ =
-  with_type TypePrimitive.string
+  with_type Type.string
 
 and infer_bind bind =
   with_constrain (
@@ -116,14 +116,14 @@ and infer_bind bind =
 and infer_tuple tuple =
   with_constrain (
     let* elems = map_list infer tuple.elems in
-    return (Type.base (Type.Tuple { elems }))
+    return (Type.tuple elems)
   )
 
 and infer_record record =
   with_constrain (
     let* attrs = map_list infer_record_attr record.attrs in
     let attrs = List.fold_left (fun map (attr: Type.attr) -> Utils.NameMap.add attr.name attr map) Utils.NameMap.empty attrs in
-    return (Type.base (Type.Record { attrs }))
+    return (Type.record attrs)
   )
 
 and infer_record_attr attr =
@@ -174,25 +174,25 @@ and infer_abs abs =
       let* type' = validate_proper type' in
       let* ret = with_bind abs.param.bind type'
         (infer abs.body) in
-      return (Type.base (Type.AbsExpr { param = type'; ret }))
+      return (Type.abs_expr type' ret)
     | None ->
-      with_var (fun param_type ->
-        with_var (fun ret_type ->
-          let* () = with_bind abs.param.bind param_type
-            (infer_with abs.body ret_type) in
-          return (Type.base (Type.AbsExpr { param = param_type; ret = ret_type }))
+      with_var (fun param ->
+        with_var (fun ret ->
+          let* () = with_bind abs.param.bind param
+            (infer_with abs.body ret) in
+          return (Type.abs_expr param ret)
         )
       )
   )
 
 and infer_app app parent =
-  let* _ = with_var (fun param_type ->
-    with_var (fun ret_type ->
-      let abs_type = Type.base (Type.AbsExpr { param = param_type; ret = ret_type }) in
+  let* _ = with_var (fun param ->
+    with_var (fun ret ->
+      let abs_type = Type.abs_expr param ret in
       let* () = infer_with app.expr abs_type in
-      let* () = infer_with app.arg param_type in
-      let* () = constrain ret_type parent in
-      return ret_type
+      let* () = infer_with app.arg param in
+      let* () = constrain ret parent in
+      return ret
     )
   ) in
   return ()
@@ -206,7 +206,7 @@ and infer_ascr ascr =
 
 and infer_if if' =
   with_constrain (
-    let* () = infer_with if'.cond TypePrimitive.bool in
+    let* () = infer_with if'.cond Type.bool in
     let* then' = infer if'.then' in
     let* else' = infer if'.else' in
     let* ctx = get_context in

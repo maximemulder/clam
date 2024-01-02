@@ -1,5 +1,4 @@
 open Clam
-open Type
 open TypeContext
 
 let inline v _ = v
@@ -8,18 +7,12 @@ let id v = v
 
 (* Types *)
 
-include TypePrimitive
+include Type
 
 (* TODO: Adopt new bind system once typing is refactored *)
 
 let bind name =
   { Abt.name }
-
-let var bind =
-  base (Var { bind })
-
-let tuple elems =
-  base (Tuple { elems })
 
 let record attrs =
   let attrs = attrs
@@ -27,9 +20,6 @@ let record attrs =
     |> List.to_seq
     |> Utils.NameMap.of_seq in
   base (Record { attrs })
-
-let abs_expr param ret =
-  base (AbsExpr { param; ret })
 
 let abs_expr_type (name, bound) ret =
   let bind = bind name in
@@ -42,9 +32,6 @@ let abs name bound body =
   let param: Type.param = { bind; bound } in
   let body = body (var bind) in
   base (Abs { param; body })
-
-let app abs arg =
-  base (App { abs; arg })
 
 let a = bind "A"
 let b = bind "B"

@@ -13,7 +13,7 @@ let name name' other type' expect =
 
 let case name' other type' expect =
   let bind = { Abt.name = name' } in
-  let var = Type.base (Type.Var { bind }) in
+  let var = Type.var bind in
   let type' = type' var in
   Case.make_case Case.type' (name name' other type' expect) (test ctx type' bind other) expect
 

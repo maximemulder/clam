@@ -68,7 +68,7 @@ let return_def (def: def_expr) =
   fun type' state -> (type', end_progress state def type')
 
 let return_abs param returner =
-  fun ret -> returner (Type.base (Type.AbsExpr { param; ret }))
+  fun ret -> returner (Type.abs_expr param ret)
 
 let validate_type type' =
   let* ctx = get_type_ctx in
@@ -140,7 +140,7 @@ and check_record_attr record constr_attr =
   | None -> TypeError.check_record_attr record constr_attr
 
 and check_if if' constr =
-  let* _ = check if'.cond TypePrimitive.bool in
+  let* _ = check if'.cond Type.bool in
   let* _ = check if'.then' (Type.base constr) in
   let* _ = check if'.else' (Type.base constr) in
   return ()
@@ -253,13 +253,13 @@ and infer_bind bind returner =
 
 and infer_tuple tuple returner =
   let* elems = map_list infer_none tuple.elems in
-  returner (Type.base (Type.Tuple { elems }))
+  returner (Type.tuple elems)
 
 and infer_record record returner =
   let attrs = record.attrs in
   let attrs = List.fold_left (fun map (attr: attr_expr) -> NameMap.add attr.name attr map) NameMap.empty attrs in
   let* attrs = map_map infer_record_attr attrs in
-  returner (Type.base (Type.Record { attrs }))
+  returner (Type.record attrs)
 
 and infer_record_attr attr =
   let* type' = infer_none attr.expr in
@@ -347,7 +347,7 @@ and infer_ascr ascr returner =
   return returned
 
 and infer_if if' returner =
-  let* _ = check if'.cond TypePrimitive.bool in
+  let* _ = check if'.cond Type.bool in
   let* then' = infer_none if'.then' in
   let* else' = infer_none if'.else' in
   let* ctx = get_type_ctx in
@@ -370,7 +370,7 @@ and infer_type_abs abs returner =
   let* (param: Type.param) = infer_type_param abs.param in
   with_bind_type param.bind param.bound (
     let* ret = infer_none abs.body in
-    returner (Type.base (Type.AbsTypeExpr { param; ret }))
+    returner (Type.abs_type_expr param ret)
   )
 
 and infer_type_param param =

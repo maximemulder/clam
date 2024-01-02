@@ -111,8 +111,8 @@ let counter = ref 0
 let make_var state =
   let bind = { Abt.name = "'" ^ string_of_int counter.contents } in
   counter := counter.contents + 1;
-  let type' = Type.base (Type.Var { bind }) in
-  let bound = { bind; level = state.level; lower = TypePrimitive.bot; upper = TypePrimitive.top } in
+  let type' = Type.var bind in
+  let bound = { bind; level = state.level; lower = Type.bot; upper = Type.top } in
   let state = { state with bounds = bound :: state.bounds } in
   (bind, type'), state
 

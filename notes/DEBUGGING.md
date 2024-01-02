@@ -49,7 +49,7 @@ and meet c l r =
 ## Print inference
 
 ```
-if not (sub = TypePrimitive.bot) && not (sup = TypePrimitive.top) then
+if not (sub = Type.bot) && not (sup = Type.top) then
   print_endline("constrain " ^ TypeDisplay.display sub ^ "  <  " ^ TypeDisplay.display sup ^ "")
 else
   ();
