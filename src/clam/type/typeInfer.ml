@@ -15,8 +15,8 @@ let validate_proper type' =
 (* SEARCH *)
 
 (* This is just a remnant of the old system that works decently with tuples
-  however, tuples are uncompatible with type inference as envisioned and will
-  eventually be removed in the future *)
+  however, tuples are fundamentally incompatible with type inference as envisioned
+  and will eventually be removed in the future *)
 
 let rec search state f (type': Type.type') =
   search_union state f type'
@@ -108,12 +108,12 @@ and infer_string _ =
 and infer_bind bind =
   with_constrain (
     let bind = Option.get !(bind.bind) in
-    let* type' = get_bind_type bind in
+    let* type' = get_expr_type bind in
     match type' with
     | Some type' ->
       return type'
     | None ->
-      let* def = get_bind_def bind in
+      let* def = get_def bind in
       let* type' = infer_def def in
       return type'
   )
@@ -167,13 +167,13 @@ and infer_abs abs =
     match abs.param.type' with
     | Some type' ->
       let* type' = validate_proper type' in
-      let* ret = with_bind abs.param.bind type'
+      let* ret = with_expr abs.param.bind type'
         (infer abs.body) in
       return (Type.abs_expr type' ret)
     | None ->
       with_var (fun param ->
         with_var (fun ret ->
-          let* () = with_bind abs.param.bind param
+          let* () = with_expr abs.param.bind param
             (infer_with abs.body ret) in
           return (Type.abs_expr param ret)
         )
@@ -212,7 +212,7 @@ and infer_if if' =
 and infer_def def =
   let* () = remove_def def.bind in
   let* type' = infer_def_type def in
-  let* () = add_bind def.bind type' in
+  let* () = add_expr def.bind type' in
   return type'
 
 and infer_def_type def =
@@ -222,12 +222,12 @@ and infer_def_type def =
     match def.type' with
     | Some def_type ->
       let* def_type = validate_proper def_type in
-      let* _ = with_bind def.bind def_type
+      let* _ = with_expr def.bind def_type
         (infer_with def.expr def_type) in
       return def_type
     | None ->
       with_var (fun var_type ->
-        let* () = with_bind def.bind var_type
+        let* () = with_expr def.bind var_type
           (infer_with def.expr var_type) in
         return var_type
       )
@@ -246,5 +246,5 @@ let check_defs defs primitives =
   let state = make_state defs primitives in
   let state = check_defs state in
   print_endline("");
-  let types = List.filter (fun (e: entry_type) -> not(List.exists (fun (p: entry_type) -> p.bind.name = e.bind.name) primitives)) state.types in
-  List.iter (fun (e: entry_type) -> print_endline(e.bind.name ^ ": " ^ TypeDisplay.display e.type')) types
+  let types = List.filter (fun (e: entry_expr) -> not(List.exists (fun (p: entry_expr) -> p.bind.name = e.bind.name) primitives)) state.exprs in
+  List.iter (fun (e: entry_expr) -> print_endline(e.bind.name ^ ": " ^ TypeDisplay.display e.type')) types

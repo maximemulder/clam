@@ -49,7 +49,7 @@ and occurs_param param bind =
 
 let occurs_in_lower_vars bind state =
   let level, _ = get_level bind state in
-  List.filter (fun (entry: entry_bounds) -> entry.level < level) state.bounds
+  List.filter (fun (entry: entry_var) -> entry.level < level) state.vars
   |> List.map (fun entry -> entry.bind)
   |> List.exists (fun var -> fst (occurs_bind { bind = var } bind state)), state
 
@@ -98,8 +98,8 @@ and inline_base type' bind pol =
     let* ret = inline abs.ret bind pol in
     return (Type.abs_expr param ret)
   | AbsTypeExpr abs ->
-    let* param = inline_param abs.param bind pol in
-    let* ret = inline abs.ret bind pol in
+    let* param: Type.param  = inline_param abs.param bind pol in
+    let* ret = with_type param.bind param.bound (inline abs.ret bind pol) in
     return (Type.abs_type_expr param ret)
   | _ ->
     return (Type.base type')
@@ -111,6 +111,16 @@ and inline_attr attr bind pol =
 and inline_param param bind pol =
   let* bound = inline param.bound bind (inv pol) in
   return { param with bound }
+
+let inline_state bind state =
+  let vars = List.map (fun entry -> { entry with
+    upper = fst(inline entry.upper bind Pos state);
+    lower = fst(inline entry.lower bind Neg state);
+  }) state.vars in
+  let exprs =  List.map (fun entry -> {
+    entry with type' = fst(inline entry.type' bind Neg state)
+  })  state.exprs in
+  (), { state with vars; exprs }
 
 (* POLARITY *)
 
@@ -186,16 +196,9 @@ and appears_attr attr bind pol =
 and appears_param param bind pol =
   appears param.bound bind (inv pol)
 
-let inline_state bind state =
-  let bounds = List.map (fun entry -> { entry with
-    upper = fst(inline entry.upper bind Pos state);
-    lower = fst(inline entry.lower bind Neg state);
-  }) state.bounds in
-  (), { state with bounds }
-
 (* Returns variables that are equal or higher to the current state level and that do not appear in lower variables *)
 let get_variables state =
-  List.filter (fun (entry: entry_bounds) -> entry.level >= state.level) state.bounds
+  List.filter (fun (entry: entry_var) -> entry.level >= state.level) state.vars
   |> List.map (fun entry -> entry.bind)
   |> List.filter (fun bind -> not(fst (occurs_in_lower_vars bind state))), state
 

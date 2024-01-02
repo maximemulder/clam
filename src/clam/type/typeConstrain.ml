@@ -55,11 +55,11 @@ and constrain_record_attr sub_record sup_attr =
     return ()
 
 and constrain_var_sub sub_var sup =
-  let* () = set_upper_bound sub_var.bind sup in
+  let* () = update_upper_bound sub_var.bind sup in
   let* sub_lower = get_lower_bound sub_var.bind in
   constrain sub_lower sup
 
 and constrain_var_sup sup_var sub =
-  let* () = set_lower_bound sup_var.bind sub in
+  let* () = update_lower_bound sup_var.bind sub in
   let* sup_upper = get_upper_bound sup_var.bind in
   constrain sub sup_upper
