@@ -95,16 +95,6 @@ let with_bind bind type' f state =
   let state = { state with types } in
   x, state
 
-let with_level level f state =
-  let save = state.level in
-  let state = { state with level } in
-  let x, state = f state in
-  let state = { state with level = save } in
-  x, state
-
-let with_level_inc f state =
-  with_level (state.level + 1) f state
-
 (* I use a global counter so that each variable has a distinct name, which is easier for debugging *)
 let counter = ref 0
 
@@ -114,9 +104,8 @@ let make_var state =
   let type' = Type.var bind in
   let bound = { bind; level = state.level; lower = Type.bot; upper = Type.top } in
   let state = { state with bounds = bound :: state.bounds } in
-  (bind, type'), state
+  type', state
 
-(* TODO: The variable should always be the first in the list. Check that is the case and change this function *)
 let remove_var bind state =
   let bounds = List.filter (fun entry -> entry.bind != bind) state.bounds in
   (), { state with bounds }

@@ -2,8 +2,6 @@
 
 let todo = (Failure "TODO")
 
-let unwrap_base type' = List.nth (List.nth (type'.Type.union) 0).inter 0
-
 open TypeState
 open TypeConstrain
 open TypePolar
@@ -221,7 +219,7 @@ and infer_def def =
   return type'
 
 and infer_def_type def =
-  with_level 0 (
+  with_level (
     print_endline("");
     print_endline("def " ^ def.bind.name);
     match def.type' with
@@ -234,7 +232,7 @@ and infer_def_type def =
       with_var (fun var_type ->
         let* () = with_bind def.bind var_type
           (infer_with def.expr var_type) in
-          return var_type
+        return var_type
       )
   )
 

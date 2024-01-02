@@ -188,44 +188,39 @@ let inline_state bind state =
   }) state.bounds in
   (), { state with bounds }
 
-(* Returns variables that appear in this type and are equal or higher to the current state level *)
-let get_variables type' state =
+(* Returns variables that are equal or higher to the current state level and that do not appear in lower variables *)
+let get_variables state =
   List.filter (fun (entry: entry_bounds) -> entry.level >= state.level) state.bounds
   |> List.map (fun entry -> entry.bind)
-  |> List.filter (fun bind -> TypeUtils.contains type' bind), state
-
-(* Returns variables that do not appear in lower variables *)
-let filter_variables vars state =
-  List.filter (fun bind -> not(fst (occurs_in_lower_vars bind state))) vars, state
+  |> List.filter (fun bind -> not(fst (occurs_in_lower_vars bind state))), state
 
 let should_quantify occurence =
   occurence.pos && occurence.neg
 
 let rec treat type' =
-  let* vars = get_variables type' in
-  let* vars = filter_variables vars in
-  (* TODO: Using the first variable by default seems to work, but order is important,
-    so more thought should be put into that *)
+  let* vars = get_variables in
   match vars with
   | [] ->
     return type'
   | bind :: _ ->
-    if should_quantify (appears type' bind Neg) then
+    let* type' = if should_quantify (appears type' bind Neg) then
       let* bound = get_upper_bound bind in
-      print_endline("quantify " ^ bind.name);
-      (* TODO: Some cases (even without quantification ???) only work if this is either commented or uncommented *)
-      let* () = remove_var bind in
       return (Type.abs_type_expr { bind; bound } type')
     else
-      let* t = (inline type' bind Neg) in
+      let* type' = (inline type' bind Neg) in
       let* () = inline_state bind in
-      print_endline("inline " ^ bind.name ^ " " ^ TypeDisplay.display type' ^ " " ^ TypeDisplay.display t);
-      let* () = remove_var bind in
-      treat t
+      return type'
+    in
+    let* () = remove_var bind in
+    treat type'
+
+let with_level f state =
+  let state = { state with level = state.level + 1 } in
+  let x, state = f state in
+  let x, state = treat x state in
+  let state = { state with level = state.level - 1 } in
+  x, state
 
 let with_var f =
-  let* bind, type' = make_var in
-  print_endline("var_start " ^ bind.name);
-  let* type' = with_level_inc (f type') in
-  print_endline("var_end " ^ bind.name);
-  treat type'
+  let* type' = make_var in
+  with_level (f type')
