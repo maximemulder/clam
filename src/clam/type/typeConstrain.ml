@@ -32,6 +32,8 @@ and constrain_base sub sup =
     constrain_var_sub sub_var (Type.base sup)
   | _, Type.Var sup_var ->
     constrain_var_sup sup_var (Type.base sub)
+  | Tuple sub_tuple, Tuple sup_tuple ->
+    iter_list2 (fun sub sup -> constrain sub sup) sub_tuple.elems sup_tuple.elems
   | Record sub_record, Record sup_record ->
     iter_map (fun sup_attr -> constrain_record_attr sub_record sup_attr) sup_record.attrs
   | AbsExpr sub_abs, AbsExpr sup_abs ->

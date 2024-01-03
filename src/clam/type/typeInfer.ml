@@ -8,6 +8,10 @@ open TypePolar
 
 (* VALIDATE *)
 
+let validate type' =
+  let* ctx = get_context in
+  return (TypeValidate.validate ctx type')
+
 let validate_proper type' =
   let* ctx = get_context in
   return (TypeValidate.validate_proper ctx type')
@@ -43,6 +47,59 @@ and search_base state f type' =
     let abs = TypeSystem.promote ctx app.abs in
     let type' = TypeSystem.compute ctx abs app.arg in
     search state f type'
+  | _ ->
+    f type'
+
+(* SEARCH_2 *)
+
+type search_2 = { param: Type.param; ret: Type.type' }
+
+let make_anonymous_param bound =
+  { Type.bind = { name = "_" }; bound }
+
+let with_merge_param_2 ctx bound left right f =
+  let param = make_anonymous_param bound in
+  let left_ret  = TypeSystem.substitute_body ctx param left.param  left.ret  in
+  let right_ret = TypeSystem.substitute_body ctx param right.param right.ret in
+  let ctx = TypeContext.add_bind_type ctx param.bind param.bound in
+  let ret = f ctx left_ret right_ret in
+  { param; ret }
+
+let rec search_2 state f (type': Type.type') =
+  search_union_2 state f type'
+
+and search_union_2 state f union =
+  let types = List.map (search_inter_2 state f) union.union in
+  Utils.list_option_meet types (search_join_2 state)
+
+and search_inter_2 state f inter =
+  let types = List.map (search_base_2 state f) inter.inter in
+  Utils.list_option_join types (search_meet_2 state)
+
+and search_join_2 state left right =
+  let ctx, _ = get_context state in
+  let bound = TypeSystem.meet ctx left.param.bound right.param.bound in
+  with_merge_param_2 ctx bound left right TypeSystem.join
+
+and search_meet_2 state left right =
+  let ctx, _ = get_context state in
+  if not (TypeSystem.is_param ctx left.param right.param) then
+    { param = make_anonymous_param Type.top; ret = Type.bot }
+  else
+  with_merge_param_2 ctx left.param.bound left right TypeSystem.meet
+
+and search_base_2 state f type' =
+  let ctx, _ = get_context state in
+  match type' with
+  | Type.Bot ->
+    Some { param = make_anonymous_param Type.top; ret = Type.bot }
+  | Type.Var var ->
+    let bound, _ = get_lower_bound var.bind state in
+    search_2 state f bound
+  | Type.App app ->
+    let abs = TypeSystem.promote ctx app.abs in
+    let type' = TypeSystem.compute ctx abs app.arg in
+    search_2 state f type'
   | _ ->
     f type'
 
@@ -87,11 +144,14 @@ and infer_with (expr: Abt.expr) =
     infer_abs abs
   | ExprApp app ->
     infer_app app
+  | ExprTypeAbs abs ->
+    infer_abs_type abs
+  | ExprTypeApp app ->
+    infer_app_type app
   | ExprAscr ascr ->
     infer_ascr ascr
-  | _ ->
-    print_endline "TODO INFER";
-    raise todo
+  | ExprStmt stmt ->
+    infer_stmt stmt
 
 and infer_unit _ =
   with_type Type.unit
@@ -192,6 +252,41 @@ and infer_app app parent =
   ) in
   return ()
 
+and infer_abs_type abs =
+  with_constrain (
+    let* bound = validate abs.param.bound in
+    with_var (fun var ->
+      let type' = Type.abs_type_expr { bind = abs.param.bind; bound } var in
+      let* () = infer_with abs.body var in
+      return type'
+    )
+  )
+
+and infer_app_type app =
+  with_constrain (
+    let* abs = infer app.expr in
+    let* state = get_state in
+    let type' = search_2 state infer_app_type_base abs in
+    match type' with
+    | Some { param; ret } ->
+      let* arg = validate app.arg in
+      let* ctx = get_context in
+      if not (TypeSystem.isa ctx arg param.bound) then
+        TypeError.infer_type_app_type app arg param.bound
+      else
+      let ret = TypeSystem.substitute_arg ctx param.bind arg ret in
+      return ret
+    | None ->
+      TypeError.infer_type_app_kind app abs
+  )
+
+and infer_app_type_base type' =
+  match type' with
+  | AbsTypeExpr abs ->
+    Some { param = abs.param; ret = abs.ret }
+  | _ ->
+    None
+
 and infer_ascr ascr =
   with_constrain (
     let* type' = validate_proper ascr.type' in
@@ -208,6 +303,29 @@ and infer_if if' =
     let type' = TypeSystem.join ctx then' else' in
     return type'
   )
+
+and infer_stmt stmt =
+  infer_stmt_body stmt.stmt (infer stmt.expr)
+
+and infer_stmt_body stmt f =
+  match stmt with
+  | StmtExpr expr ->
+    with_constrain (
+      let* _ = infer expr in
+      f
+    )
+  | StmtVar  (bind, type', expr) ->
+    with_constrain (
+      let* body = match type' with
+      | Some type' ->
+        let* type' = validate_proper type' in
+        let* () = infer_with expr type' in
+        return type'
+      | None ->
+        infer expr
+      in
+      with_expr bind body f
+    )
 
 and infer_def def =
   let* () = remove_def def.bind in
@@ -246,3 +364,7 @@ let check_defs defs primitives =
   print_endline("");
   let types = List.filter (fun (e: entry_expr) -> not(List.exists (fun (p: entry_expr) -> p.bind.name = e.bind.name) primitives)) state.exprs in
   List.iter (fun (e: entry_expr) -> print_endline(e.bind.name ^ ": " ^ TypeDisplay.display e.type')) types
+
+let check_types types =
+  let _ = List.map (TypeValidate.validate TypeContext.empty) types in
+  ()
