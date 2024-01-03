@@ -53,6 +53,12 @@ let get_expr_entry bind state =
 let get_var_entry bind state =
   List.find (fun (entry: entry_var) -> entry.bind == bind) state.vars, state
 
+let get_var_entry_opt bind state =
+  List.find_opt (fun (entry: entry_var) -> entry.bind == bind) state.vars, state
+
+let get_type_entry bind state =
+  List.find (fun (entry: entry_type) -> entry.bind == bind) state.types, state
+
 let update_var_entry bind f state =
   let vars = List.map (fun (entry: entry_var) ->
     if entry.bind == bind then
@@ -74,6 +80,10 @@ let get_expr_type bind =
   let* entry = get_expr_entry bind in
   let type' = Option.map (fun entry -> entry.type') entry in
   return type'
+
+let get_type_bound bind =
+  let* entry = get_type_entry bind in
+  return entry.bound
 
 let get_level bind =
   let* entry = get_var_entry bind in

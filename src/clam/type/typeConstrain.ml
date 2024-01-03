@@ -1,10 +1,7 @@
 open TypeState
+open TypePolar
 
 let rec constrain (sub: Type.type') (sup: Type.type') =
-  if not (sub = Type.bot) && not (sup = Type.top) then
-    print_endline("constrain " ^ TypeDisplay.display sub ^ "  <  " ^ TypeDisplay.display sup ^ "")
-  else
-    ();
   constrain_union_1 sub sup
 
 and constrain_union_1 sub sup =
@@ -21,19 +18,16 @@ and constrain_inter_2 sub sup =
 
 and constrain_base sub sup =
   match sub, sup with
+  | Var sub_var, Var sup_var when sub_var.bind == sup_var.bind ->
+    return ()
+  (* TODO: Correctly handle variable levels *)
   | Var sub_var, Var sup_var ->
     let* sub_level = get_level sub_var.bind in
     let* sup_level = get_level sup_var.bind in
     if sub_level < sup_level then
       constrain_var_sup sup_var (Type.base sub)
     else
-    if sub_level > sup_level then
       constrain_var_sub sub_var (Type.base sup)
-    else
-      return ()
-    (* let* () = constrain_var_sup sup_var sub in
-    let* () = constrain_var_sub sub_var sup in
-    return () *)
   | Type.Var sub_var, _ ->
     constrain_var_sub sub_var (Type.base sup)
   | _, Type.Var sup_var ->
@@ -44,7 +38,28 @@ and constrain_base sub sup =
     let* () = constrain sup_abs.param sub_abs.param in
     let* () = constrain sub_abs.ret sup_abs.ret in
     return ()
+  | AbsTypeExpr sub_abs, _ ->
+    let* _ = with_var (fun var ->
+      let* () = constrain var sub_abs.param.bound in
+      let* ctx = get_context in
+      let ret = TypeSystem.substitute_arg ctx sub_abs.param.bind var sub_abs.ret in
+      let* () = constrain ret (Type.base sup) in
+      return ret
+    ) in
+    return ()
+  | _, AbsTypeExpr sup_abs ->
+    let* _ = with_var (fun var ->
+      let* () = constrain var sup_abs.param.bound in
+      let* ctx = get_context in
+      let ret = TypeSystem.substitute_arg ctx sup_abs.param.bind var sup_abs.ret in
+      let* () = constrain (Type.base sub) ret in
+      return ret
+    ) in
+    return ()
+  | _, Top | Bot, _ | Unit, Unit | Bool, Bool | Int, Int | String, String ->
+    return ()
   | _, _ ->
+    print_endline ("TYPE ERROR " ^ TypeDisplay.display_base sub ^ " " ^ TypeDisplay.display_base sup);
     return ()
 
 and constrain_record_attr sub_record sup_attr =

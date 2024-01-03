@@ -56,9 +56,9 @@ let with_constrain f parent =
   constrain type' parent
 
 let rec infer (expr: Abt.expr) =
-  with_var (fun var_type ->
-    let* () = infer_with expr var_type in
-    return var_type
+  with_var (fun var ->
+    let* () = infer_with expr var in
+    return var
   )
 
 and infer_with (expr: Abt.expr) =
@@ -217,8 +217,6 @@ and infer_def def =
 
 and infer_def_type def =
   with_level (
-    print_endline("");
-    print_endline("def " ^ def.bind.name);
     match def.type' with
     | Some def_type ->
       let* def_type = validate_proper def_type in
@@ -226,10 +224,10 @@ and infer_def_type def =
         (infer_with def.expr def_type) in
       return def_type
     | None ->
-      with_var (fun var_type ->
-        let* () = with_expr def.bind var_type
-          (infer_with def.expr var_type) in
-        return var_type
+      with_var (fun var ->
+        let* () = with_expr def.bind var
+          (infer_with def.expr var) in
+        return var
       )
   )
 

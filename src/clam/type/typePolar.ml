@@ -29,7 +29,7 @@ and occurs_base (type': Type.base) bind =
     return (param || ret)
   | AbsTypeExpr abs ->
     let* param = occurs_param abs.param bind in
-    let* ret = occurs abs.ret bind in
+    let* ret = with_type abs.param.bind abs.param.bound (occurs abs.ret bind) in
     return (param || ret)
   | _ ->
     return false
@@ -38,11 +38,15 @@ and occurs_bind var bind =
   if var.bind == bind then
     return true
   else
-  let* lower = get_lower_bound var.bind in
-  let* upper = get_upper_bound var.bind in
-  let* lower = occurs lower bind in
-  let* upper = occurs upper bind in
-  return (lower || upper)
+  let* entry = get_var_entry_opt var.bind in
+  match entry with
+  | Some entry -> (
+    let* lower = occurs entry.lower bind in
+    let* upper = occurs entry.upper bind in
+    return (lower || upper))
+  | None -> (
+    let* bound = get_type_bound var.bind in
+    occurs bound bind)
 
 and occurs_param param bind =
   occurs param.bound bind
@@ -73,20 +77,10 @@ and inline_base type' bind pol =
   | Type.Var var when var.bind == bind -> (
     match pol with
     | Pos ->
-      let* bound = get_upper_bound var.bind in
-      let* cond = occurs_in_lower_vars var.bind in
-      if not cond then
-        inline bound bind Pos
-      else
-        return bound
+      get_upper_bound var.bind
     | Neg ->
-      let* bound = get_lower_bound var.bind in
-      let* cond = occurs_in_lower_vars var.bind in
-      if not cond then
-        inline bound bind Neg
-      else
-        return bound
-  )
+      get_lower_bound var.bind
+    )
   | Tuple tuple ->
     let* elems = map_list (fun elem -> inline elem bind pol) tuple.elems in
     return (Type.tuple elems)
@@ -215,8 +209,8 @@ let rec treat type' =
       let* bound = get_upper_bound bind in
       return (Type.abs_type_expr { bind; bound } type')
     else
-      let* type' = (inline type' bind Neg) in
       let* () = inline_state bind in
+      let* type' = (inline type' bind Neg) in
       return type'
     in
     let* () = remove_var bind in
