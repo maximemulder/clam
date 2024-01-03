@@ -223,7 +223,7 @@ Some of these examples, as well as inspirations for the algorithm, were shameles
 
 *\*\* Type inference for tuples is currently quite limited. However, this is intentional as row types without width subtyping are fundamentally incompatible with type inference for closed expressions. As a result, Clam's tuples will be reworked in the future.*
 
-*\*\*\* The types shown by the interpreter currently do not look as good as these examples as the printing function is quite basic. However, the types shown by the interpeter are still the same as these ones.*
+*\*\*\* The types shown by the interpreter currently do not look as good as these examples as the type printing function is quite basic. They are still the same as these ones.*
 
 ## Recursive types
 
