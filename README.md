@@ -190,7 +190,7 @@ def state_monad: [S, A] -> Monad[State[S], A] = [S, A] -> {
 
 ## Type inference
 
-Clam features a constraint-based type inference algorithm capable of inferring almost all the types of closed expressions.
+Clam features a constraint-based type inference algorithm capable of inferring principal types for most expressions.
 
 <table>
     <tr>
