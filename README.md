@@ -1,6 +1,6 @@
 # What is this ?
 
-This is  Clam ! A small statically typed functional programming language with advanced types features. It implements many features of System $F^ω_{<:}$ and its extensions such as [structrual typing](#structural-typing), [subtyping](#subtyping), [unions and intersections](#union-and-intersection-types), [bounded polymorphism](#universal-types), [higher-kinded types](#higher-kinded-types) and [constraint-based type inference](#type-inference).
+This is  Clam ! A small statically typed functional programming language with a relatively advanced type system. It implements many features of System $F^ω_{<:}$ and its extensions such as [structrual typing](#structural-typing), [subtyping](#subtyping), [unions and intersections](#union-and-intersection-types), [bounded polymorphism](#universal-types), [higher-kinded types](#higher-kinded-types) and [constraint-based type inference](#type-inference).
 
 The formal (but currently incomplete) semantics of the language are available in the `semantics.pdf` document available [here](https://raw.githubusercontent.com/MaximeMulder/Clam/main/semantics/semantics.pdf).
 
@@ -170,7 +170,7 @@ def pair: Pair[Int] = {0, 0}
 
 ## Higher-kinded types
 
-Clam features higher-kinded types, which allow type constructors to abstract over other type constructors. Type parameters are currently invariant. Higher-kinded types are currently invariant with regards to their parameters.
+Clam features higher-kinded types, which allow type constructors to abstract over other type constructors. Higher-kinded types are currently invariant with regards to their parameters.
 
 ```
 type Monad = [M: [T] => Top, A] => {
@@ -221,9 +221,9 @@ Some of these examples, as well as inspirations for the algorithm, were shameles
 
 *\* The algorithm for type inference was developped hastily and is currently extremely dirty. There are likely a few bugs remaining, notably with recursive types which Clam does not support yet. However, most cases as well all the provided examples work, which I think is a nice achievement.*
 
-*\*\* Type inference for tuples is currently quite limited. However, this is intentionnal as row types without row polymorphism are fundamentally incompatible with type inference for closed expressions. As a result, tuples in Clam will be reworked in the future.*
+*\*\* Type inference for tuples is currently quite limited. However, this is intentional as row types without width subtyping are fundamentally incompatible with type inference for closed expressions. As a result, Clam's tuples will be reworked in the future.*
 
-*\*\*\* The types shown by the interpreter currently do not look as good as these examples as the printing function is quite basic. However, the types shown by the interpeter are still strictly equal to these types.*
+*\*\*\* The types shown by the interpreter currently do not look as good as these examples as the printing function is quite basic. However, the types shown by the interpeter are still the same as these ones.*
 
 ## Recursive types
 
@@ -231,13 +231,13 @@ Clam does not feature recursive types yet, which is quite limiting.
 
 # Correctness
 
-There is currently not proof of correctness for this language and interpeter. But I hope I will be able to write one one day. While some code (notably for type inference), is still rough at the time of writing these lines, all the examples provided work, as well as all the unit tests and sample programs found in the `tests` directory.
+There is currently no mathematical proof of correctness for this language or interpeter. But I hope I will be able to write one one day. While some code (notably for type inference) is still rough at the time of writing these lines, all the examples provided work, as well as all the unit tests and the sample programs found in the `tests` directory.
 
 **IMPORTANT: The above statement is not true if you see this sentence but it should be in the next week**
 
 # Roadmap
 
-I will have less time to work on this language in the short- to medium-term future, however, here is my roadmap for the language:
+I will have less time to work on this project in the short- to medium-term future, however, here is my roadmap for Clam:
 - Polish the interpreter's code and algorithms.
 - Improve error handling and user experience.
 - Add recursive types.
