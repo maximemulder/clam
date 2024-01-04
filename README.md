@@ -94,8 +94,6 @@ def triple: Triple = {x = 0, y = 0, z = 0}
 def double: Double = triple
 ```
 
-*\* Tuples and their subtyping will be reworked in the future.*
-
 ## Unit type
 
 Clam has a default unit type named `Unit`, whose only value is `unit`.
@@ -203,7 +201,7 @@ def id = (p) -> p
 def max = (l, r) -> if l > r then l else r
 def inf = (p) -> inf(p)
 def foo = (f) -> {f(123), f("Hello")}
-def bar = f(id)
+def bar = foo(id)
 def is_even = (n) -> !is_odd(n)
 def is_odd = (n) -> if n == 0 then false else !is_even(n - 1)</code></pre></td>
 <td><pre><code>two: Int
@@ -217,13 +215,13 @@ is_odd: (Int) -> Bool</code></pre></td>
     </tr>
 </table>
 
-Some of these examples, as well as inspirations for the algorithm, were shamelessly stolen from TACO Lab's [SuperF](https://hkust-taco.github.io/superf/) and [MLScript](https://hkust-taco.github.io/mlscript/) languages
+Type inference is undecidable for some expressions using tuple projections or type applications.
 
-*\* The algorithm for type inference was developped hastily and is currently extremely dirty. There are likely a few bugs remaining, notably with recursive types which Clam does not support yet. However, most cases as well all the provided examples work, which I think is a nice achievement.*
+Some of these examples, as well as inspirations for the algorithm, were shamelessly stolen from TACO Lab's [SuperF](https://hkust-taco.github.io/superf/) and [MLScript](https://hkust-taco.github.io/mlscript/) languages.
 
-*\*\* Type inference for tuples is currently quite limited. However, this is intentional as row types without width subtyping are fundamentally incompatible with type inference for closed expressions. As a result, Clam's tuples will be reworked in the future.*
+*\* The algorithm for type inference was developped hastily and is currently very dirty. There are likely a few bugs remaining, notably with recursive types which Clam does not support yet. However, most cases as well all the provided examples work, which I think is a nice achievement.*
 
-*\*\*\* The types shown by the interpreter currently do not look as good as these examples as the type printing function is quite basic. They are still the same as these ones.*
+*\*\* The types shown by the interpreter do not look as good as these examples as the type printing function is currently quite basic. Still, they are exactly these types.*
 
 ## Recursive types
 

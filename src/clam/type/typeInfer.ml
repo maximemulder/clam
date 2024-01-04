@@ -16,93 +16,6 @@ let validate_proper type' =
   let* ctx = get_context in
   return (TypeValidate.validate_proper ctx type')
 
-(* SEARCH *)
-
-(* This is just a remnant of the old system that works decently with tuples
-  however, tuples are fundamentally incompatible with type inference as envisioned
-  and will eventually be removed in the future *)
-
-let rec search state f (type': Type.type') =
-  search_union state f type'
-
-and search_union state f union =
-  let ctx, _ = get_context state in
-  let types = List.map (search_inter state f) union.union in
-  Utils.list_option_meet types (TypeSystem.join ctx)
-
-and search_inter state f inter =
-  let ctx, _ = get_context state in
-  let types = List.map (search_base state f) inter.inter in
-  Utils.list_option_join types (TypeSystem.meet ctx)
-
-and search_base state f type' =
-  let ctx, _ = get_context state in
-  match type' with
-  | Type.Bot ->
-    Some Type.bot
-  | Type.Var var ->
-    let bound, _ = get_lower_bound var.bind state in
-    search state f bound
-  | Type.App app ->
-    let abs = TypeSystem.promote ctx app.abs in
-    let type' = TypeSystem.compute ctx abs app.arg in
-    search state f type'
-  | _ ->
-    f type'
-
-(* SEARCH_2 *)
-
-type search_2 = { param: Type.param; ret: Type.type' }
-
-let make_anonymous_param bound =
-  { Type.bind = { name = "_" }; bound }
-
-let with_merge_param_2 ctx bound left right f =
-  let param = make_anonymous_param bound in
-  let left_ret  = TypeSystem.substitute_body ctx param left.param  left.ret  in
-  let right_ret = TypeSystem.substitute_body ctx param right.param right.ret in
-  let ctx = TypeContext.add_bind_type ctx param.bind param.bound in
-  let ret = f ctx left_ret right_ret in
-  { param; ret }
-
-let rec search_2 state f (type': Type.type') =
-  search_union_2 state f type'
-
-and search_union_2 state f union =
-  let types = List.map (search_inter_2 state f) union.union in
-  Utils.list_option_meet types (search_join_2 state)
-
-and search_inter_2 state f inter =
-  let types = List.map (search_base_2 state f) inter.inter in
-  Utils.list_option_join types (search_meet_2 state)
-
-and search_join_2 state left right =
-  let ctx, _ = get_context state in
-  let bound = TypeSystem.meet ctx left.param.bound right.param.bound in
-  with_merge_param_2 ctx bound left right TypeSystem.join
-
-and search_meet_2 state left right =
-  let ctx, _ = get_context state in
-  if not (TypeSystem.is_param ctx left.param right.param) then
-    { param = make_anonymous_param Type.top; ret = Type.bot }
-  else
-  with_merge_param_2 ctx left.param.bound left right TypeSystem.meet
-
-and search_base_2 state f type' =
-  let ctx, _ = get_context state in
-  match type' with
-  | Type.Bot ->
-    Some { param = make_anonymous_param Type.top; ret = Type.bot }
-  | Type.Var var ->
-    let bound, _ = get_lower_bound var.bind state in
-    search_2 state f bound
-  | Type.App app ->
-    let abs = TypeSystem.promote ctx app.abs in
-    let type' = TypeSystem.compute ctx abs app.arg in
-    search_2 state f type'
-  | _ ->
-    f type'
-
 (* TYPE INFERENCE *)
 
 let with_type type' parent =
@@ -198,15 +111,15 @@ and infer_record_attr attr =
 and infer_elem elem =
   with_constrain (
     let* tuple = infer elem.expr in
-    let* state = get_state in
-    match search state (infer_elem_type elem.index) tuple with
+    let* type' = TypeSearch2.search_proj (infer_elem_base elem.index) tuple in
+    match type' with
     | Some type' ->
       return type'
     | None ->
       TypeError.infer_elem elem tuple
   )
 
-and infer_elem_type index tuple  =
+and infer_elem_base index tuple =
   match tuple with
   | Tuple tuple ->
     List.nth_opt tuple.elems index
@@ -265,8 +178,7 @@ and infer_abs_type abs =
 and infer_app_type app =
   with_constrain (
     let* abs = infer app.expr in
-    let* state = get_state in
-    let type' = search_2 state infer_app_type_base abs in
+    let* type' = TypeSearch2.search_app_type infer_app_type_base abs in
     match type' with
     | Some { param; ret } ->
       let* arg = validate app.arg in
@@ -280,8 +192,8 @@ and infer_app_type app =
       TypeError.infer_type_app_kind app abs
   )
 
-and infer_app_type_base type' =
-  match type' with
+and infer_app_type_base abs =
+  match abs with
   | AbsTypeExpr abs ->
     Some { param = abs.param; ret = abs.ret }
   | _ ->
