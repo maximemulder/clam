@@ -46,21 +46,22 @@ and meet c l r =
     ^ "   " ^ (string_of_bool res));
 ```
 
-## Print inference
+## Print inference state
 
 ```
-if not (sub = Type.bot) && not (sup = Type.top) then
-  print_endline("constrain " ^ TypeDisplay.display sub ^ "  <  " ^ TypeDisplay.display sup ^ "")
-else
-  ();
+let print_state state =
+  List.sort (fun a b -> compare a.level_low b.level_low) state.vars
+  |> List.map (fun a -> string_of_int a.level_low
+    ^ " " ^ a.bind.name
+    ^ ": " ^ TypeDisplay.display a.lower
+    ^ " < " ^ TypeDisplay.display a.upper)
+  |> String.concat ", "
+  |> print_endline, state
+```
 
-let* lower = get_lower_bound param_bind in
-let* upper = get_upper_bound param_bind in
-print_endline("param `" ^ TypeDisplay.display lower ^ "` < `" ^ TypeDisplay.display upper ^ "`");
-let* lower = get_lower_bound ret_bind in
-let* upper = get_upper_bound ret_bind in
-print_endline("ret `" ^ TypeDisplay.display lower ^ "` < `" ^ TypeDisplay.display upper ^ "`");
+## Print inference constraints
 
-print_endline("");
-print_endline("infer def " ^ def.bind.name);
+```
+if sub <> Type.bot && sup <> Type.top then
+  print_endline("constrain " ^ TypeDisplay.display sub ^ " < " ^ TypeDisplay.display sup);
 ```

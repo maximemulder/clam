@@ -4,7 +4,7 @@ let todo = (Failure "TODO")
 
 open TypeState
 open TypeConstrain
-open TypePolar
+open TypeSolve
 
 (* VALIDATE *)
 

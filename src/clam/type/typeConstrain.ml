@@ -1,5 +1,47 @@
-open TypeState
+open TypeLevel
 open TypePolar
+open TypeState
+open TypeSolve
+
+let rec direct_sup (type': Type.type') bind =
+  direct_sup_union type' bind
+
+and direct_sup_union union bind =
+  list_any (fun type' -> direct_sup_inter type' bind) union.union
+
+and direct_sup_inter inter bind =
+  list_any (fun type' -> direct_sup_base type' bind) inter.inter
+
+and direct_sup_base type' bind =
+  match type' with
+  | Var var ->
+    if var.bind == bind then
+      return true
+    else
+      let* upper = get_var_upper var.bind in
+      direct_sup upper bind
+  | _ ->
+    return false
+
+let rec direct_sub (type': Type.type') bind =
+  direct_sub_union type' bind
+
+and direct_sub_union union bind =
+  list_any (fun type' -> direct_sub_inter type' bind) union.union
+
+and direct_sub_inter inter bind =
+  list_any (fun type' -> direct_sub_base type' bind) inter.inter
+
+and direct_sub_base type' bind =
+  match type' with
+  | Var var ->
+    if var.bind == bind then
+      return true
+    else
+      let* lower = get_var_lower var.bind in
+      direct_sub lower bind
+  | _ ->
+    return false
 
 let rec constrain (sub: Type.type') (sup: Type.type') =
   constrain_union_1 sub sup
@@ -18,20 +60,21 @@ and constrain_inter_2 sub sup =
 
 and constrain_base sub sup =
   match sub, sup with
-  | Var sub_var, Var sup_var when sub_var.bind == sup_var.bind ->
-    return ()
-  (* TODO: Correctly handle variable levels *)
   | Var sub_var, Var sup_var ->
-    let* sub_level = get_level sub_var.bind in
-    let* sup_level = get_level sup_var.bind in
-    if sub_level < sup_level then
-      constrain_var_sup sup_var (Type.base sub)
+    let* cond = direct_sub_base sub sup_var.bind in
+    let* cond2 = direct_sup_base sup sub_var.bind in
+    if not (cond || cond2) then
+      let* () = constrain_sub_var sub_var (Type.base sup) in
+      let* () = constrain_sup_var sup_var (Type.base sub) in
+      return ()
     else
-      constrain_var_sub sub_var (Type.base sup)
-  | Type.Var sub_var, _ ->
-    constrain_var_sub sub_var (Type.base sup)
-  | _, Type.Var sup_var ->
-    constrain_var_sup sup_var (Type.base sub)
+      (* TODO: Two variables are equal here. We probably need to treat that
+        without forming a direct cycle if possible. *)
+      return ()
+  | Var sub_var, _ ->
+    constrain_sub_var sub_var (Type.base sup)
+  | _, Var sup_var ->
+    constrain_sup_var sup_var (Type.base sub)
   | Tuple sub_tuple, Tuple sup_tuple ->
     iter_list2 (fun sub sup -> constrain sub sup) sub_tuple.elems sup_tuple.elems
   | Record sub_record, Record sup_record ->
@@ -71,12 +114,16 @@ and constrain_record_attr sub_record sup_attr =
   | None ->
     return ()
 
-and constrain_var_sub sub_var sup =
-  let* () = update_upper_bound sub_var.bind sup in
-  let* sub_lower = get_lower_bound sub_var.bind in
+and constrain_sub_var sub_var sup =
+  let* entry = get_var_entry sub_var.bind in
+  let* () = levelize sup entry.level_low in
+  let* () = update_var_upper sub_var.bind sup in
+  let* sub_lower = get_var_lower sub_var.bind in
   constrain sub_lower sup
 
-and constrain_var_sup sup_var sub =
-  let* () = update_lower_bound sup_var.bind sub in
-  let* sup_upper = get_upper_bound sup_var.bind in
+and constrain_sup_var sup_var sub =
+  let* entry = get_var_entry sup_var.bind in
+  let* () = levelize sub entry.level_low in
+  let* () = update_var_lower sup_var.bind sub in
+  let* sup_upper = get_var_upper sup_var.bind in
   constrain sub sup_upper

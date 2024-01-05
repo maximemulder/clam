@@ -54,3 +54,5 @@ def is_odd = (n) ->
         false
     else
         !is_even(n - 1)
+
+def aaa = {x = (p) -> p, y = 2}

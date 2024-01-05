@@ -19,6 +19,7 @@ type entry_type = {
 type entry_var = {
   bind: Abt.bind_type;
   level: int;
+  level_low: int;
   lower: Type.type';
   upper: Type.type';
 }
@@ -85,23 +86,27 @@ let get_type_bound bind =
   let* entry = get_type_entry bind in
   return entry.bound
 
-let get_level bind =
+let get_var_level bind =
   let* entry = get_var_entry bind in
   return entry.level
 
-let get_lower_bound bind =
+let get_var_level_low bind =
+  let* entry = get_var_entry bind in
+  return entry.level_low
+
+let get_var_lower bind =
   let* entry = get_var_entry bind in
   return entry.lower
 
-let get_upper_bound bind =
+let get_var_upper bind =
   let* entry = get_var_entry bind in
   return entry.upper
 
-let update_lower_bound bind bound =
+let update_var_lower bind bound =
   let* ctx = get_context in
   update_var_entry bind (fun entry -> { entry with lower = TypeSystem.join ctx entry.lower bound })
 
-let update_upper_bound bind bound =
+let update_var_upper bind bound =
   let* ctx = get_context in
   update_var_entry bind (fun entry -> { entry with upper = TypeSystem.meet ctx entry.upper bound })
 
@@ -135,7 +140,7 @@ let make_var state =
   let bind = { Abt.name = "'" ^ string_of_int counter.contents } in
   counter := counter.contents + 1;
   let type' = Type.var bind in
-  let var = { bind; level = state.level; lower = Type.bot; upper = Type.top } in
+  let var = { bind; level = state.level; level_low = state.level; lower = Type.bot; upper = Type.top } in
   let state = { state with vars = var :: state.vars } in
   type', state
 
