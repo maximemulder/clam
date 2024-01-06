@@ -142,6 +142,12 @@ let infer_type_app_type (app: expr_type_app) arg bound =
     ("expected subtype of `" ^ bound ^ "` but found type `" ^ arg ^ "`")
     app.pos
 
+let infer_constrain pos (sub: Type.type') (sup: Type.type') =
+  let sub = TypeDisplay.display sub in
+  let sup = TypeDisplay.display sup in
+  raise
+    ("cannot constrain `" ^ sub ^ "` as a subtype of `" ^ sup ^ "`")
+    pos
 
 let infer_recursive_type (def: def_expr) =
   raise

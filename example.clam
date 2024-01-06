@@ -56,3 +56,6 @@ def is_odd = (n) ->
         !is_even(n - 1)
 
 def aaa = {x = (p) -> p, y = 2}
+
+def g = (p: ([T: String] -> String) | ([T: Top] -> String)) -> p[String]
+def h: String = g([T] -> "Hello")
