@@ -59,21 +59,18 @@ and constrain_inter_2 pos sub sup =
 
 and constrain_base pos sub sup =
   match sub, sup with
-  | Var sub_var, Var sup_var ->
+  | _, Var sup_var ->
     let* cond = direct_sub_base sub sup_var.bind in
-    let* cond2 = direct_sup_base sup sub_var.bind in
-    if not (cond || cond2) then
-      let* () = constrain_sub_var pos sub_var (Type.base sup) in
-      let* () = constrain_sup_var pos sup_var (Type.base sub) in
-      return ()
+    if not cond then
+      constrain_sup_var pos sup_var (Type.base sub)
     else
-      (* TODO: Two variables are equal here. We probably need to treat that
-        without forming a direct cycle if possible. *)
       return ()
   | Var sub_var, _ ->
-    constrain_sub_var pos sub_var (Type.base sup)
-  | _, Var sup_var ->
-    constrain_sup_var pos sup_var (Type.base sub)
+    let* cond = direct_sup_base sup sub_var.bind in
+    if not cond then
+      constrain_sub_var pos sub_var (Type.base sup)
+    else
+      return ()
   | Tuple sub_tuple, Tuple sup_tuple ->
     iter_list2 (fun sub sup -> constrain pos sub sup) sub_tuple.elems sup_tuple.elems
   | Record sub_record, Record sup_record ->

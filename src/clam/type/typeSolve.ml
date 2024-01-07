@@ -67,16 +67,17 @@ let rec solve type' =
   | [] ->
     return type'
   | bind :: _ ->
-    let* type' = if should_quantify type' bind then
+    if should_quantify type' bind then
       let* bound = get_var_upper bind in
-      return (Type.abs_type_expr { bind; bound } type')
+      let type' = (Type.abs_type_expr { bind; bound } type') in
+      let* () = remove_var bind in
+      with_type bind bound
+        (solve type')
     else
       let* () = inline_state bind in
       let* type' = (inline type' bind Neg) in
-      return type'
-    in
-    let* () = remove_var bind in
-    solve type'
+      let* () = remove_var bind in
+      solve type'
 
 let with_level f state =
   let state = { state with level = state.level + 1 } in
