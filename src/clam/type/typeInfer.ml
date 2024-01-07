@@ -14,10 +14,10 @@ let validate_proper type' =
 
 (* TYPE INFERENCE *)
 
-let with_type pos type' parent =
+let return_type pos type' parent =
   constrain pos type' parent
 
-let with_constrain pos f parent =
+let return_constrain pos f parent =
   let* type' = f in
   constrain pos type' parent
 
@@ -63,19 +63,19 @@ and infer_with (expr: Abt.expr) =
     infer_stmt stmt
 
 and infer_unit expr  =
-  with_type expr.pos Type.unit
+  return_type expr.pos Type.unit
 
 and infer_bool expr =
-  with_type expr.pos Type.bool
+  return_type expr.pos Type.bool
 
 and infer_int expr =
-  with_type expr.pos Type.int
+  return_type expr.pos Type.int
 
 and infer_string expr =
-  with_type expr.pos Type.string
+  return_type expr.pos Type.string
 
 and infer_bind expr =
-  with_constrain expr.pos (
+  return_constrain expr.pos (
     let bind = Option.get !(expr.bind) in
     let* type' = get_expr_type bind in
     match type' with
@@ -88,13 +88,13 @@ and infer_bind expr =
   )
 
 and infer_tuple expr =
-  with_constrain expr.pos (
+  return_constrain expr.pos (
     let* elems = map_list infer expr.elems in
     return (Type.tuple elems)
   )
 
 and infer_record expr =
-  with_constrain expr.pos (
+  return_constrain expr.pos (
     let* attrs = map_list infer_record_attr expr.attrs in
     let attrs = List.fold_left (fun map (attr: Type.attr) -> Utils.NameMap.add attr.name attr map) Utils.NameMap.empty attrs in
     return (Type.record attrs)
@@ -105,7 +105,7 @@ and infer_record_attr attr =
   return { Type.name = attr.name; type' }
 
 and infer_elem expr =
-  with_constrain expr.pos (
+  return_constrain expr.pos (
     let* tuple = infer expr.expr in
     let* type' = TypeSearch2.search_proj (infer_elem_base expr.index) tuple in
     match type' with
@@ -132,7 +132,7 @@ and infer_attr expr parent =
   return ()
 
 and infer_abs expr =
-  with_constrain expr.pos (
+  return_constrain expr.pos (
     match expr.param.type' with
     | Some type' ->
       let* type' = validate_proper type' in
@@ -162,17 +162,19 @@ and infer_app expr parent =
   return ()
 
 and infer_abs_type expr =
-  with_constrain expr.pos (
+  return_constrain expr.pos (
     let* bound = validate expr.param.bound in
     with_var (fun var ->
       let type' = Type.abs_type_expr { bind = expr.param.bind; bound } var in
-      let* () = infer_with expr.body var in
-      return type'
+      with_type expr.param.bind bound (
+        let* () = infer_with expr.body var in
+        return type'
+      )
     )
   )
 
 and infer_app_type expr =
-  with_constrain expr.pos (
+  return_constrain expr.pos (
     let* abs = infer expr.expr in
     let* type' = TypeSearch2.search_app_type infer_app_type_base abs in
     match type' with
@@ -196,14 +198,14 @@ and infer_app_type_base abs =
     None
 
 and infer_ascr expr =
-  with_constrain expr.pos (
+  return_constrain expr.pos (
     let* type' = validate_proper expr.type' in
     let* () = infer_with expr.expr type' in
     return type'
   )
 
 and infer_if expr =
-  with_constrain expr.pos (
+  return_constrain expr.pos (
     let* () = infer_with expr.cond Type.bool in
     let* then' = infer expr.then' in
     let* else' = infer expr.else' in
@@ -218,12 +220,12 @@ and infer_stmt expr =
 and infer_stmt_body pos stmt f =
   match stmt with
   | StmtExpr expr ->
-    with_constrain pos (
+    return_constrain pos (
       let* _ = infer expr in
       f
     )
   | StmtVar (bind, type', expr) ->
-    with_constrain pos (
+    return_constrain pos (
       let* body = match type' with
       | Some type' ->
         let* type' = validate_proper type' in
