@@ -24,6 +24,10 @@ type entry_var = {
   upper: Type.type';
 }
 
+type var =
+  | Param of entry_type
+  | Infer of entry_var
+
 (* STATE *)
 
 type state = {
@@ -33,6 +37,15 @@ type state = {
   types: entry_type list;
   vars: entry_var list;
 }
+
+let get_var bind state =
+  match List.find_opt (fun (entry: entry_type) -> entry.bind == bind) state.types with
+  | Some entry -> Param entry, state
+  | None ->
+  match List.find_opt (fun (entry: entry_var) -> entry.bind == bind) state.vars with
+  | Some entry -> Infer entry, state
+  | None ->
+    raise Not_found
 
 let make_state defs exprs =
   let defs = List.map (fun def -> { bind = def.Abt.bind; def }) defs in
@@ -147,6 +160,3 @@ let make_var state =
 let remove_var bind state =
   let vars = List.filter (fun entry -> entry.bind != bind) state.vars in
   (), { state with vars }
-
-let get_state state =
-  state, state

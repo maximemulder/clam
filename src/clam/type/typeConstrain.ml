@@ -13,12 +13,17 @@ and direct_sup_inter inter bind =
 
 and direct_sup_base type' bind =
   match type' with
-  | Var var ->
+  | Var var -> (
     if var.bind == bind then
       return true
     else
-      let* upper = get_var_upper var.bind in
-      direct_sup upper bind
+    let* entry = get_var var.bind in
+    match entry with
+    | Param _ ->
+      return false
+    | Infer entry ->
+      direct_sup entry.upper bind
+    )
   | _ ->
     return false
 
@@ -33,12 +38,17 @@ and direct_sub_inter inter bind =
 
 and direct_sub_base type' bind =
   match type' with
-  | Var var ->
+  | Var var -> (
     if var.bind == bind then
       return true
     else
-      let* lower = get_var_lower var.bind in
-      direct_sub lower bind
+    let* entry = get_var var.bind in
+    match entry with
+    | Param _ ->
+      return false
+    | Infer entry ->
+      direct_sub entry.lower bind
+    )
   | _ ->
     return false
 
@@ -59,18 +69,28 @@ and constrain_inter_2 pos sub sup =
 
 and constrain_base pos sub sup =
   match sub, sup with
-  | _, Var sup_var ->
-    let* cond = direct_sub_base sub sup_var.bind in
-    if not cond then
-      constrain_sup_var pos sup_var (Type.base sub)
-    else
+  | _, Var sup_var -> (
+    let* entry = get_var sup_var.bind in
+    match entry with
+    | Param _ ->
       return ()
-  | Var sub_var, _ ->
-    let* cond = direct_sup_base sup sub_var.bind in
-    if not cond then
-      constrain_sub_var pos sub_var (Type.base sup)
-    else
+    | Infer _ ->
+      let* cond = direct_sub_base sub sup_var.bind in
+      if not cond then
+        constrain_sup_var pos sup_var (Type.base sub)
+      else
+        return ())
+  | Var sub_var, _ -> (
+    let* entry = get_var sub_var.bind in
+    match entry with
+    | Param _ ->
       return ()
+    | Infer _ ->
+      let* cond = direct_sup_base sup sub_var.bind in
+      if not cond then
+        constrain_sub_var pos sub_var (Type.base sup)
+      else
+        return ())
   | Tuple sub_tuple, Tuple sup_tuple ->
     iter_list2 (fun sub sup -> constrain pos sub sup) sub_tuple.elems sup_tuple.elems
   | Record sub_record, Record sup_record ->

@@ -38,13 +38,13 @@ module Searcher(S: SEARCHER) = struct
     | Bot ->
       Some S.bot
     | Var var -> (
-      let entry, _ = get_var_entry_opt var.bind state in
+      let entry, _ = get_var var.bind state in
       match entry with
-      | Some entry ->
+      | Param entry ->
+        search state f entry.bound
+      | Infer entry ->
         search state f entry.lower
-      | None ->
-        let bound, _ = get_type_bound var.bind state in
-        search state f bound)
+      )
     | App app ->
       let ctx, _ = get_context state in
       let abs = TypeSystem.promote ctx app.abs in
