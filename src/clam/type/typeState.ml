@@ -144,7 +144,9 @@ let with_expr bind type' f =
 let with_type bind bound f state =
   let state = { state with types = { bind; bound } :: state.types } in
   let x, state = f state in
-  x, { state with types = List.tl state.types }
+  (* TODO: Remove param type variables when not needed *)
+  (* x, { state with types = List.tl state.types }*)
+  x, state
 
 (* I use a global counter so that each variable has a distinct name, which is easier for debugging *)
 let counter = ref 0

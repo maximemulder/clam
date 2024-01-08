@@ -14,5 +14,4 @@ let rec display value =
     let attrs = List.of_seq (NameMap.to_seq attrs) in
     let attrs = List.map (fun (name, value) -> name ^ " = " ^ (display value)) attrs in
     "{" ^ String.concat ", " attrs ^ "}"
-  | VExprAbs _ -> "<expr_abs>"
-  | VTypeAbs _ -> "<type_abs>"
+  | VExprAbs _ -> "<function>"

@@ -72,10 +72,9 @@ let rec eval (expr: Abt.expr) =
   | ExprApp app ->
     eval_expr_app app
   | ExprTypeAbs abs ->
-    let* frame = get_frame in
-    return (VTypeAbs { abs; frame })
+    eval_abs_type abs
   | ExprTypeApp app ->
-    eval_type_app app.expr
+    eval_app_type app
   | ExprStmt stmt ->
     eval_stmt stmt
 
@@ -121,17 +120,11 @@ and eval_expr_app_abs abs arg context =
     let context = new_frame context abs.frame binds in
     eval abs.abs.body context
 
-and eval_type_app expr =
-  let* value = eval expr in
-  match value with
-  | VTypeAbs abs ->
-    eval_type_app_abs abs
-  | _ ->
-    RuntimeErrors.raise_value ()
+and eval_abs_type abs =
+  eval abs.body
 
-and eval_type_app_abs abs context =
-  let context = new_frame context abs.frame BindMap.empty in
-  eval abs.abs.body context
+and eval_app_type app =
+  eval app.expr
 
 and eval_tuple (expr: Abt.expr) =
   let* value = eval expr in
