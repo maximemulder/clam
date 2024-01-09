@@ -35,7 +35,6 @@ let prioritize_bound vars state =
 (* Returns variables that are equal or higher to the current state level and that do not appear in lower variables *)
 let get_variables type' state =
   let vars = List.filter (fun (entry: entry_var) -> entry.level_low = state.level) state.vars
-  |> List.sort (fun (a: entry_var) b -> compare b.level a.level)
   |> List.map (fun entry -> entry.bind) in
 
   let vars = prioritize_occur type' vars state in
