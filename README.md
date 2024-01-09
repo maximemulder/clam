@@ -188,7 +188,7 @@ def state_monad: [S, A] -> Monad[State[S], A] = [S, A] -> {
 
 ## Type inference
 
-Clam features a constraint-based type inference algorithm capable of inferring principal types for most expressions.
+Clam features a constraint-based type inference algorithm capable of inferring types for most expressions.
 
 <table>
     <tr>
@@ -215,11 +215,11 @@ is_odd: (Int) -> Bool</code></pre></td>
     </tr>
 </table>
 
-Type inference is undecidable for some expressions using tuple projections or type applications.
+Type inference is impossible for some expressions using tuple projections or type applications.
 
 Some of these examples, as well as inspirations for the algorithm, were shamelessly stolen from TACO Lab's [SuperF](https://hkust-taco.github.io/superf/) and [MLScript](https://hkust-taco.github.io/mlscript/) languages.
 
-*\* The algorithm for type inference was developped hastily and is currently very dirty. There are likely a few bugs remaining, notably with recursive types which Clam does not support yet. However, most cases as well all the provided examples work, which I think is a nice achievement.*
+*\* The type inference algorithm is quite dirty and probably has a few bugs (notably with recursive types). Type inference for such a complex type system is still an open problem, and I would probably need to spend at least a few months working on it to refine it. However, most cases, as well as all the examples and tests work, which I think is a nice achievement.*
 
 *\*\* The types shown by the interpreter do not look as good as these examples as the type printing function is currently quite basic. Still, they are exactly these types.*
 

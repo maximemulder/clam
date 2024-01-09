@@ -162,3 +162,9 @@ let make_var state =
 let remove_var bind state =
   let vars = List.filter (fun entry -> entry.bind != bind) state.vars in
   (), { state with vars }
+
+let get_state state =
+  state, state
+
+let is_infer bind state =
+  List.exists (fun (entry: entry_var) -> entry.bind == bind) state.vars

@@ -1,7 +1,7 @@
 (*
   This file contains the data structures and algorithms for type inference for tuple projections
   and type applications. These algorithms are not constraint-based and not complete as type
-  inference for these expressions is sometimes undecidable, such as in the two following examples :
+  inference for these expressions is sometimes impossible, such as in the two following examples :
 
   ```
   (p) -> p.0
