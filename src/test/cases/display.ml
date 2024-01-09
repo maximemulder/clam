@@ -1,4 +1,4 @@
-open Vars2
+open Vars
 
 let test type' (_: unit) =
   Clam.TypeDisplay.display type'

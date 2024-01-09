@@ -1,5 +1,5 @@
 open Clam
-open Vars2
+open Vars
 
 let test ctx type' bind other (_: unit) =
   let entry = TypeContext.entry bind other in

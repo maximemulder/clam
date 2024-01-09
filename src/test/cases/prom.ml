@@ -1,5 +1,5 @@
 open Clam
-open Vars2
+open Vars
 
 let test ctx type' (_: unit) =
   TypeSystem.promote ctx type'

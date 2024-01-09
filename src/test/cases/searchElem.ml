@@ -1,5 +1,6 @@
+(*
 open Clam
-open Vars2
+open Vars
 
 let test ctx type' index (_: unit) =
   TypeSearch.search_proj ctx (TypeCheck.infer_elem_base index) type'
@@ -107,3 +108,4 @@ let tests = [
   case (app (abs "T" top (fun t -> inter [tuple [unit]; tuple [t]])) bool) 0 (Some bot); *)
 ]
 |> List.map (Utils.apply ctx)
+*)

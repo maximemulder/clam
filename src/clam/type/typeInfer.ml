@@ -107,7 +107,7 @@ and infer_record_attr attr =
 and infer_elem expr =
   return_constrain expr.pos (
     let* tuple = infer expr.expr in
-    let* type' = TypeSearch2.search_proj (infer_elem_base expr.index) tuple in
+    let* type' = TypeSearch.search_proj (infer_elem_base expr.index) tuple in
     match type' with
     | Some type' ->
       return type'
@@ -176,7 +176,7 @@ and infer_abs_type expr =
 and infer_app_type expr =
   return_constrain expr.pos (
     let* abs = infer expr.expr in
-    let* type' = TypeSearch2.search_app_type infer_app_type_base abs in
+    let* type' = TypeSearch.search_app_type infer_app_type_base abs in
     match type' with
     | Some { param; ret } ->
       let* arg = validate expr.arg in
@@ -270,10 +270,8 @@ let rec check_defs state =
 let check_defs defs primitives =
   let primitives = List.map (fun primitive -> { bind = fst primitive; type' = snd primitive }) primitives in
   let state = make_state defs primitives in
-  let state = check_defs state in
-  print_endline("");
-  let types = List.filter (fun (e: entry_expr) -> not(List.exists (fun (p: entry_expr) -> p.bind.name = e.bind.name) primitives)) state.exprs in
-  List.iter (fun (e: entry_expr) -> print_endline(e.bind.name ^ ": " ^ TypeDisplay.display e.type')) types
+  let _ = check_defs state in
+  ()
 
 let check_types types =
   let _ = List.map (TypeValidate.validate TypeContext.empty) types in

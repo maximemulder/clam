@@ -1,5 +1,5 @@
 open Clam
-open Vars2
+open Vars
 
 let test ctx left right (_: unit) =
   TypeSystem.meet ctx left right

@@ -1,5 +1,5 @@
 open Clam
-open Vars2
+open Vars
 
 let test ctx sub sup (_: unit) =
   TypeSystem.isa ctx sub sup
