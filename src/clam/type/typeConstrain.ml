@@ -1,6 +1,25 @@
 open TypeLevel
 open TypeState
 
+(*
+  This file contains the type constraining algorithm, which updates the environment constraints
+  and ensures that they remain coherent, raising an error if it is not possible.
+  There are several major challenges, which are not all solved:
+
+  1. How to fully handle unions and intersections, such as in '1 | '2 <= '3 | '4 ?
+  It does not look fully feasible with bounds, but can such situations even happen at all ?
+  (it can with explicit type annotations, but what about inference variables ?)
+
+  2. How to handle cycles, where a variable appears in its own bounds (like '1 <= '2 <= '1) ?
+
+  3. Reciprocity, updates bounds of both variables whenever '1 <= '2
+*)
+
+(*
+  These functions are used to know if an inference variable appears directly in the lower or upper
+  bounds of another type, which allows to prevent creating cycles
+*)
+
 let rec is_direct_sup bind (type': Type.type') =
   is_direct_sup_union bind type'
 
@@ -51,35 +70,57 @@ and is_direct_sub_base bind type' =
   | _ ->
     return false
 
+(* These functions are used to check whether a type is a single inference variable *)
+
+let get_infer_var_sub sub_inter =
+  let* env = get_state in
+  match sub_inter with
+  | { Type.inter = [Var sub_var] } when is_infer sub_var.bind env ->
+    return (Some sub_var)
+  | _ ->
+    return None
+
+let get_infer_var_sup sup =
+  let* env = get_state in
+  match sup with
+  | Type.Var sup_var when is_infer sup_var.bind env ->
+    return (Some sup_var)
+  | _ ->
+    return None
+
 let rec constrain pos (sub: Type.type') (sup: Type.type') =
   constrain_union_1 pos sub sup
 
 and constrain_union_1 pos sub sup =
-  list_all (Utils.flip (constrain_union_2 pos) sup) sub.union
+  list_all (fun sub -> constrain_union_2 pos sub sup) sub.union
 
 and constrain_union_2 pos sub sup =
-  let* state = get_state in
-  match sub with
-  | { inter = [Var sub_var] } when is_infer sub_var.bind state ->
+  let* sub_var = get_infer_var_sub sub in
+  match sub_var with
+  | Some sub_var when List.length sup.union > 1 ->
     constrain_sub_var pos sub_var sup
   | _ ->
-  list_any (constrain_inter_1 pos sub) sup.union
+    list_any (constrain_inter_1 pos sub) sup.union
 
 and constrain_inter_1 pos sub sup =
   list_all (constrain_inter_2 pos sub) sup.inter
 
 and constrain_inter_2 pos sub sup =
-  let* state = get_state in
-  match sup with
-  | Var sup_var when is_infer sup_var.bind state ->
+  let* sup_var = get_infer_var_sup sup in
+  match sup_var with
+  | Some sup_var when List.length sub.inter > 1 ->
     let sub = { Type.union = [sub] } in
     constrain_sup_var pos sup_var sub
   | _ ->
-  list_any (Utils.flip (constrain_base pos) sup) sub.inter
+    list_any (fun sub -> constrain_base pos sub sup) sub.inter
 
 and constrain_base pos sub sup =
   let* state = get_state in
   match sub, sup with
+  | Var sub_var, Var sup_var when is_infer sub_var.bind state && is_infer sup_var.bind state ->
+    let* sub_res = constrain_sub_var pos sub_var (Type.base sup) in
+    let* sup_res = constrain_sup_var pos sup_var (Type.base sub) in
+    return (sub_res && sup_res)
   | Var sub_var, _ when is_infer sub_var.bind state ->
     let sup = Type.base sup in
     constrain_sub_var pos sub_var sup
