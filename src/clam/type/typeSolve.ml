@@ -31,11 +31,10 @@ let prioritize_bound vars state =
 
 (* Returns variables that are equal or higher to the current state level and that do not appear in lower variables *)
 let get_variables state =
-  let vars = List.filter (fun (entry: entry_var) -> entry.level_low = state.level) state.vars
+  let vars = List.filter (fun (entry: entry_var) -> entry.level = state.level) state.vars
   |> List.map (fun entry -> entry.bind) in
 
-  let vars = prioritize_bound vars state in
-  vars, state
+  prioritize_bound vars state, state
 
 let should_quantify type' bind =
   let occurence = get_pols type' bind Neg in

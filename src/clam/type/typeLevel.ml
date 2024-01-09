@@ -40,9 +40,9 @@ and levelize_var var level direct =
   let* entry = get_var_entry_opt var.bind in
   match entry with
   | Some entry ->
-    if entry.level_low > level then
+    if entry.level > level then
       if not direct then
-        let* () = update_var_entry var.bind (fun entry -> { entry with level_low = level }) in
+        let* () = update_var_entry var.bind (fun entry -> { entry with level }) in
         let* () = levelize entry.lower level direct in
         let* () = levelize entry.upper level direct in
         return ()

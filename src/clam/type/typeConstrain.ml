@@ -156,7 +156,7 @@ and constrain_sub_var pos sub_var sup =
   let* cond = is_direct_sup sub_var.bind sup in
   if not cond then
     let* entry = get_var_entry sub_var.bind in
-    let* () = levelize sup entry.level_low in
+    let* () = levelize sup entry.level in
     let* () = update_var_upper sub_var.bind sup in
     let* sub_lower = get_var_lower sub_var.bind in
     constrain pos sub_lower sup
@@ -168,7 +168,7 @@ and constrain_sup_var pos sup_var sub =
   let* cond = is_direct_sub sup_var.bind sub in
   if not cond then
     let* entry = get_var_entry sup_var.bind in
-    let* () = levelize sub entry.level_low in
+    let* () = levelize sub entry.level in
     let* () = update_var_lower sup_var.bind sub in
     let* sup_upper = get_var_upper sup_var.bind in
     constrain pos sub sup_upper

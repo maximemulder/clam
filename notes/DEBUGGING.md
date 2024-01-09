@@ -50,8 +50,8 @@ and meet c l r =
 
 ```
 let print_state state =
-  List.sort (fun a b -> compare a.level_low b.level_low) state.vars
-  |> List.map (fun a -> string_of_int a.level_low
+  List.sort (fun a b -> compare a.level b.level) state.vars
+  |> List.map (fun a -> string_of_int a.level
     ^ " " ^ a.bind.name
     ^ ": " ^ TypeDisplay.display a.lower
     ^ " < " ^ TypeDisplay.display a.upper)

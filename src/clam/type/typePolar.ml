@@ -59,14 +59,6 @@ and occurs_bind var bind =
 and occurs_param param bind =
   occurs param.bound bind
 
-let occurs_in_lower_vars bind state =
-  let level, _ = get_var_level bind state in
-  List.filter (fun (entry: entry_var) -> entry.level < level) state.vars
-  |> List.map (fun entry -> entry.bind)
-  |> List.exists (fun var -> fst (occurs_bind { bind = var } bind state)), state
-
-(* TEST *)
-
 (* POLARITY *)
 
 (* Returns the polarities in which a type variable occurs in a type, used to know whether to

@@ -1,3 +1,8 @@
+(*
+  This file contains the environment used for type inference, which itself contains information
+  about the current inference type variables, parameter type variables and expression types.
+*)
+
 let cmp_bind a b =
   a.Abt.id = b.Abt.id
 
@@ -19,7 +24,6 @@ type entry_type = {
 type entry_var = {
   bind: Abt.bind_type;
   level: int;
-  level_low: int;
   lower: Type.type';
   upper: Type.type';
 }
@@ -99,14 +103,6 @@ let get_type_bound bind =
   let* entry = get_type_entry bind in
   return entry.bound
 
-let get_var_level bind =
-  let* entry = get_var_entry bind in
-  return entry.level
-
-let get_var_level_low bind =
-  let* entry = get_var_entry bind in
-  return entry.level_low
-
 let get_var_lower bind =
   let* entry = get_var_entry bind in
   return entry.lower
@@ -155,7 +151,7 @@ let make_var state =
   let bind = { Abt.name = "'" ^ string_of_int counter.contents } in
   counter := counter.contents + 1;
   let type' = Type.var bind in
-  let var = { bind; level = state.level; level_low = state.level; lower = Type.bot; upper = Type.top } in
+  let var = { bind; level = state.level; lower = Type.bot; upper = Type.top } in
   let state = { state with vars = var :: state.vars } in
   type', state
 
