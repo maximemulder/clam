@@ -1,7 +1,7 @@
 (*
   This file contains the algorithm that decides how to inline or quantify type variables.
-  It is currently quite ugly and almost certainly buggy. The biggest challenge is to figure out in
-  which order the type variables should be treated.
+  It is currently a little ugly and almost certainly buggy. The biggest challenge is to figure
+  out in which order the type variables should be treated.
 *)
 
 open TypeInline
@@ -32,19 +32,6 @@ let prioritize_bound vars state =
     ) state.vars
   ) vars
 
-(* Prioritize variables that occur directly in other bounds *)
-let prioritize_direct vars state =
-  prioritize (fun var ->
-    List.exists (fun (entry: entry_var) ->
-      if entry.bind == var then
-        false
-      else
-        let a = occurs_directly var entry.lower in
-        let b = occurs_directly var entry.upper in
-        (a || b)
-    ) state.vars
-  ) vars
-
 (* Returns variables that are equal or higher to the current state level and that do not appear in lower variables *)
 let get_variables type' state =
   let vars = List.filter (fun (entry: entry_var) -> entry.level_low = state.level) state.vars
@@ -53,8 +40,6 @@ let get_variables type' state =
 
   let vars = prioritize_occur type' vars state in
   let vars = prioritize_bound vars state in
-  let vars = prioritize_direct vars state in
-
   vars, state
 
 let should_quantify type' bind =
@@ -87,5 +72,5 @@ let with_level f state =
   x, state
 
 let with_var f =
-  let* type' = make_var in
-  with_level (f type')
+  let f = (let* type' = make_var in f type') in
+  with_level f

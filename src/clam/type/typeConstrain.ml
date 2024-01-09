@@ -161,7 +161,7 @@ and constrain_sub_var pos sub_var sup =
     let* sub_lower = get_var_lower sub_var.bind in
     constrain pos sub_lower sup
   else
-    (* TODO: Handle cycle ? *)
+    (* TODO: Handle cycle *)
     return true
 
 and constrain_sup_var pos sup_var sub =
@@ -173,7 +173,7 @@ and constrain_sup_var pos sup_var sub =
     let* sup_upper = get_var_upper sup_var.bind in
     constrain pos sub sup_upper
   else
-    (* TODO: Handle cycle ? *)
+    (* TODO: Handle cycle *)
     return true
 
 and constrain_tuple pos sub_tuple sup_tuple =

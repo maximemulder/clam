@@ -198,18 +198,20 @@ Clam features a constraint-based type inference algorithm capable of inferring t
     <tr>
 <td><pre><code>def two = 1 + 1
 def id = (p) -> p
-def max = (l, r) -> if l > r then l else r
 def inf = (p) -> inf(p)
 def foo = (f) -> {f(123), f("Hello")}
 def bar = foo(id)
+def bounded = (f) -> {f, f(1)}
+def not_ml = {id_bis = (p) -> p, z = 0}
 def is_even = (n) -> !is_odd(n)
 def is_odd = (n) -> if n == 0 then false else !is_even(n - 1)</code></pre></td>
 <td><pre><code>two: Int
 id: [T] -> (T) -> T
-max: [T: Int, U: Int] -> (T, U) -> (T | U)
 inf: (Top) -> Bot
 foo: [T, U] -> (((Int) -> T) & ((String) -> U)) -> {T, U}
 bar: {Int, String}
+bounded: [T, U: (Int) -> T] -> (U) -> {U, T}
+not_ml: {id_bis: [T] -> (T) -> T, z: Int}
 is_even: (Int) -> Bool
 is_odd: (Int) -> Bool</code></pre></td>
     </tr>
@@ -219,9 +221,11 @@ Type inference is impossible for some expressions using tuple projections or typ
 
 Some of these examples, as well as inspirations for the algorithm, were shamelessly stolen from TACO Lab's [SuperF](https://hkust-taco.github.io/superf/) and [MLScript](https://hkust-taco.github.io/mlscript/) languages.
 
-*\* The type inference algorithm is quite dirty and probably has a few bugs (notably with recursive types). Type inference for such a complex type system is still an open problem, and I would probably need to spend at least a few months working on it to refine it. However, most cases, as well as all the examples and tests work, which I think is a nice achievement.*
+*\* The type inference algorithm is a little dirty and probably has a few bugs in it (notably with recursive types). Type inference for such a complex type system is still an open problem, and I would probably need to spend a few months working on it to fully finish it. However, most cases, as well as all the examples and tests work, which I think is a nice achievement.*
 
-*\*\* The types shown by the interpreter do not look as good as these examples as the type printing function is currently quite basic. Still, they are exactly these types.*
+*\*\* Currently, the type inference algorithm sometimes generates signatures roughly of the shape `[T, U] -> (T, U) -> T | U`. Although these signatures are valid, they can be quite verbose and could be simplified into `[T] -> (T, T) -> T`.*
+
+*\*\*\* The types shown by the interpreter do not look as good as these examples as the type printing function is currently quite basic. Still, they are exactly these types.*
 
 ## Recursive types
 
