@@ -15,11 +15,8 @@ let prioritize f vars =
   else
     news
 
-(* Prioritize variables that occur in the type *)
-let prioritize_occur type' vars state =
-  prioritize (fun var -> fst (occurs type' var state)) vars
-
 (* Prioritize variables that do not occur in other bounds *)
+(* Ideally this should be determined when variable levels are being lowered *)
 let prioritize_bound vars state =
   prioritize (fun var ->
     List.for_all (fun (entry: entry_var) ->
@@ -33,11 +30,10 @@ let prioritize_bound vars state =
   ) vars
 
 (* Returns variables that are equal or higher to the current state level and that do not appear in lower variables *)
-let get_variables type' state =
+let get_variables state =
   let vars = List.filter (fun (entry: entry_var) -> entry.level_low = state.level) state.vars
   |> List.map (fun entry -> entry.bind) in
 
-  let vars = prioritize_occur type' vars state in
   let vars = prioritize_bound vars state in
   vars, state
 
@@ -46,7 +42,7 @@ let should_quantify type' bind =
   occurence.pos && occurence.neg
 
 let rec solve type' =
-  let* vars = get_variables type' in
+  let* vars = get_variables in
   match vars with
   | [] ->
     return type'
