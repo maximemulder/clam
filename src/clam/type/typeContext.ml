@@ -7,7 +7,7 @@ let entry (bind: Abt.bind_type) (bound: Type.type') =
   { bind; bound }
 
 let entry_param (left: Type.param) (right: Type.param) =
-  { bind = right.bind; bound = Type.base (Var { bind = left.bind }) }
+  { bind = right.bind; bound = Type.var left.bind }
 
 let is_bind entry bind =
   entry.bind == bind

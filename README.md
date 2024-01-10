@@ -1,6 +1,8 @@
 # What is this ?
 
-This is  Clam ! A small statically typed functional programming language with many classic but interesting features. A formal (but currently incomplete) specification of the language is available in the `specs/specs.pdf` file available [here](https://raw.githubusercontent.com/MaximeMulder/Clam/main/specs/specs.pdf).
+This is  Clam ! A small statically typed functional programming language with a relatively advanced type system. It implements many features of System $F^ω_{<:}$ and its extensions such as [structrual typing](#structural-typing), [subtyping](#subtyping), [unions and intersections](#union-and-intersection-types), [bounded polymorphism](#universal-types), [higher-kinded types](#higher-kinded-types) and [constraint-based type inference](#type-inference).
+
+The formal (but currently incomplete) semantics of the language are available in the `semantics.pdf` document available [here](https://raw.githubusercontent.com/MaximeMulder/Clam/main/semantics/semantics.pdf).
 
 # Example
 
@@ -11,7 +13,7 @@ When a program is executed, the `main` expression definition is evaluated.
 Printing is done through the (impure) `print` function, which can be chained with other expressions using a semicolon.
 
 ```
-def fibonacci: (Int) -> Int = (n) ->
+def fibonacci = (n) ->
     if n == 0 | n == 1 then
         n
     else
@@ -33,8 +35,6 @@ In a terminal, enter `dune build` to build the project or `dune exec main exampl
 
 # Features
 
-Most of Clam's features are related to its type system, and are actually borrowed from System $F^ω_{<:}$ and its derivatives.
-
 ## Literals
 
 Clam provides literal expressions for a few basic data types, namely `Bool`, `Int` and `String`.
@@ -47,7 +47,7 @@ def hello: String = "Hello world !"
 
 ## Functions
 
-Clam features functions, whose parameters and arguments are declared using parentheses. Functions (or any expression currently) can be recursive, and are desugared in their unary form to enable currying.
+Clam features functions, whose parameters and arguments are delimited by parentheses. Functions (or any expression currently) can be recursive, and are desugared in their unary form to enable currying.
 
 ```
 def add = (a: Int, b: Int) -> a + b
@@ -57,7 +57,7 @@ def three = step(2)
 
 ## Product types
 
-Clam features tuples and records, whose types and values are declared using curly braces. Tuple fields are indexed by their order and record fields are indexed by their labels. Fields are accessed using the dot operator `.` and the empty product `{}` is considered to be a record.
+Clam features product types in the form of tuples and records, whose types and values are delimited by curly braces. Tuple fields are indexed by their order of declaration and record fields are indexed by their labels. Fields are accessed using the dot operator `.` and the empty product `{}` is considered to be a record.
 
 ```
 type Tuple = {Int, Int}
@@ -70,9 +70,21 @@ def zero = tuple.0
 def two = record.x
 ```
 
-## Structural subtyping
+## Structural typing
 
-Clam features structural subtyping, which means that two structurally similar types are considered to be equal. Records are extensible by subtyping but tuples are not.
+Clam features structural typing, which means that types are defined by their structure, and that two types with the same structure are considered equivalent.
+
+```
+type Ball = {diameter: Int}
+type Sphere = {diameter: Int}
+
+def ball: Ball = {diameter = 10}
+def sphere: Sphere = ball
+```
+
+## Subtyping
+
+Clam features structural subtyping, which means that there exists a partial order between types where some types can be considered more specific or more general versions of others. Records notably support both width and depth subtyping, while tuples only support the latter.
 
 ```
 type Double = {x: Int, y: Int}
@@ -101,7 +113,7 @@ def b: Top = "Hello world !"
 
 ## Bottom type
 
-Clam has a bottom type named `Bot`, which contains no value and is therefore a subtype of all types.
+Clam has a bottom type named `Bot`, which contains no value and is therefore a subtype of all proper types.
 
 ```
 def foo = (bot: Bot) ->
@@ -112,7 +124,7 @@ def foo = (bot: Bot) ->
 
 ## Union and intersection types
 
-Clam features union and intersection types, with a support for distribution, joins and meets.
+Clam features union and intersection types, with a support for distributivity, joins and meets.
 
 ```
 type Union = {foo: Int} | {foo: String}
@@ -130,7 +142,7 @@ def distributivity = [A, B, C] -> (developed: (A & B) | (A & C)) ->
 
 ## Universal types
 
-Clam features universal types, which allow to abstract over an expression using types.
+Clam features universal types, which allow to abstract over an expression using types. Type parameters have an upper bound, which is `Top` by default.
 
 ```
 type Iter = [T] -> (Int, T, (T) -> T) -> T
@@ -146,7 +158,7 @@ def eight = iter[Int](3, 1, (i) -> i * 2)
 
 ## Type constructors
 
-Clam features type constructors, which allow to abstract over a type using other types. Type parameters have an upper bound, which is `Top` by default.
+Clam features type constructors, which allow to abstract over a type using other types.
 
 ```
 type Pair = [T] => {T, T}
@@ -156,7 +168,7 @@ def pair: Pair[Int] = {0, 0}
 
 ## Higher-kinded types
 
-Clam features higher-kinded types, which allow type constructors to abstract over other type constructors. Type parameters are invariant with regards to subtyping.
+Clam features higher-kinded types, which allow type constructors to abstract over other type constructors. Higher-kinded types are currently invariant with regards to their parameters.
 
 ```
 type Monad = [M: [T] => Top, A] => {
@@ -174,19 +186,46 @@ def state_monad: [S, A] -> Monad[State[S], A] = [S, A] -> {
 }
 ```
 
-## Bidirectional type inference
+## Type inference
 
-Clam features a simple bidirectional type inference system, which allows to eliminate many type annotations when they are not needed.
+Clam features a constraint-based type inference algorithm capable of inferring types for most expressions.
 
-```
-type Make = [T] -> (T) -> {T, T}
+<table>
+    <tr>
+        <td>Declared expressions</td>
+        <td>Inferred types</td>
+    </tr>
+    <tr>
+<td><pre><code>def two = 1 + 1
+def id = (p) -> p
+def inf = (p) -> inf(p)
+def foo = (f) -> {f(123), f("Hello")}
+def bar = foo(id)
+def bounded = (f) -> {f, f(1)}
+def not_ml = {id_bis = (p) -> p, z = 0}
+def is_even = (n) -> !is_odd(n)
+def is_odd = (n) -> if n == 0 then false else !is_even(n - 1)</code></pre></td>
+<td><pre><code>two: Int
+id: [T] -> (T) -> T
+inf: (Top) -> Bot
+foo: [T, U] -> (((Int) -> T) & ((String) -> U)) -> {T, U}
+bar: {Int, String}
+bounded: [T, U: (Int) -> T] -> (U) -> {U, T}
+not_ml: {id_bis: [T] -> (T) -> T, z: Int}
+is_even: (Int) -> Bool
+is_odd: (Int) -> Bool</code></pre></td>
+    </tr>
+</table>
 
-def make: Make = [T] -> (p) -> {p, p}
+Type inference is impossible for some expressions using tuple projections or type applications.
 
-def main =
-    var pair = make[Int](0);
-    unit
-```
+Some of these examples, as well as inspirations for the algorithm, were shamelessly stolen from TACO Lab's [SuperF](https://hkust-taco.github.io/superf/) and [MLScript](https://hkust-taco.github.io/mlscript/) languages.
+
+*\* The type inference algorithm is a little dirty and probably has a few bugs in it (notably with recursive types). Type inference for such a complex type system is still an open problem, and I would probably need to spend a few months working on it to fully finish it. However, most cases, as well as all the examples and tests work, which I think is a nice achievement.*
+
+*\*\* Currently, the type inference algorithm sometimes generates signatures roughly of the shape `[T, U] -> (T, U) -> T | U`. Although these signatures are valid, they can be quite verbose and could be simplified into `[T] -> (T, T) -> T`.*
+
+*\*\*\* The types shown by the interpreter do not look as good as these examples as the type printing function is currently quite basic. Still, they are exactly these types.*
 
 ## Recursive types
 
@@ -194,25 +233,20 @@ Clam does not feature recursive types yet, which is quite limiting.
 
 # Correctness
 
-Does this interpreter, and particularly its type checking, actually work ?
+There is currently no mathematical proof of correctness for this language or interpeter. But I hope I will be able to write one one day. While some code (notably for type inference) is still rough at the time of writing these lines, all the examples provided work, as well as all the unit tests and the sample programs found in the `tests` directory.
 
-It should. I do not have a proof of correctness yet, but I have a decent amount of tests and have tried to design the code carefully. I can ensure that all the examples in this file and in the `tests` directory work.
-
-There may be a few bugs remaining with higher-kinded types, especially when interacting with other features such as unions and intersections. However, I want to eventually simplify the representation of these types in the future so I will wait until I do so to polish them more thoroughly.
+**IMPORTANT: The above statement is not true if you see this sentence but it should be in the next week**
 
 # Roadmap
 
-Here are a few features I would like to eventually work on in the future:
-1. Improve the implementation (simplify the representation of normalized types)
-2. Better error handling (possibly monadic ?) and reporting
-4. Add recursive types
-6. Add tagged values and their types
-5. Add negation types
-6. Add pattern matching using types
-7. Add function totality checking
+I will have less time to work on this project in the short- to medium-term future, however, here is my roadmap for Clam:
+- Polish the interpreter's code and algorithms.
+- Improve error handling and user experience.
+- Add recursive types.
+- Add negation types.
+- Add pattern matching through disjoint switches.
+- Add other cool stuff (function totality checking, dependent types... unfortunately very far away)
 
 # Notes
 
-Clam is simply a pet project of mine, it is not intended to be a full-blown programming language. I created it during my master's thesis evaluation to learn OCaml, practice functional programming and apply some of the knowledge I had gained on types and type theory.
-
-There is no guarantee on how much I will work on this language. At the time of writing these lines, I just finished a pretty intense rush, so I will take a little pause now.
+Clam is a pet project of mine I created during my master's thesis evaluation to apply the knowledge I gained on programming language theory and practice functional programming. It has since gained in size and functionality but is still not intended to be a used for serious programming, especially since the user experience is currently quite rough.

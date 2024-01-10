@@ -1,5 +1,5 @@
-open Clam.Abt
-open Clam.Primitive
+open Clam
+open TypeContext
 
 let inline v _ = v
 
@@ -7,70 +7,76 @@ let id v = v
 
 (* Types *)
 
-let top    = top
-let bot    = bot
-let unit   = unit
-let bool   = bool
-let int    = int
-let char   = char
-let string = string
+include Type
 
 (* TODO: Adopt new bind system once typing is refactored *)
 
-let var name bound =
-  let bind = { name } in
-  TypeVar { pos; param = { bind; bound }; bind}
-
-let tuple elems =
-  TypeTuple { pos; elems }
+let bind name =
+  { Abt.name }
 
 let record attrs =
   let attrs = attrs
-    |> List.map (fun (name, type') -> (name, { pos; name; type' }))
+    |> List.map (fun (name, type') -> (name, { name; type' }))
     |> List.to_seq
-    |> Clam.Utils.NameMap.of_seq in
-  TypeRecord { pos; attrs }
+    |> Utils.NameMap.of_seq in
+  base (Record { attrs })
 
-let union left right =
-  TypeUnion { pos; left; right }
-
-let inter left right =
-  TypeInter { pos; left; right }
-
-let abs_expr param body =
-  TypeAbsExpr { pos; param; body }
-
-let abs_expr_type (name, bound) body =
-  let bind = { name } in
-  let param = { bind; bound } in
-  let body = body (TypeVar { pos; param; bind }) in
-  TypeAbsExprType { pos; param; body }
+let abs_expr_type (name, bound) ret =
+  let bind = bind name in
+  let param: Type.param = { bind; bound } in
+  let ret = ret (var bind) in
+  base (AbsTypeExpr { param; ret })
 
 let abs name bound body =
-  let bind = { name } in
-  let param = { bind; bound } in
-  let body = body (TypeVar { pos; param; bind }) in
-  TypeAbs { pos; param; body }
+  let bind = bind name in
+  let param: Type.param = { bind; bound } in
+  let body = body (var bind) in
+  base (Abs { param; body })
 
-let app type' arg =
-  TypeApp { pos; type'; arg }
+let a = bind "A"
+let b = bind "B"
+let c = bind "C"
+let d = bind "D"
+let e = bind "E"
+let f = bind "F"
+let z = bind "Z"
 
-let a = var "A" top
-let b = var "B" top
-let c = var "C" top
-let d = var "D" top
-let e = var "E" top
-let f = var "F" top
-let z = var "Z" top
+let ea = bind "EA"
+let fa = bind "FA"
 
-let ea = var "EA" a
-let fa = var "FA" a
+let ctx = {
+  assumptions = [
+    { bind = a; bound = top };
+    { bind = b; bound = top };
+    { bind = c; bound = top };
+    { bind = d; bound = top };
+    { bind = e; bound = top };
+    { bind = f; bound = top };
+    { bind = z; bound = top };
+    { bind = ea; bound = var a };
+    { bind = fa; bound = var a };
+  ]
+}
 
-let with_var name type' body =
-  body (var name type')
+let union types =
+  Utils.list_reduce (TypeSystem.join ctx) types
+
+let inter types =
+  Utils.list_reduce (TypeSystem.meet ctx) types
+
+let a = var a
+let b = var b
+let c = var c
+let d = var d
+let e = var e
+let f = var f
+let z = var z
+let ea = var ea
+let fa = var fa
 
 (* Expressions *)
 
+(*
 let e_unit =
   ExprUnit { pos }
 
@@ -111,4 +117,16 @@ let e_abs_te (name, bound) body =
   ExprTypeAbs { pos; param; body }
 
 let e_app_te expr arg =
-  ExprTypeApp { pos; expr; arg }
+  ExprTypeApp { pos; expr; arg }*)
+
+(*
+  TODO: Although the tests have been ported to the new archtitecture, they haven't
+  yet be updated to better match the new type structure. This work should eventually
+  be done, with notably union and inter no longer using join and meet.
+
+  union (p: union list):
+    each p must have a single intersection
+
+  inter (p: union list)
+    p must have a single intersection and base
+*)

@@ -8,9 +8,5 @@ let () =  Alcotest.run "clam" [
   "isa!",            Isa.tests_not;
   "join",            Join.tests;
   "meet",            Meet.tests;
-  "search_elem",     SearchElem.tests;
-  "search_attr",     SearchAttr.tests;
-  "search_app",      SearchApp.tests;
-  "search_app_type", SearchAppType.tests;
   "full",            Full.tests;
 ]

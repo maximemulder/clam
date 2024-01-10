@@ -34,3 +34,6 @@ Let Arguments Go First
 
 Simplifying Subtyping Constraints: A Theory
 - https://core.ac.uk/download/pdf/82241457.pdf
+
+Implicit Polarized F: local type inference for impredicativity
+- https://www.cl.cam.ac.uk/~nk480/implicit-polarized-f.pdf

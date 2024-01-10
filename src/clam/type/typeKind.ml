@@ -32,3 +32,4 @@ and get_kind_app ctx app =
     body
   | Type ->
     invalid_arg "TypeKind.get_kind"
+

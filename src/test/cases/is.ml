@@ -1,5 +1,5 @@
 open Clam
-open Vars2
+open Vars
 
 let test ctx left right (_: unit) =
   TypeSystem.is ctx left right
@@ -16,7 +16,7 @@ let case left right expect ctx =
 let case_var name bound case expect ctx =
   let bind = { Abt.name } in
   let ctx = TypeContext.add_bind_type ctx bind bound in
-  let var = Type.base (Type.Var { bind }) in
+  let var = Type.var bind in
   case var expect ctx
 
 let tests = [

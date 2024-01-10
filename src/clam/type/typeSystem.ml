@@ -164,7 +164,7 @@ and substitute_arg ctx bind arg type' =
 and substitute_body ctx param param_body body =
   let ctx = TypeContext.add_bind_type ctx param.bind param.bound in
   let ctx = TypeContext.add_bind_type ctx param_body.bind param_body.bound in
-  let var = Type.base (Var { bind = param.bind }) in
+  let var = Type.var param.bind in
   let entry = TypeContext.entry param_body.bind var in
   substitute ctx entry body
 
@@ -183,24 +183,24 @@ and substitute_base ctx entry (type': Type.base) =
     substitute_var entry var
   | Tuple tuple ->
     let elems = List.map (substitute ctx entry) tuple.elems in
-    Type.base (Tuple { elems })
+    Type.tuple elems
   | Record record ->
     let attrs = Utils.NameMap.map (substitute_attr ctx entry) record.attrs in
-    Type.base (Record { attrs })
+    Type.record attrs
   | AbsExpr abs ->
     let param = substitute ctx entry abs.param in
     let ret = substitute ctx entry abs.ret in
-    Type.base (AbsExpr { param; ret })
+    Type.abs_expr param ret
   | AbsTypeExpr abs ->
     let param = substitute_param ctx entry abs.param in
     let ctx = TypeContext.add_bind_type ctx param.Type.bind param.bound in
     let ret = substitute ctx entry abs.ret in
-    Type.base (AbsTypeExpr { param; ret })
+    Type.abs_type_expr param ret
   | Abs abs ->
     let param = substitute_param ctx entry abs.param in
     let ctx = TypeContext.add_bind_type ctx param.bind param.bound in
     let body = substitute ctx entry abs.body in
-    Type.base (Abs { param; body })
+    Type.abs param body
   | App app ->
     let abs = substitute ctx entry app.abs in
     let arg = substitute ctx entry app.arg in
@@ -210,7 +210,7 @@ and substitute_var entry var =
   if var.bind == entry.bind then
     entry.bound
   else
-    Type.base (Var var)
+    Type.var var.bind
 
 and substitute_param ctx entry param =
   let bound = substitute ctx entry param.bound in
@@ -230,7 +230,7 @@ and compute_base ctx (abs: Type.base) (arg: Type.type') =
   | Abs abs ->
     substitute_arg ctx abs.param.bind arg abs.body
   | _ ->
-    Type.base (Type.App { abs = Type.base abs; arg })
+    Type.app (Type.base abs) arg
 
 (* TYPE MAP *)
 

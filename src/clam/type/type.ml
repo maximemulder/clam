@@ -66,3 +66,17 @@ and param = {
 }
 
 let base base = { union = [{ inter = [base] }] }
+
+let top    = base Top
+let bot    = base Bot
+let unit   = base Unit
+let bool   = base Bool
+let int    = base Int
+let string = base String
+let var bind = base (Var { bind })
+let tuple elems = base (Tuple { elems })
+let record attrs = base (Record { attrs })
+let abs_expr param ret = base (AbsExpr { param; ret })
+let abs_type_expr param ret = base (AbsTypeExpr { param; ret })
+let abs param body = base (Abs { param; body })
+let app abs arg = base (App { abs; arg })

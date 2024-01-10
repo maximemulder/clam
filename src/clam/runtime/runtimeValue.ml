@@ -18,7 +18,6 @@ type value =
 | VTuple   of value list
 | VRecord  of value NameMap.t
 | VExprAbs of abs_expr
-| VTypeAbs of abs_type
 
 and abs_expr =
   | VPrim of abs_expr_prim
@@ -61,8 +60,6 @@ let rec compare left right =
     left = right
   | (VExprAbs (VCode left), VExprAbs (VCode right)) ->
     left.abs = right.abs
-  | (VTypeAbs left, VTypeAbs right) ->
-    left = right
   | _ -> false
 
 let value_bool value =
