@@ -221,7 +221,7 @@ Type inference is impossible for some expressions using tuple projections or typ
 
 Some of these examples, as well as several parts of the algorithm, were inspired by TACO Lab's [SuperF](https://hkust-taco.github.io/superf/) and [MLScript](https://hkust-taco.github.io/mlscript/) languages.
 
-*\* The type inference algorithm is a little dirty and probably has a few bugs in it (notably with recursive types). Type inference for such a complex type system is still an open problem, and I would probably need to spend a few months working on it to fully finish it. However, most cases, as well as all the examples and tests work, which I think is a nice achievement.*
+*\* The type inference algorithm is a little dirty and probably has a few bugs in it (notably with recursive types). Type inference for such a complex type system is still an open problem, and I would probably need to one or two months of work to finish it fully. However, most cases, as well as all the examples and tests work, which I think is a nice achievement.*
 
 *\*\* Currently, the type inference algorithm sometimes generates signatures roughly of the shape `[T, U] -> (T, U) -> T | U`. Although these signatures are valid, they can be quite verbose and could be simplified into `[T] -> (T, T) -> T`.*
 
