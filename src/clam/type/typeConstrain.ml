@@ -141,9 +141,8 @@ and constrain_base pos sub sup =
     let* ret = constrain pos ret (Type.base sup) in
     return (param && ret)
   | _, AbsTypeExpr sup_abs ->
-    let* ctx = get_context in
-    let sup = TypeSystem.substitute_arg ctx sup_abs.param.bind sup_abs.param.bound sup_abs.ret in
-    constrain pos (Type.base sub) sup
+    with_type sup_abs.param.bind sup_abs.param.bound
+      (constrain pos (Type.base sub) sup_abs.ret)
   | _, _ ->
     let* ctx = get_context in
     let result = TypeSystem.isa ctx (Type.base sub) (Type.base sup) in
