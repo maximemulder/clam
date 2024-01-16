@@ -65,3 +65,11 @@ let print_state state =
 if sub <> Type.bot && sup <> Type.top then
   print_endline("constrain " ^ TypeDisplay.display sub ^ " < " ^ TypeDisplay.display sup);
 ```
+
+## Print inference definitions
+
+```
+  let state = check_defs state in
+  let types = List.filter (fun (e: entry_expr) -> not(List.exists (fun (p: entry_expr) -> p.bind.name = e.bind.name) primitives)) state.exprs in
+  List.iter (fun (e: entry_expr) -> print_endline(e.bind.name ^ ": " ^ TypeDisplay.display e.type')) types
+```
