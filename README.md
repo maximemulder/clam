@@ -218,7 +218,7 @@ not_ml: {id_bis: [T] -> (T) -> T, z: Int}
 is_even: (Int) -> Bool
 is_odd: (Int) -> Bool
 ​
-inverted : [A, B] -> (A, B) -> Unit
+inverted: [A, B] -> (A, B) -> Unit
 ​</code></pre></td>
     </tr>
 </table>
