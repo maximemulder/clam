@@ -196,7 +196,7 @@ Clam features a constraint-based type inference algorithm capable of inferring t
         <td>Inferred types</td>
     </tr>
     <tr>
-<td><pre><code>def two = 1 + 1
+<td><pre style="white-space: pre-wrap;"><code>def two = 1 + 1
 def id = (p) -> p
 def inf = (p) -> inf(p)
 def foo = (f) -> {f(123), f("Hello")}
@@ -204,7 +204,10 @@ def bar = foo(id)
 def bounded = (f) -> {f, f(1)}
 def not_ml = {id_bis = (p) -> p, z = 0}
 def is_even = (n) -> !is_odd(n)
-def is_odd = (n) -> if n == 0 then false else !is_even(n - 1)</code></pre></td>
+def is_odd = (n) -> if n == 0
+             then false else !is_even(n - 1)
+def inverted : [A, B] -> (A, B) -> Unit
+             = [B, A] -> (a: A, b: B) -> unit</code></pre></td>
 <td><pre><code>two: Int
 id: [T] -> (T) -> T
 inf: (Top) -> Bot
@@ -213,7 +216,10 @@ bar: {Int, String}
 bounded: [T, U: (Int) -> T] -> (U) -> {U, T}
 not_ml: {id_bis: [T] -> (T) -> T, z: Int}
 is_even: (Int) -> Bool
-is_odd: (Int) -> Bool</code></pre></td>
+is_odd: (Int) -> Bool
+​
+inverted : [A, B] -> (A, B) -> Unit
+​</code></pre></td>
     </tr>
 </table>
 
