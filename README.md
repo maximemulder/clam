@@ -196,7 +196,7 @@ Clam features a constraint-based type inference algorithm capable of inferring t
         <td>Inferred types</td>
     </tr>
     <tr>
-<td><pre style="white-space: pre-wrap;"><code>def two = 1 + 1
+<td><pre><code>def two = 1 + 1
 def id = (p) -> p
 def inf = (p) -> inf(p)
 def foo = (f) -> {f(123), f("Hello")}
