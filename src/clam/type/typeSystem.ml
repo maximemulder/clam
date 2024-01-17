@@ -1,3 +1,9 @@
+(*
+  This file contains various algorithms used for type checking. These algorithms predate type
+  constraining and do not implement some new rules such as higher-rank polymorphism subtyping.
+  I should work on unifying them with constraining when I have the time.
+*)
+
 (* BOTTOM TYPE EQUIVALENCE *)
 
 (**

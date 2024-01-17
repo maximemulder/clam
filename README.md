@@ -142,7 +142,7 @@ def distributivity = [A, B, C] -> (developed: (A & B) | (A & C)) ->
 
 ## Universal types
 
-Clam features universal types, which allow to abstract over an expression using types. Type parameters have an upper bound, which is `Top` by default.
+Clam features universal types, which allow expressions to abstract over types. Type parameters have an upper bound, which is `Top` by default.
 
 ```
 type Iter = [T] -> (Int, T, (T) -> T) -> T
@@ -154,6 +154,14 @@ def iter: Iter = [T] -> (n, v, f) ->
         iter[T](n - 1, f(v), f)
 
 def eight = iter[Int](3, 1, (i) -> i * 2)
+```
+
+Clam also features higher-rank polymorphism subtyping, which adds a lot of flexibility to universal types.
+
+```
+def int_id: (Int) -> Int = [T] -> (p: T) -> p
+def inverted: [A, B] -> (A, B) -> Unit
+            = [B, A] -> (a: A, b: B) -> unit
 ```
 
 ## Type constructors
@@ -205,9 +213,7 @@ def bounded = (f) -> {f, f(1)}
 def not_ml = {id_bis = (p) -> p, z = 0}
 def is_even = (n) -> !is_odd(n)
 def is_odd = (n) -> if n == 0
-             then false else !is_even(n - 1)
-def inverted : [A, B] -> (A, B) -> Unit
-             = [B, A] -> (a: A, b: B) -> unit</code></pre></td>
+             then false else !is_even(n - 1)</code></pre></td>
 <td><pre><code>two: Int
 id: [T] -> (T) -> T
 inf: (Top) -> Bot
@@ -217,8 +223,6 @@ bounded: [T, U: (Int) -> T] -> (U) -> {U, T}
 not_ml: {id_bis: [T] -> (T) -> T, z: Int}
 is_even: (Int) -> Bool
 is_odd: (Int) -> Bool
-​
-inverted: [A, B] -> (A, B) -> Unit
 ​</code></pre></td>
     </tr>
 </table>

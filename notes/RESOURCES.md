@@ -37,3 +37,6 @@ Simplifying Subtyping Constraints: A Theory
 
 Implicit Polarized F: local type inference for impredicativity
 - https://www.cl.cam.ac.uk/~nk480/implicit-polarized-f.pdf
+
+Greedy Implicit Bounded Quantification
+- https://i.cs.hku.hk/~bruno/papers/oopsla23.pdf
