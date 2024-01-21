@@ -245,8 +245,6 @@ Clam does not feature recursive types yet, which is quite limiting.
 
 There is currently no mathematical proof of correctness for this language or interpeter. But I hope I will be able to write one one day. While some code (notably for type inference) is still rough at the time of writing these lines, all the examples provided work, as well as all the unit tests and the sample programs found in the `tests` directory.
 
-**IMPORTANT: The above statement is not true if you see this sentence but it should be in the next week**
-
 # Roadmap
 
 I will have less time to work on this project in the short- to medium-term future, however, here is my roadmap for Clam:
