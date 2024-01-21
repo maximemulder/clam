@@ -37,7 +37,7 @@ In a terminal, enter `dune build` to build the project or `dune exec main exampl
 
 ## Literals
 
-Clam provides literal expressions for a few basic data types, namely `Bool`, `Int` and `String`.
+Clam provides literal expressions for a few basic data types such as `Bool`, `Int` and `String`.
 
 ```
 def yes: Bool = true
@@ -47,7 +47,7 @@ def hello: String = "Hello world !"
 
 ## Functions
 
-Clam features functions, whose parameters and arguments are delimited by parentheses. Functions (or any expression currently) can be recursive, and are desugared in their unary form to enable currying.
+Clam features functions, whose parameters and arguments are delimited by parentheses. Functions (or any expression) can be recursive, and are desugared into their unary form to enable currying.
 
 ```
 def add = (a: Int, b: Int) -> a + b
@@ -166,7 +166,7 @@ def inverted: [A, B] -> (A, B) -> Unit
 
 ## Type constructors
 
-Clam features type constructors, which allow to abstract over a type using other types.
+Clam features type constructors, which allow types to abstract over other types.
 
 ```
 type Pair = [T] => {T, T}
