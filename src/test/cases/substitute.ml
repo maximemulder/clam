@@ -40,9 +40,9 @@ let tests = [
   (* abstractions and applications *)
   case "A" z (fun a -> abs_expr a b) (abs_expr z b);
   case "A" z (fun a -> abs_expr b a) (abs_expr b z);
-  case "A" z (fun a -> abs_expr_type ("B", top) (inline a)) (abs_expr_type ("B", top) (inline z));
-  case "A" z (fun a -> abs_expr_type ("B", a) id) (abs_expr_type ("B", z) (fun b -> b));
-  case "A" z (fun a -> abs_expr_type ("B", a) (fun b -> tuple [a; b])) (abs_expr_type ("B", z) (fun b -> tuple [z; b]));
+  case "A" z (fun a -> abs_type_expr "B" top (inline a)) (abs_type_expr "B" top (inline z));
+  case "A" z (fun a -> abs_type_expr "B" a id) (abs_type_expr "B" z id);
+  case "A" z (fun a -> abs_type_expr "B" a (fun b -> tuple [a; b])) (abs_type_expr "B" z (fun b -> tuple [z; b]));
 
   (* complex substitutes *)
   (* case "A" (union [b; c]) id (union [b; c]);

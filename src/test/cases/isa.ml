@@ -65,10 +65,10 @@ let tests = [
   case (abs_expr (union [a; b]) (inter [c; d])) (inter [abs_expr a c; abs_expr b d]);
 
   (* type to expression abstractions *)
-  case (abs_expr_type ("T", top) id) (abs_expr_type ("T", top) id);
-  case (abs_expr_type ("T", top) id) (abs_expr_type ("X", top) id);
-  case (abs_expr_type ("T", top) (inline a)) (abs_expr_type ("T", top) (inline a));
-  case (abs_expr_type ("T", top) (inline a)) (abs_expr_type ("X", top) (inline a));
+  case (abs_type_expr "T" top id) (abs_type_expr "T" top id);
+  case (abs_type_expr "T" top id) (abs_type_expr "X" top id);
+  case (abs_type_expr "T" top (inline a)) (abs_type_expr "T" top (inline a));
+  case (abs_type_expr "T" top (inline a)) (abs_type_expr "X" top (inline a));
 
   (* type abstractions *)
   case (abs "T" top id) (abs "T" top id);

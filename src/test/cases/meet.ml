@@ -63,13 +63,13 @@ let tests = [
   case (abs_expr a c) (abs_expr b d) (inter [abs_expr a c; abs_expr b d]);
 
   (* type to expression abstractions *)
-  case (abs_expr_type ("A", top) (inline c)) (abs_expr_type ("B", top) (inline d)) (abs_expr_type ("A", top) (inline (inter [c; d])));
-  case (abs_expr_type ("A", unit) (inline a)) (abs_expr_type ("B", top) (inline b)) bot;
-  case (abs_expr_type ("A", top) (inline a)) (abs_expr_type ("B", unit) (inline b)) bot;
+  case (abs_type_expr "A" top (inline c)) (abs_type_expr "B" top (inline d)) (abs_type_expr "A" top (inline (inter [c; d])));
+  case (abs_type_expr "A" unit (inline a)) (abs_type_expr "B" top (inline b)) bot;
+  case (abs_type_expr "A" top (inline a)) (abs_type_expr "B" unit (inline b)) bot;
 
-  case (abs_expr_type ("A", top) (fun a -> a)) (abs_expr_type ("A", top) (fun a -> a)) (abs_expr_type ("A", top) (fun a -> a));
-  case (abs_expr_type ("A", top) (fun a -> a)) (abs_expr_type ("B", top) (fun b -> b)) (abs_expr_type ("A", top) (fun a -> a));
-  case (abs_expr_type ("A", top) (fun a -> tuple [a])) (abs_expr_type ("B", top) (fun b -> tuple [b])) (abs_expr_type ("A", top) (fun a -> tuple[a]));
+  case (abs_type_expr "A" top (fun a -> a)) (abs_type_expr "A" top id) (abs_type_expr "A" top id);
+  case (abs_type_expr "A" top (fun a -> a)) (abs_type_expr "B" top id) (abs_type_expr "A" top id);
+  case (abs_type_expr "A" top (fun a -> tuple [a])) (abs_type_expr "B" top (fun b -> tuple [b])) (abs_type_expr "A" top (fun a -> tuple[a]));
 
   (* TODO: Add these tests once duplicates are gone (either through sorting or exhaustive meet) *)
   (* case (abs_expr_type ("A", top) (fun a -> inter [int; a])) (abs_expr_type ("B", top) id) (abs_expr_type ("A", top) (fun a -> inter [int; a]));

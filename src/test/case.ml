@@ -28,7 +28,7 @@ let type_type_option = Alcotest.testable print_type_type_option (Option.equal co
 
 let make_test testable name subject expect (_: unit) =
   let result = subject () in
-  Alcotest.check testable name result expect
+  Alcotest.check testable name expect result
 
 let make_case testable name subject expect =
   let test = make_test testable name subject expect in

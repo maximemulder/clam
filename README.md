@@ -235,8 +235,6 @@ Some of these examples, as well as several parts of the algorithm, were inspired
 
 *\*\* Currently, the type inference algorithm sometimes generates signatures roughly of the shape `[T, U] -> (T, U) -> T | U`. Although these signatures are valid, they can be quite verbose and could be simplified into `[T] -> (T, T) -> T`.*
 
-*\*\*\* The types shown by the interpreter do not look as good as these examples as the type printing function is currently quite basic. Still, they are exactly these types.*
-
 ## Recursive types
 
 Clam does not feature recursive types yet, which is quite limiting.

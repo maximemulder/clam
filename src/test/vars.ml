@@ -21,7 +21,7 @@ let record attrs =
     |> Utils.NameMap.of_seq in
   base (Record { attrs })
 
-let abs_expr_type (name, bound) ret =
+let abs_type_expr name bound ret =
   let bind = bind name in
   let param: Type.param = { bind; bound } in
   let ret = ret (var bind) in

@@ -72,9 +72,9 @@ let tests = [
   case (abs_expr a (inter [b; c])) (inter [abs_expr a b; abs_expr a c]);
 
   (* type to expression abstractions *)
-  case (abs_expr_type ("A", top) (inline a)) (abs_expr_type ("A", top) (inline a));
-  case (abs_expr_type ("A", top) (fun a -> a)) (abs_expr_type ("A", top) (fun a -> a));
-  case (abs_expr_type ("A", top) (fun a -> a)) (abs_expr_type ("B", top) (fun b -> b));
+  case (abs_type_expr "A" top (inline a)) (abs_type_expr "A" top (inline a));
+  case (abs_type_expr "A" top id) (abs_type_expr "A" top id);
+  case (abs_type_expr "A" top id) (abs_type_expr "B" top id);
 ]
 |> List.map (fun case -> case true ctx)
 
@@ -121,8 +121,8 @@ let tests_not = [
 
   (* ambiguous names *)
   case_var "A" top (fun a1 -> case_var "A" top (fun a2 -> case a1 a2));
-  case (abs_expr_type ("A", top) (inline a)) (abs_expr_type ("A", top) id);
-  case (abs_expr_type ("A", top) id) (abs_expr_type ("A", top) (inline a));
+  case (abs_type_expr "A" top (inline a)) (abs_type_expr "A" top id);
+  case (abs_type_expr "A" top id) (abs_type_expr "A" top (inline a));
 
   (* type abstractions and variables *)
   case_var "T" (abs "X" top id) (fun t1 -> case_var "T" (abs "X" top id) (fun t2 -> case (app t1 top) (app t2 top)));
