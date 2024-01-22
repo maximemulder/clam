@@ -92,7 +92,7 @@ and infer_record_attr attr =
   return { Type.name = attr.name; type' }
 
 and infer_elem expr _ =
-  let* tuple = infer expr.expr in
+  let* tuple = infer expr.tuple in
   let* type' = TypeSearch.search_proj (infer_elem_base expr.index) tuple in
   match type' with
   | Some type' ->
@@ -110,7 +110,7 @@ and infer_elem_base index tuple =
 and infer_attr expr _ =
   with_var (fun ret ->
     let record = Type.record (Utils.NameMap.singleton expr.name { Type.name = expr.name; type' = ret }) in
-    let* _ = infer_parent expr.expr record in
+    let* _ = infer_parent expr.record record in
     return ret
   )
 
@@ -134,7 +134,7 @@ and infer_app expr _ =
   with_var (fun param ->
     with_var (fun ret ->
       let abs = Type.abs_expr param ret in
-      let* _ = infer_parent expr.expr abs in
+      let* _ = infer_parent expr.abs abs in
       let* _ = infer_parent expr.arg param in
       return ret
     )
@@ -150,7 +150,7 @@ and infer_abs_type expr _ =
   )
 
 and infer_app_type expr _ =
-  let* abs = infer expr.expr in
+  let* abs = infer expr.abs in
   let* type' = TypeSearch.search_app_type infer_app_type_base abs in
   match type' with
   | Some { param; ret } ->

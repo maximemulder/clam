@@ -105,34 +105,34 @@ and modelize_type (type': Ast.type') =
     let* left = modelize_type left in
     let* right = modelize_type right in
     return (Abt.TypeUnion { pos; left; right })
-  | TypeAbsExpr (params, body) ->
-    modelize_abs_expr pos params body
-  | TypeAbsExprType (params, body) ->
-    modelize_abs_expr_type pos params body
+  | TypeAbsExpr (params, ret) ->
+    modelize_abs_expr pos params ret
+  | TypeAbsExprType (params, ret) ->
+    modelize_abs_expr_type pos params ret
   | TypeAbs (params, body) ->
     modelize_abs pos params body
-  | TypeApp (type', args) ->
-    let* type' = modelize_type type' in
-    modelize_app pos type' args
+  | TypeApp (abs, args) ->
+    let* abs = modelize_type abs in
+    modelize_app pos abs args
 
-and modelize_abs_expr pos params body =
+and modelize_abs_expr pos params ret =
   match params with
   | [] ->
-    modelize_type body
+    modelize_type ret
   | (param :: params) ->
     let* param = modelize_type param in
-    let* body = modelize_abs_expr pos params body in
-    return (Abt.TypeAbsExpr { pos; param; body })
+    let* ret = modelize_abs_expr pos params ret in
+    return (Abt.TypeAbsExpr { pos; param; ret })
 
-and modelize_abs_expr_type pos params body =
+and modelize_abs_expr_type pos params ret =
   match params with
   | [] ->
-    modelize_type body
+    modelize_type ret
   | (param :: params) ->
     let* param = modelize_param param in
     let type' = (param.bind.name, Abt.TypeVar { pos = Abt.type_pos param.bound; bind = param.bind }) in
-    let* body = with_scope (modelize_abs_expr_type pos params body) [type'] in
-    return (Abt.TypeAbsExprType { pos; param; body })
+    let* ret = with_scope (modelize_abs_expr_type pos params ret) [type'] in
+    return (Abt.TypeAbsExprType { pos; param; ret })
 
 and modelize_abs pos params body =
   match params with
@@ -144,13 +144,13 @@ and modelize_abs pos params body =
     let* body = with_scope (modelize_abs pos params body) [type'] in
     return (Abt.TypeAbs { pos; param; body })
 
-and modelize_app pos type' args =
+and modelize_app pos abs args =
   match args with
   | [] ->
-    return type'
+    return abs
   | (arg :: args) ->
     let* arg = modelize_type arg in
-    let app = (Abt.TypeApp { pos; type'; arg }) in
+    let app = (Abt.TypeApp { pos; abs; arg }) in
     modelize_app pos app args
 
 and modelize_param (param: Ast.param): Abt.param_type t =

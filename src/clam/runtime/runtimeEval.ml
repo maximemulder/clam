@@ -56,10 +56,10 @@ let rec eval (expr: Abt.expr) =
     ) NameMap.empty record.attrs in
     return (VRecord attrs)
   | ExprElem elem ->
-    let* values = eval_tuple elem.expr in
-    return (List.nth values elem.index)
+    let* elems = eval_tuple elem.tuple in
+    return (List.nth elems elem.index)
   | ExprAttr attr ->
-    let* attrs = eval_record attr.expr in
+    let* attrs = eval_record attr.record in
     return (NameMap.find attr.name attrs)
   | ExprAscr ascr ->
     eval ascr.expr
@@ -96,8 +96,20 @@ and eval_bind bind context =
   | None ->
   get_bind bind context.frame
 
+and eval_tuple expr =
+  let* value = eval expr in
+  match value with
+  | VTuple values -> return values
+  | _ -> RuntimeErrors.raise_value ()
+
+and eval_record expr =
+  let* value = eval expr in
+  match value with
+  | VRecord attrs -> return attrs
+  | _ -> RuntimeErrors.raise_value ()
+
 and eval_expr_app app context =
-  let value = eval app.expr context in
+  let value = eval app.abs context in
   match value with
   | VExprAbs abs -> eval_expr_app_abs abs app.arg context
   | _ -> RuntimeErrors.raise_value ()
@@ -122,19 +134,7 @@ and eval_abs_type abs =
   eval abs.body
 
 and eval_app_type app =
-  eval app.expr
-
-and eval_tuple (expr: Abt.expr) =
-  let* value = eval expr in
-  match value with
-  | VTuple values -> return values
-  | _ -> RuntimeErrors.raise_value ()
-
-and eval_record (expr: Abt.expr) =
-  let* value = eval expr in
-  match value with
-  | VRecord attrs -> return attrs
-  | _ -> RuntimeErrors.raise_value ()
+  eval app.abs
 
 let eval_def def defs stdout =
   let defs = List.map (fun def -> def.bind, def) defs in

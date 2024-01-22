@@ -64,12 +64,12 @@ and validate_union ctx union =
 
 and validate_abs_expr ctx abs =
   let param = validate_proper ctx abs.param in
-  let ret = validate_proper ctx abs.body in
+  let ret = validate_proper ctx abs.ret in
   base (AbsExpr { param; ret })
 
 and validate_abs_type_expr ctx abs =
   let param, ret = validate_param_with ctx abs.param
-    (fun ctx -> validate_proper ctx abs.body) in
+    (fun ctx -> validate_proper ctx abs.ret) in
   base (AbsTypeExpr { param; ret })
 
 and validate_abs ctx abs =
@@ -78,7 +78,7 @@ and validate_abs ctx abs =
   base (Abs { param; body })
 
 and validate_app ctx app =
-  let abs = validate ctx app.type' in
+  let abs = validate ctx app.abs in
   let arg = validate ctx app.arg in
   let param = validate_app_param ctx abs in
   if not (TypeSystem.isa ctx arg param) then

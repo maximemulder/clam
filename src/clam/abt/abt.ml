@@ -80,13 +80,13 @@ and type_union = {
 and type_abs_expr = {
   pos: pos;
   param: type';
-  body: type';
+  ret: type';
 }
 
 and type_abs_expr_type = {
   pos: pos;
   param: param_type;
-  body: type';
+  ret: type';
 }
 
 and type_abs = {
@@ -97,7 +97,7 @@ and type_abs = {
 
 and type_app = {
   pos: pos;
-  type': type';
+  abs: type';
   arg: type';
 }
 
@@ -183,13 +183,13 @@ and expr_record = {
 
 and expr_elem = {
   pos: pos;
-  expr: expr;
+  tuple: expr;
   index: int;
 }
 
 and expr_attr = {
   pos: pos;
-  expr: expr;
+  record: expr;
   name: string;
 }
 
@@ -221,7 +221,7 @@ and expr_abs = {
 
 and expr_app = {
   pos: pos;
-  expr: expr;
+  abs: expr;
   arg: expr;
 }
 
@@ -233,7 +233,7 @@ and expr_type_abs = {
 
 and expr_type_app = {
   pos: pos;
-  expr: expr;
+  abs: expr;
   arg: type';
 }
 
