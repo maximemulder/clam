@@ -187,20 +187,18 @@ and infer_def def =
   return type'
 
 and infer_def_type def =
-  with_level (
-    match def.type' with
-    | Some def_type ->
-      let* def_type = validate_proper def_type in
-      let* () = with_expr def.bind def_type
-        (infer_parent def.expr def_type) in
-      return def_type
-    | None ->
-      with_var (fun var ->
-        let* () = with_expr def.bind var
-          (infer_parent def.expr var) in
-        return var
-      )
-  )
+  match def.type' with
+  | Some def_type ->
+    let* def_type = validate_proper def_type in
+    let* () = with_expr def.bind def_type
+      (infer_parent def.expr def_type) in
+    return def_type
+  | None ->
+    with_var (fun var ->
+      let* () = with_expr def.bind var
+        (infer_parent def.expr var) in
+      return var
+    )
 
 let rec check_defs state =
   match state.defs with
