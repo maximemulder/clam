@@ -75,8 +75,6 @@ let rec eval (expr: Abt.expr) =
     eval_abs_type abs
   | ExprTypeApp app ->
     eval_app_type app
-  | ExprStmt stmt ->
-    eval_stmt stmt
 
 and eval_unit unit =
   let _ = unit.pos in
@@ -137,17 +135,6 @@ and eval_record (expr: Abt.expr) =
   match value with
   | VRecord attrs -> return attrs
   | _ -> RuntimeErrors.raise_value ()
-
-and eval_stmt stmt context =
-  let context = match stmt.stmt with
-  | StmtVar (var, _, expr) ->
-    let value = eval expr context in
-    new_scope context (BindMap.singleton var value)
-  | StmtExpr expr ->
-    let _ = eval expr context in
-    context
-  in
-  eval stmt.expr context
 
 let eval_def def defs stdout =
   let defs = List.map (fun def -> def.bind, def) defs in

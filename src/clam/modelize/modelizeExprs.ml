@@ -55,8 +55,12 @@ let find_current name state =
 let find_done name state =
   NameMap.find_opt name state.scope.dones
 
-let next_id state =
+let new_id state =
   (state.id, { state with id = state.id + 1 })
+
+let new_bind name =
+  let* id = new_id in
+  return { Abt.id; name }
 
 let fold_remain map (remain: Ast.def_expr) =
   NameMap.add remain.Ast.name remain map
@@ -132,8 +136,7 @@ and modelize_def def state =
   let type' = Option.map (fun type' -> fst (modelize_type type' state)) remain.Ast.type' in
   let (expr, state) = modelize_expr remain.Ast.expr state in
   let (current, currents) = extract name state.scope.currents in
-  let (id, state) = next_id state in
-  let bind = { Abt.id; name } in
+  let bind, state = new_bind name state in
   let def = { Abt.pos = def.pos; bind; type'; expr } in
   let _ = current := Some def.bind in
   let dones = NameMap.add name current state.scope.dones in
@@ -257,8 +260,7 @@ and modelize_binop expr left op right =
 
 and modelize_param (param: Ast.param) =
   let* type' = map_option modelize_type param.type' in
-  let* id = next_id in
-  let bind = { Abt.id; name = param.name } in
+  let* bind = new_bind param.name in
   return { Abt.pos = param.pos; bind; type' }
 
 and modelize_type_param (param: Ast.param): Abt.param_type t =
@@ -271,20 +273,23 @@ and modelize_type_param (param: Ast.param): Abt.param_type t =
   return { Abt.bind = { name = param.name }; Abt.bound }
 
 and modelize_stmt (stmt: Ast.stmt) (expr: Ast.expr) =
+  let pos = fst expr in
   match stmt with
   | StmtVar (var_name, var_type, var_expr) ->
-    let* var_expr = modelize_expr var_expr in
-    let* var_type = map_option modelize_type var_type in
-    let* id = next_id in
-    let var_bind = { Abt.id = id; Abt.name = var_name } in
-    let body = Abt.StmtVar (var_bind, var_type, var_expr) in
-    let* expr = with_scope (modelize_expr expr) NameMap.empty [] [var_name, var_bind] in
-    return (Abt.ExprStmt { pos = Abt.expr_pos expr; stmt = body; expr })
+    let* bind = new_bind var_name in
+    let* type' = map_option modelize_type var_type in
+    let param = { Abt.pos; bind; type' } in
+    let* body = with_scope (modelize_expr expr) NameMap.empty [] [var_name, bind] in
+    let abs = Abt.ExprAbs { pos; param; body } in
+    let* arg = modelize_expr var_expr in
+    return (Abt.ExprApp { pos; expr = abs; arg})
   | StmtExpr stmt_expr ->
-    let* stmt_expr = modelize_expr stmt_expr in
-    let stmt = Abt.StmtExpr stmt_expr in
-    let* expr = modelize_expr expr in
-    return (Abt.ExprStmt { pos = Abt.expr_pos stmt_expr; stmt; expr })
+    let* bind = new_bind "_" in
+    let param = { Abt.pos; bind; type' = None } in
+    let* body = modelize_expr expr in
+    let abs = Abt.ExprAbs { pos; param; body } in
+    let* arg = modelize_expr stmt_expr in
+    return (Abt.ExprApp { pos; expr = abs; arg })
 
 and modelize_ascr expr type' =
   let* expr2 = modelize_expr expr in

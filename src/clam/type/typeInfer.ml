@@ -55,8 +55,6 @@ and infer_base (expr: Abt.expr) =
     infer_app_type app
   | ExprAscr ascr ->
     infer_ascr ascr
-  | ExprStmt stmt ->
-    infer_stmt stmt
 
 and infer_unit _ _ =
   return Type.unit
@@ -185,25 +183,6 @@ and infer_if expr _ =
   let* ctx = get_context in
   let type' = TypeSystem.join ctx then' else' in
   return type'
-
-and infer_stmt expr parent =
-  infer_stmt_body expr.stmt (infer_parent expr.expr parent)
-
-and infer_stmt_body stmt f =
-  match stmt with
-  | StmtExpr expr ->
-      let* _ = infer expr in
-      f
-  | StmtVar (bind, type', expr) ->
-      let* body = match type' with
-      | Some type' ->
-        let* type' = validate_proper type' in
-        let* _ = infer_parent expr type' in
-        return type'
-      | None ->
-        infer expr
-      in
-      with_expr bind body f
 
 and infer_def def =
   let* () = remove_def def.bind in

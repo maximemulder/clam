@@ -147,7 +147,6 @@ type expr =
   | ExprApp     of expr_app
   | ExprTypeAbs of expr_type_abs
   | ExprTypeApp of expr_type_app
-  | ExprStmt    of expr_stmt
 
 and expr_unit = {
   pos: pos;
@@ -239,21 +238,11 @@ and expr_type_app = {
   arg: type';
 }
 
-and expr_stmt = {
-  pos: pos;
-  stmt: stmt;
-  expr: expr;
-}
-
 and attr_expr = {
   pos: pos;
   name: string;
   expr: expr;
 }
-
-and stmt =
-  | StmtVar  of bind_expr * (type' option) * expr
-  | StmtExpr of expr
 
 and param_expr = {
   pos: pos;
@@ -285,4 +274,3 @@ let expr_pos expr =
   | ExprApp     expr -> expr.pos
   | ExprTypeAbs expr -> expr.pos
   | ExprTypeApp expr -> expr.pos
-  | ExprStmt    expr -> expr.pos
