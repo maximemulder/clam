@@ -14,16 +14,12 @@ let validate_proper type' =
 
 (* TYPE INFERENCE *)
 
-let rec infer (expr: Abt.expr) =
-  with_var (infer_parent expr)
-
-and infer_parent (expr: Abt.expr) parent =
-  let* type' = infer_base expr parent in
+let rec infer_parent (expr: Abt.expr) parent =
+  let* type' = infer expr in
   let pos = Abt.expr_pos expr in
-  let* () = constrain pos type' parent in
-  return parent
+  constrain pos type' parent
 
-and infer_base (expr: Abt.expr) =
+and infer (expr: Abt.expr) =
   match expr with
   | ExprUnit unit ->
     infer_unit unit
@@ -56,19 +52,19 @@ and infer_base (expr: Abt.expr) =
   | ExprAscr ascr ->
     infer_ascr ascr
 
-and infer_unit _ _ =
+and infer_unit _ =
   return Type.unit
 
-and infer_bool _ _ =
+and infer_bool _ =
   return Type.bool
 
-and infer_int _ _ =
+and infer_int _ =
   return Type.int
 
-and infer_string _ _ =
+and infer_string _ =
   return Type.string
 
-and infer_bind expr _ =
+and infer_bind expr =
   let bind = Option.get !(expr.bind) in
   let* type' = get_expr_type bind in
   match type' with
@@ -78,11 +74,11 @@ and infer_bind expr _ =
     let* def = get_def bind in
     infer_def def
 
-and infer_tuple expr _ =
+and infer_tuple expr =
   let* elems = map_list infer expr.elems in
   return (Type.tuple elems)
 
-and infer_record expr _ =
+and infer_record expr =
   let* attrs = map_list infer_record_attr expr.attrs in
   let attrs = List.fold_left (fun map (attr: Type.attr) -> Utils.NameMap.add attr.name attr map) Utils.NameMap.empty attrs in
   return (Type.record attrs)
@@ -91,7 +87,7 @@ and infer_record_attr attr =
   let* type' = infer attr.expr in
   return { Type.name = attr.name; type' }
 
-and infer_elem expr _ =
+and infer_elem expr =
   let* tuple = infer expr.tuple in
   let* type' = TypeSearch.search_proj (infer_elem_base expr.index) tuple in
   match type' with
@@ -107,14 +103,14 @@ and infer_elem_base index tuple =
   | _ ->
     None
 
-and infer_attr expr _ =
+and infer_attr expr =
   with_var (fun ret ->
     let record = Type.record (Utils.NameMap.singleton expr.name { Type.name = expr.name; type' = ret }) in
-    let* _ = infer_parent expr.record record in
+    let* () = infer_parent expr.record record in
     return ret
   )
 
-and infer_abs expr _ =
+and infer_abs expr =
   match expr.param.type' with
   | Some type' ->
     let* type' = validate_proper type' in
@@ -124,32 +120,32 @@ and infer_abs expr _ =
   | None ->
     with_var (fun param ->
       with_var (fun ret ->
-        let* type' = with_expr expr.param.bind param
+        let* () = with_expr expr.param.bind param
           (infer_parent expr.body ret) in
-        return (Type.abs_expr param type')
+        return (Type.abs_expr param ret)
       )
     )
 
-and infer_app expr _ =
+and infer_app expr =
   with_var (fun param ->
     with_var (fun ret ->
       let abs = Type.abs_expr param ret in
-      let* _ = infer_parent expr.abs abs in
-      let* _ = infer_parent expr.arg param in
+      let* () = infer_parent expr.abs abs in
+      let* () = infer_parent expr.arg param in
       return ret
     )
   )
 
-and infer_abs_type expr _ =
+and infer_abs_type expr =
   let* bound = validate expr.param.bound in
   with_var (fun var ->
     let type' = Type.abs_type_expr { bind = expr.param.bind; bound } var in
-    let* _ = with_type expr.param.bind bound
+    let* () = with_type expr.param.bind bound
       (infer_parent expr.body var) in
     return type'
   )
 
-and infer_app_type expr _ =
+and infer_app_type expr =
   let* abs = infer expr.abs in
   let* type' = TypeSearch.search_app_type infer_app_type_base abs in
   match type' with
@@ -171,13 +167,13 @@ and infer_app_type_base abs =
   | _ ->
     None
 
-and infer_ascr expr _ =
+and infer_ascr expr =
   let* type' = validate_proper expr.type' in
-  let* _ = infer_parent expr.expr type' in
+  let* () = infer_parent expr.expr type' in
   return type'
 
-and infer_if expr _ =
-  let* _ = infer_parent expr.cond Type.bool in
+and infer_if expr =
+  let* () = infer_parent expr.cond Type.bool in
   let* then' = infer expr.then' in
   let* else' = infer expr.else' in
   let* ctx = get_context in
@@ -195,13 +191,14 @@ and infer_def_type def =
     match def.type' with
     | Some def_type ->
       let* def_type = validate_proper def_type in
-      let* _ = with_expr def.bind def_type
+      let* () = with_expr def.bind def_type
         (infer_parent def.expr def_type) in
       return def_type
     | None ->
       with_var (fun var ->
-        with_expr def.bind var
-          (infer_parent def.expr var)
+        let* () = with_expr def.bind var
+          (infer_parent def.expr var) in
+        return var
       )
   )
 
