@@ -130,7 +130,7 @@ and modelize_abs_expr_type pos params body =
     modelize_type body
   | (param :: params) ->
     let* param = modelize_param param in
-    let type' = (param.bind.name, Abt.TypeVar { pos = Abt.type_pos param.bound; param; bind = param.bind }) in
+    let type' = (param.bind.name, Abt.TypeVar { pos = Abt.type_pos param.bound; bind = param.bind }) in
     let* body = with_scope (modelize_abs_expr_type pos params body) [type'] in
     return (Abt.TypeAbsExprType { pos; param; body })
 
@@ -140,7 +140,7 @@ and modelize_abs pos params body =
     modelize_type body
   | (param :: params) ->
     let* param = modelize_param param in
-    let type' = (param.bind.name, Abt.TypeVar { pos = Abt.type_pos param.bound; param; bind = param.bind }) in
+    let type' = (param.bind.name, Abt.TypeVar { pos = Abt.type_pos param.bound; bind = param.bind }) in
     let* body = with_scope (modelize_abs pos params body) [type'] in
     return (Abt.TypeAbs { pos; param; body })
 
@@ -227,6 +227,6 @@ let modelize_program (program: Ast.program) =
   (state.scope.dones, state.all)
 
 let modelize_abs (param: Abt.param_type) state =
-  let type' = (param.bind.name, Abt.TypeVar { pos = Abt.type_pos param.bound; param; bind = param.bind}) in
+  let type' = (param.bind.name, Abt.TypeVar { pos = Abt.type_pos param.bound; bind = param.bind}) in
   let (_, state) = make_child [type'] state in
   state.scope.dones

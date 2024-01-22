@@ -52,7 +52,6 @@ and type_string = {
 
 and type_var = {
   pos: pos;
-  param: param_type;
   bind: bind_type;
 }
 
