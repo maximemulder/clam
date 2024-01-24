@@ -42,6 +42,10 @@ type state = {
   vars: entry_var list;
 }
 
+include Monad.Monad(Monad.StateMonad(struct
+  type s = state
+end))
+
 let get_var bind state =
   match List.find_opt (fun (entry: entry_type) -> entry.bind == bind) state.types with
   | Some entry -> Param entry, state
@@ -55,12 +59,48 @@ let make_state defs exprs =
   let defs = List.map (fun def -> { bind = def.Abt.bind; def }) defs in
   { level = 0; defs; exprs; types = []; vars = [] }
 
+(*
+  Adapter functions that allow to use the old type system in the new one. Eventually
+  they should disappear once the old type system has been reworked to use the new
+  data structures.
+*)
+
 let get_context state =
   let assumptions = List.append
     (List.map (fun (entry: entry_type) -> { TypeContext.bind = entry.bind; bound = entry.bound }) state.types)
     (List.map (fun (entry: entry_var) -> { TypeContext.bind = entry.bind; bound = entry.upper }) state.vars)
   in
   { TypeContext.assumptions }, state
+
+let validate type' =
+  let* ctx = get_context in
+  return (TypeValidate.validate ctx type')
+
+let validate_proper type' =
+  let* ctx = get_context in
+  return (TypeValidate.validate_proper ctx type')
+
+let substitute bind arg type' =
+  let* ctx = get_context in
+  return (TypeSystem.substitute_arg ctx bind arg type')
+
+let is left right =
+  let* ctx = get_context in
+  return (TypeSystem.is ctx left right)
+
+let isa sub sup =
+  let* ctx = get_context in
+  return (TypeSystem.isa ctx sub sup)
+
+let join left right =
+  let* ctx = get_context in
+  return (TypeSystem.join ctx left right)
+
+let meet left right =
+  let* ctx = get_context in
+  return (TypeSystem.meet ctx left right)
+
+(* STATE FUNCTION *)
 
 let get_def_entry bind state =
   List.find (fun (entry: entry_def) -> cmp_bind entry.bind bind) state.defs, state
@@ -85,11 +125,6 @@ let update_var_entry bind f state =
       entry
     ) state.vars in
   (), { state with vars }
-
-include Monad.Monad(Monad.StateMonad(struct
-  type s = state
-end))
-
 let get_def bind =
   let* entry = get_def_entry bind in
   return entry.def
@@ -137,8 +172,11 @@ let with_expr bind type' f =
   let* () = remove_expr bind in
   return x
 
+let add_type bind bound state =
+  (), { state with types = { bind; bound } :: state.types }
+
 let with_type bind bound f state =
-  let state = { state with types = { bind; bound } :: state.types } in
+  let (), state = add_type bind bound state in
   f state
   (* TODO: Remove type variables when they are no longer needed. Type variables are probably not
     scope so an "add" function may be better than a "with" function. The current leak is not

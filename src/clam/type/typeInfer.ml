@@ -2,16 +2,6 @@ open TypeState
 open TypeConstrain
 open TypeSolve
 
-(* VALIDATE *)
-
-let validate type' =
-  let* ctx = get_context in
-  return (TypeValidate.validate ctx type')
-
-let validate_proper type' =
-  let* ctx = get_context in
-  return (TypeValidate.validate_proper ctx type')
-
 (* TYPE INFERENCE *)
 
 let rec infer_parent (expr: Abt.expr) parent =
@@ -151,12 +141,11 @@ and infer_app_type expr =
   match type' with
   | Some { param; ret } ->
     let* arg = validate expr.arg in
-    let* ctx = get_context in
-    if not (TypeSystem.isa ctx arg param.bound) then
+    let* sub = isa arg param.bound in
+    if not sub then
       TypeError.infer_type_app_type expr arg param.bound
     else
-    let ret = TypeSystem.substitute_arg ctx param.bind arg ret in
-    return ret
+    substitute param.bind arg ret
   | None ->
     TypeError.infer_type_app_kind expr abs
 
@@ -176,9 +165,7 @@ and infer_if expr =
   let* () = infer_parent expr.cond Type.bool in
   let* then' = infer expr.then' in
   let* else' = infer expr.else' in
-  let* ctx = get_context in
-  let type' = TypeSystem.join ctx then' else' in
-  return type'
+  join then' else'
 
 and infer_def def =
   let* () = remove_def def.bind in

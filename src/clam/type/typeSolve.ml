@@ -4,7 +4,6 @@
   out in which order the type variables should be treated.
 *)
 
-open TypeInline
 open TypePolar
 open TypeState
 
@@ -33,12 +32,20 @@ let prioritize_bound vars state =
 let get_variables state =
   let vars = List.filter (fun (entry: entry_var) -> entry.level = state.level) state.vars
   |> List.map (fun entry -> entry.bind) in
-
   prioritize_bound vars state, state
 
-let should_quantify type' bind =
-  let occurence = get_pols type' bind Neg in
-  occurence.pos && occurence.neg
+let inline_state bind state =
+  let ctx, _ = get_context state in
+  let lower, _ = get_var_lower bind state in
+  let upper, _ = get_var_upper bind state in
+  let vars = List.map (fun entry -> { entry with
+    lower = TypeSystem.substitute_arg ctx bind lower entry.lower;
+    upper = TypeSystem.substitute_arg ctx bind upper entry.upper;
+  }) state.vars in
+  let exprs =  List.map (fun entry -> {
+    entry with type' = TypeSystem.substitute_arg ctx bind lower entry.type'
+  }) state.exprs in
+  (), { state with vars; exprs }
 
 let rec solve type' =
   let* vars = get_variables in
@@ -46,17 +53,26 @@ let rec solve type' =
   | [] ->
     return type'
   | bind :: _ ->
-    if should_quantify type' bind then
+    let pols = get_pols type' bind Neg in
+    let* type' = match pols.neg, pols.pos with
+    | true, true ->
       let* bound = get_var_upper bind in
       let type' = (Type.abs_type_expr { bind; bound } type') in
-      let* () = remove_var bind in
-      with_type bind bound
-        (solve type')
-    else
+      let* () = add_type bind bound in
+      return type'
+    | true, false ->
       let* () = inline_state bind in
-      let* type' = (inline type' bind Neg) in
-      let* () = remove_var bind in
-      solve type'
+      let* lower = get_var_lower bind in
+      substitute bind lower type'
+    | false, true ->
+      let* () = inline_state bind in
+      let* upper = get_var_upper bind in
+      substitute bind upper type'
+    | false, false ->
+      let* () = inline_state bind in
+      return type' in
+    let* () = remove_var bind in
+    solve type'
 
 let with_level f state =
   let state = { state with level = state.level + 1 } in
