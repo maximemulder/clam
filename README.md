@@ -211,6 +211,7 @@ def foo = (f) -> {f(123), f("Hello")}
 def bar = foo(id)
 def bounded = (f) -> {f, f(1)}
 def not_ml = {id_bis = (p) -> p, z = 0}
+def max = (l, r) -> if l > r then l else r
 def is_even = (n) -> !is_odd(n)
 def is_odd = (n) -> if n == 0
              then false else !is_even(n - 1)</code></pre></td>
@@ -221,6 +222,7 @@ foo: [T, U] -> (((Int) -> T) & ((String) -> U)) -> {T, U}
 bar: {Int, String}
 bounded: [T, U: (Int) -> T] -> (U) -> {U, T}
 not_ml: {id_bis: [T] -> (T) -> T, z: Int}
+max: [T: Int] -> (T, T) -> T
 is_even: (Int) -> Bool
 is_odd: (Int) -> Bool
 ​</code></pre></td>
@@ -231,9 +233,7 @@ Type inference is impossible for some expressions using tuple projections or typ
 
 Some of these examples, as well as several parts of the algorithm, were inspired by TACO Lab's [SuperF](https://hkust-taco.github.io/superf/) and [MLScript](https://hkust-taco.github.io/mlscript/) languages.
 
-*\* The type inference algorithm is a little dirty and probably has a few bugs in it (notably with recursive types). Type inference for such a complex type system is still an open problem, and I would probably need one or two months of work to fully finish it. However, most cases, as well as all the examples and tests work, which I think is a nice achievement.*
-
-*\*\* Currently, the type inference algorithm sometimes generates signatures roughly of the shape `[T, U] -> (T, U) -> T | U`. Although these signatures are valid, they can be quite verbose and could be simplified into `[T] -> (T, T) -> T`.*
+*\* The type inference algorithm is a little dirty and probably has a few bugs in it (notably with recursive types). Type inference for such a complex type system is still an open problem, and I would probably need one or two months of work to fully finish it. However, all the examples provided and all tests work, which I think is a nice achievement.*
 
 ## Recursive types
 

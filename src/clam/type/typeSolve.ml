@@ -34,17 +34,27 @@ let get_variables state =
   |> List.map (fun entry -> entry.bind) in
   prioritize_bound vars state, state
 
-let inline_state bind state =
+let substitute_state bind arg state =
   let ctx, _ = get_context state in
-  let lower, _ = get_var_lower bind state in
-  let upper, _ = get_var_upper bind state in
   let vars = List.map (fun entry -> { entry with
-    lower = TypeSystem.substitute_arg ctx bind lower entry.lower;
-    upper = TypeSystem.substitute_arg ctx bind upper entry.upper;
+    lower = TypeSystem.substitute_arg ctx bind arg entry.lower;
+    upper = TypeSystem.substitute_arg ctx bind arg entry.upper;
   }) state.vars in
   let exprs =  List.map (fun entry -> {
-    entry with type' = TypeSystem.substitute_arg ctx bind lower entry.type'
+    entry with type' = TypeSystem.substitute_arg ctx bind arg entry.type'
   }) state.exprs in
+  (), { state with vars; exprs }
+
+open TypeInline
+
+let inline_state bind state =
+  let vars = List.map (fun entry -> { entry with
+    upper = fst(inline entry.upper bind Pos state);
+    lower = fst(inline entry.lower bind Neg state);
+  }) state.vars in
+  let exprs =  List.map (fun entry -> {
+    entry with type' = fst(inline entry.type' bind Neg state)
+  })  state.exprs in
   (), { state with vars; exprs }
 
 let rec solve type' =
@@ -55,20 +65,30 @@ let rec solve type' =
   | bind :: _ ->
     let pols = get_pols type' bind Neg in
     let* type' = match pols.neg, pols.pos with
-    | true, true ->
+    | Some ((_ :: _) as neg), _ ->
+      let neg = List.map Type.var neg in
+      let* neg = fold_list join Type.bot neg in
+      let* _ = substitute_state bind neg in
+      substitute bind neg type'
+    | _, Some ((_ :: _) as pos) ->
+      let pos = List.map Type.var pos in
+      let* pos = fold_list meet Type.top pos in
+      let* _ = substitute_state bind pos in
+      substitute bind pos type'
+    | Some [], Some [] ->
       let* bound = get_var_upper bind in
       let type' = (Type.abs_type_expr { bind; bound } type') in
       let* () = add_type bind bound in
       return type'
-    | true, false ->
+    | Some [], None ->
       let* () = inline_state bind in
       let* lower = get_var_lower bind in
       substitute bind lower type'
-    | false, true ->
+    | None, Some [] ->
       let* () = inline_state bind in
       let* upper = get_var_upper bind in
       substitute bind upper type'
-    | false, false ->
+    | None, None ->
       let* () = inline_state bind in
       return type' in
     let* () = remove_var bind in

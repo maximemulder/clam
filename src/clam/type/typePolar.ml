@@ -59,55 +59,77 @@ and occurs_bind var bind =
 and occurs_param param bind =
   occurs param.bound bind
 
+(* EXTRACT *)
+
+(*
+  Extracts co-occurences. This algorithm is an ugly proof-of-concept for now but
+  is should easily be simplificable in the future.
+*)
+
+let extract_pos bind types =
+  List.map (fun type' -> match type' with Type.Var var when var.bind != bind -> Some var.bind | _ -> None) types
+  |> List.filter Option.is_some
+  |> List.map Option.get
+
+let extract_neg bind types =
+  List.map (fun type' -> match type' with { Type.inter = [Type.Var var] } when var.bind != bind -> Some var.bind | _ -> None) types
+  |> List.filter Option.is_some
+  |> List.map Option.get
+
+let merge_occs a b =
+  List.filter (fun a -> List.exists (fun b -> a == b) b) a
+
 (* POLARITY *)
 
 (* Returns the polarities in which a type variable occurs in a type, used to know whether to
   inline or quantify this variable *)
 
 type pols = {
-  pos: bool;
-  neg: bool;
+  pos: Abt.bind_type list option;
+  neg: Abt.bind_type list option;
 }
 
 let none = {
-  pos = false;
-  neg = false;
+  pos = None;
+  neg = None;
 }
 
-let from_pol pol =
+let from_pol pol neg_occs pol_occs =
   match pol with
-  | Pos ->
-    {
-      pos = true;
-      neg = false;
-    }
   | Neg ->
     {
-      pos = false;
-      neg = true;
+      pos = None;
+      neg = Some neg_occs;
+    }
+  | Pos ->
+    {
+      pos = Some pol_occs;
+      neg = None;
     }
 
 let from_pols left right =
   {
-    pos = left.pos || right.pos;
-    neg = left.neg || right.neg;
+    pos = Utils.option_join left.pos right.pos merge_occs;
+    neg = Utils.option_join left.neg right.neg merge_occs;
   }
 
 let rec get_pols (type': Type.type') bind pol =
   get_pols_union type' bind pol
 
 and get_pols_union union bind pol =
-  let types = List.map (fun type' -> get_pols_inter type' bind pol) union.union in
+  let neg_occs = extract_neg bind union.union in
+  let types = List.map (fun type' -> get_pols_inter type' bind pol neg_occs) union.union in
   Utils.list_reduce from_pols types
 
-and get_pols_inter inter bind pol =
-  let types = List.map (fun type' -> get_pols_base type' bind pol) inter.inter in
+and get_pols_inter inter bind pol neg_occs =
+  let pol_occs = extract_pos bind inter.inter in
+  let types = List.map (fun type' -> get_pols_base type' bind pol neg_occs pol_occs) inter.inter in
   Utils.list_reduce from_pols types
 
-and get_pols_base type' bind pol =
+and get_pols_base type' bind pol neg_occs pol_occs =
   match type' with
   | Type.Var var when var.bind == bind ->
-    from_pol pol
+    from_pol pol neg_occs pol_occs
   | Tuple tuple ->
     List.map (fun elem -> get_pols elem bind pol) tuple.elems
     |> List.fold_left from_pols none

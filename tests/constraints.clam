@@ -1,3 +1,5 @@
+def main = unit
+
 def a = 1 + 1
 def b = if true then 1 else "Hello"
 def c = (p) -> 1
@@ -27,7 +29,6 @@ def z_elem_0 = {0, "Hello"}.0
 def z_elem_1 = {0, "Hello"}.1
 def z_attr_0 = z_record.foo
 def z_attr_1 = z_record.bar
-
 
 def x = y
 def y = x
@@ -59,3 +60,9 @@ def main = unit
 
 def abcd = [T] -> (p) -> p + 1
 def abcde: (Int) -> Int = [T] -> (p: T) -> p
+
+def if_bis = (a, b, c) -> if a then b else c
+
+def aaa: [T] -> T = aaa
+def bbb: Bot = aaa
+def ccc: [T] -> T = bbb
