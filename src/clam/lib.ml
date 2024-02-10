@@ -1,3 +1,12 @@
+type ast = Ast.program
+
+type abt = {
+  types: Abt.type' list;
+  exprs: Abt.def_expr list;
+}
+
+type writer = RuntimeValue.writer
+
 let parse file_name text =
   let lexbuf = Lexing.from_string text in
   Lexing.set_filename lexbuf file_name;
@@ -9,15 +18,28 @@ let parse file_name text =
   | Parser.Error ->
     Error.raise_parsing lexbuf
 
-let run code_name code_text writer =
-  let program = parse code_name code_text in
-  (* TODO: Refactor this *)
-  let (types, all_types) = ModelizeTypes.modelize_program program in
-  let (exprs, types) = ModelizeExprs.modelize_program program types all_types in
-  let _ = TypeInfer.check_types types in
-  let _ = TypeInfer.check_defs exprs Primitive.types in
-  let main = (match List.find_opt (fun def -> def.Abt.bind.name = "main") exprs with
+(**
+  Modelize a program, building an abstract biding tree from an abstract syntax tree.
+*)
+let modelize ast =
+  let (types, all_types) = ModelizeTypes.modelize_program ast in
+  let (exprs, types) = ModelizeExprs.modelize_program ast types all_types in
+  { types; exprs }
+
+(**
+  Type check a program.
+*)
+let type' abt =
+  let _ = TypeInfer.check_types abt.types in
+  TypeInfer.check_defs abt.exprs Primitive.types
+  |> List.filter (fun def -> not(List.exists (fun primitive -> fst primitive == fst def) Primitive.types))
+
+(**
+  Evaluate a program.
+*)
+let eval abt writer =
+  let main = (match List.find_opt (fun def -> def.Abt.bind.name = "main") abt.exprs with
   | Some main -> main
   | None -> Error.raise_main ()
   ) in
-  let _ = RuntimeEval.eval_def main exprs writer in ()
+  let _ = RuntimeEval.eval_def main abt.exprs writer in ()

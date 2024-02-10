@@ -42,7 +42,11 @@ let test file_name =
   let file_text = read_file file_name in
   let out_buffer = make_buffer () in
   let err_result = try
-    Clam.Lib.run file_name file_text (write_buffer out_buffer);
+    let open Clam.Lib in
+    let ast = parse file_name file_text in
+    let abt = modelize ast in
+    let _ = type' abt in
+    let () = eval abt (write_buffer out_buffer) in
     ""
   with Clam.Error.Error message ->
     message

@@ -1,0 +1,4 @@
+#!/bin/bash
+
+dune build
+_build/install/default/bin/main $*

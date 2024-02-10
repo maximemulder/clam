@@ -198,8 +198,8 @@ let rec check_defs state =
 let check_defs defs primitives =
   let primitives = List.map (fun primitive -> { bind = fst primitive; type' = snd primitive }) primitives in
   let state = make_state defs primitives in
-  let _ = check_defs state in
-  ()
+  let state = check_defs state in
+  List.map (fun (entry: entry_expr) -> entry.bind, entry.type') state.exprs
 
 let check_types types =
   let _ = List.map (TypeValidate.validate TypeContext.empty) types in
