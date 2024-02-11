@@ -14,19 +14,10 @@ let rec list_files path =
     []
 
 let read_file file_name =
-  let input =
-  try
-    open_in (directory ^ file_name)
-  with _ ->
-    Clam.Error.raise_file_open file_name
-  in
-  try
-    let text = really_input_string input (in_channel_length input) in
-    close_in input;
-    text
-  with _ ->
-    close_in input;
-    Clam.Error.raise_file_read file_name
+  let input = open_in (directory ^ file_name) in
+  let text = really_input_string input (in_channel_length input) in
+  close_in input;
+  text
 
 type buffer = {
   mutable string: string;

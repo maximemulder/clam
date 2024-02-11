@@ -14,15 +14,6 @@ let display_pos pos =
 let raise_error message =
   raise "ERROR" message
 
-let raise_file_name _ =
-  raise_error ("missing filename argument")
-
-let raise_file_open file_name =
-  raise_error ("cannot open file `" ^ file_name ^ "` (does the file exist ?)")
-
-let raise_file_read file_name =
-  raise_error ("cannot read file `" ^ file_name ^ "`")
-
 let raise_lexing lexbuf message =
   let pos = lexeme_start_p lexbuf in
   raise "LEXING ERROR" (message ^ "\n" ^ display_pos pos)
