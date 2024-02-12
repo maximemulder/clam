@@ -39,11 +39,17 @@ def super_id = (p) -> p
 def super = (f) -> {f(123), f("Hello")}
 def super_f = super(super_id)
 
+def id = (p) -> p
+
 def iter = (n, v, f) ->
     if n == 0 then
         v
     else
         iter(n - 1, f(v), f)
+
+def iter_int = iter(2, 1, id)
+def iter_id = iter(2, id, id)
+def iter_iter = iter(2, iter, id)
 
 def max = (a, b) -> if a > b then a else b
 

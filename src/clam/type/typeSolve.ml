@@ -76,9 +76,14 @@ let rec solve type' =
       let* _ = substitute_state bind pos in
       substitute bind pos type'
     | Some [], Some [] ->
-      let* bound = get_var_upper bind in
-      let type' = (Type.abs_type_expr { bind; bound } type') in
-      let* () = add_type bind bound in
+      let* upper = get_var_upper bind in
+      let* lower = get_var_lower bind in
+      if lower <> Type.bot then
+        (* This is a hack that probably does not generalize well *)
+        inline type' bind Neg
+      else
+      let type' = (Type.abs_type_expr { bind; bound = upper } type') in
+      let* () = add_type bind upper in
       return type'
     | Some [], None ->
       let* () = inline_state bind in
