@@ -190,14 +190,7 @@ and expr_elem = {
 and expr_attr = {
   pos: pos;
   record: expr;
-  name: string;
-}
-
-and expr_binop = {
-  pos: pos;
-  left: expr;
-  op: string;
-  right: expr;
+  label: string;
 }
 
 and expr_ascr = {

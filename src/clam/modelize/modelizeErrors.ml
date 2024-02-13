@@ -1,37 +1,35 @@
 open Abt
+open Ast
 
-let raise message pos =
+let raise_2 message pos =
   Error.raise "MODEL ERROR" (message ^ "\n" ^ (Error.display_pos pos))
+
+let raise message span =
+  Error.raise "MODEL ERROR" (message ^ "\n" ^ (Error.display_span span))
 
 let raise_expr_duplicate name =
   Error.raise "MODEL ERROR" ("duplicate expression definition `" ^ name ^ "`")
 
-let raise_expr_bound expr name =
-  let pos = fst expr in
-  raise ("unbound expression `" ^ name ^ "`") pos
+let raise_expr_bound span name =
+  raise ("unbound expression `" ^ name ^ "`") span
 
-let raise_expr_operator expr op =
-  let pos = fst expr in
-  raise ("unknown operator `" ^ op ^ "`") pos
+let raise_expr_operator span op =
+  raise ("unknown operator `" ^ op ^ "`") span
 
-let raise_expr_integer expr value =
-  let pos = fst expr in
-  raise ("invalid integer literal `" ^ value ^ "`") pos
+let raise_expr_integer span value =
+  raise ("invalid integer literal `" ^ value ^ "`") span
 
-let raise_expr_product expr =
-  raise "product expression cannot have both indexed and labeled fields" (fst  expr)
+let raise_expr_product (expr: expr_product) =
+  raise "product expression cannot have both indexed and labeled fields" expr.span
 
-let raise_type_duplicate name =
-  Error.raise "MODEL ERROR" ("duplicate type definition `" ^ name ^ "`")
+let raise_type_bound (type': type_name) =
+  raise ("unbound type `" ^ type'.name ^ "`") type'.span
 
-let raise_type_bound type' name =
-  raise ("unbound type `" ^ name ^ "`") (fst type')
-
-let raise_type_recursive type' name =
-  raise ("recursive type `" ^ name ^ "`") (fst type')
+let raise_type_recursive (type': type_name) =
+  raise ("recursive type `" ^ type'.name ^ "`") type'.span
 
 let raise_type_duplicate_attribute (attr: Abt.attr_type) =
-  raise ("duplicate attribute `" ^ attr.name ^ "`") attr.pos
+  raise_2 ("duplicate attribute `" ^ attr.name ^ "`") attr.pos
 
-let raise_type_product type' =
-  raise "product type cannot have both indexed and labeled fields" (fst type')
+let raise_type_product (type': type_product) =
+  raise "product type cannot have both indexed and labeled fields" type'.span

@@ -1,4 +1,4 @@
-type pos = Lexing.position
+(* type pos = Lexing.position
 
 type program = {
   defs: def list
@@ -113,3 +113,4 @@ let get_program_exprs program =
     | DefType _    -> None
     | DefExpr expr -> Some expr
   ) program.defs
+*)

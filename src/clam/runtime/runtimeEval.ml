@@ -60,7 +60,7 @@ let rec eval (expr: Abt.expr) =
     return (List.nth elems elem.index)
   | ExprAttr attr ->
     let* attrs = eval_record attr.record in
-    return (NameMap.find attr.name attrs)
+    return (NameMap.find attr.label attrs)
   | ExprAscr ascr ->
     eval ascr.expr
   | ExprIf if' ->

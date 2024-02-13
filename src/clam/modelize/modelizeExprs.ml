@@ -1,5 +1,7 @@
 open Utils
 
+let pos (_: Ast.span) = Lexing.dummy_pos
+
 type scope = {
   parent: scope option;
   types: Abt.type' NameMap.t;
@@ -21,14 +23,14 @@ end
 
 open Monad.Monad(Monad.StateMonad(State))
 
-let get_preop_name expr op =
+let get_preop_name span op =
   match op with
   | "+" -> "__pos__"
   | "-" -> "__neg__"
   | "!" -> "__not__"
-  | _ -> ModelizeErrors.raise_expr_operator expr op
+  | _ -> ModelizeErrors.raise_expr_operator span op
 
-let get_binop_name expr op =
+let get_binop_name span op =
   match op with
   | "+"  -> "__add__"
   | "-"  -> "__sub__"
@@ -44,7 +46,7 @@ let get_binop_name expr op =
   | ">=" -> "__ge__"
   | "&"  -> "__and__"
   | "|"  -> "__or__"
-  | _ -> ModelizeErrors.raise_expr_operator expr op
+  | _ -> ModelizeErrors.raise_expr_operator span op
 
 let find_remain name state =
   NameMap.find_opt name state.scope.remains
@@ -80,10 +82,10 @@ let make_child types remains dones state =
   let scope = { parent = Some state.scope; types; remains; currents = NameMap.empty; dones } in
   ((), { state with scope })
 
-let parse_int expr (value: string) =
+let parse_int span value =
   match int_of_string_opt value with
   | Some int -> int
-  | None     -> ModelizeErrors.raise_expr_integer expr value
+  | None     -> ModelizeErrors.raise_expr_integer span value
 
 let parse_string (value: string) =
   value
@@ -111,7 +113,7 @@ let translate_state state =
 let modelize_type (type': Ast.type') state =
   (ModelizeTypes.modelize_type_expr type' (translate_state state), state)
 
-let rec modelize_name expr name state =
+let rec modelize_bind span name state =
   match find_remain name state with
   | Some def -> modelize_def def state
   | None     ->
@@ -124,9 +126,9 @@ let rec modelize_name expr name state =
   match state.scope.parent with
   | Some scope ->
     let parent = { state with scope } in
-    let (expr, parent) = modelize_name expr name parent in
+    let (expr, parent) = modelize_bind span name parent in
     (expr, { parent with scope = { state.scope with parent = Some parent.scope } })
-  | None -> ModelizeErrors.raise_expr_bound expr name
+  | None -> ModelizeErrors.raise_expr_bound span name
 
 and modelize_def def state =
   let name = def.Ast.name in
@@ -137,89 +139,65 @@ and modelize_def def state =
   let (expr, state) = modelize_expr remain.Ast.expr state in
   let (current, currents) = extract name state.scope.currents in
   let bind, state = new_bind name state in
-  let def = { Abt.pos = def.pos; bind; type'; expr } in
+  let def = { Abt.pos = pos def.span; bind; type'; expr } in
   let _ = current := Some def.bind in
   let dones = NameMap.add name current state.scope.dones in
   let state = { state with scope = { state.scope with currents; dones}; all_exprs = def :: state.all_exprs } in
   (current, state)
 
 and modelize_expr (expr: Ast.expr): state -> Abt.expr * state =
-  let pos = fst expr in
-  match snd expr with
-  | ExprUnit ->
-    modelize_unit expr
-  | ExprTrue ->
-    modelize_bool expr true
-  | ExprFalse ->
-    modelize_bool expr false
-  | ExprInt value ->
-    modelize_int expr value
-  | ExprString value ->
-    modelize_string expr value
-  | ExprBind name ->
-    modelize_bind expr name
-  | ExprTuple exprs ->
-    modelize_tuple expr exprs
-  | ExprProduct fields ->
-    modelize_product expr fields
-  | ExprElem (expr, index) ->
-    modelize_elem expr index
-  | ExprAttr (expr, name) ->
-    modelize_attr expr name
-  | ExprPreop (op, operand) ->
-    modelize_preop expr op operand
-  | ExprBinop  (left, op, right) ->
-    modelize_binop expr left op right
-  | ExprAscr (expr, type') ->
-    modelize_ascr expr type'
-  | ExprIf (cond, then', else') ->
-    modelize_if expr cond then' else'
-  | ExprAbs (params, body) ->
-    modelize_abs pos params body
-  | ExprApp (expr, args) ->
-    let* expr = modelize_expr expr in
-    modelize_app pos expr args
-  | ExprTypeAbs (params, body) ->
-    modelize_type_abs pos params body
-  | ExprTypeApp (expr, args) ->
-    let* expr = modelize_expr expr in
-    modelize_type_app pos expr args
-  | ExprStmt (stmt, expr) ->
-    modelize_stmt stmt expr
+  match expr with
+  | ExprUnit    expr -> modelize_unit     expr
+  | ExprTrue    expr -> modelize_true     expr
+  | ExprFalse   expr -> modelize_false    expr
+  | ExprInt     expr -> modelize_int      expr
+  | ExprString  expr -> modelize_string   expr
+  | ExprName    expr -> modelize_name     expr.span expr.name
+  | ExprProduct expr -> modelize_product  expr
+  | ExprElem    expr -> modelize_elem     expr
+  | ExprAttr    expr -> modelize_attr     expr
+  | ExprPreop   expr -> modelize_preop    expr
+  | ExprBinop   expr -> modelize_binop    expr
+  | ExprAscr    expr -> modelize_ascr     expr
+  | ExprStmt    expr -> modelize_stmt     expr
+  | ExprIf      expr -> modelize_if       expr
+  | ExprLamAbs  expr -> modelize_lam_abs  expr
+  | ExprLamApp  expr -> modelize_lam_app  expr
+  | ExprUnivAbs expr -> modelize_univ_abs expr
+  | ExprUnivApp expr -> modelize_univ_app expr
 
 and modelize_unit expr =
-  return (Abt.ExprUnit { pos = fst expr })
+  return (Abt.ExprUnit { pos = pos expr.span })
 
-and modelize_bool expr value =
-  return (Abt.ExprBool { pos = fst expr; value })
+and modelize_true expr =
+  return (Abt.ExprBool { pos = pos expr.span; value = true })
 
-and modelize_int expr value =
-  let value = parse_int expr value in
-  return (Abt.ExprInt { pos = fst expr; value })
+and modelize_false expr =
+  return (Abt.ExprBool { pos = pos expr.span; value = false })
 
-and modelize_string expr value =
-  let value = parse_string value in
-  return (Abt.ExprString { pos = fst expr; value })
+and modelize_int expr =
+  let value = parse_int expr.span expr.value in
+  return (Abt.ExprInt { pos = pos expr.span; value })
 
-and modelize_bind expr name =
-  let* bind = modelize_name expr name in
-  return (Abt.ExprBind { pos = fst expr; bind })
+and modelize_string expr =
+  let value = parse_string expr.value in
+  return (Abt.ExprString { pos = pos expr.span; value })
 
-and modelize_tuple expr elems =
-  let* elems = map_list modelize_expr elems in
-  return (Abt.ExprTuple { pos = fst expr; elems })
+and modelize_name span name =
+  let* bind = modelize_bind span name in
+  return (Abt.ExprBind { pos = pos span; bind })
 
-and modelize_product expr fields =
-  let fields = List.partition_map partition_field fields in
+and modelize_product expr =
+  let fields = List.partition_map partition_field expr.fields in
   match fields with
   | ([], []) ->
-    return (Abt.ExprRecord { pos = fst expr; attrs = [] })
+    return (Abt.ExprRecord { pos = pos expr.span; attrs = [] })
   | (fields, []) ->
     let* elems = map_list modelize_tuple_elem fields in
-    return (Abt.ExprTuple { pos = fst expr; elems })
+    return (Abt.ExprTuple { pos = pos expr.span; elems })
   | ([], fields) ->
     let* attrs = map_list modelize_record_attr fields in
-    return (Abt.ExprRecord { pos = fst expr; attrs })
+    return (Abt.ExprRecord { pos = pos expr.span; attrs })
   | _ ->
     ModelizeErrors.raise_expr_product expr
 
@@ -233,112 +211,124 @@ and modelize_tuple_elem field =
 
 and modelize_record_attr field =
   let* expr = modelize_expr field.expr in
-  return { Abt.pos = field.pos; Abt.name = field.Ast.name; Abt.expr = expr }
+  return { Abt.pos = pos field.span; Abt.name = field.Ast.label; Abt.expr = expr }
 
-and modelize_elem expr index =
-  let* tuple = modelize_expr expr in
-  let index = parse_int expr index in
-  return (Abt.ExprElem { pos = fst expr; tuple; index })
+and modelize_elem expr =
+  let* tuple = modelize_expr expr.tuple in
+  let index = parse_int expr.span expr.index in
+  return (Abt.ExprElem { pos = pos expr.span; tuple; index })
 
-and modelize_attr expr name =
-  let* record = modelize_expr expr in
-  return (Abt.ExprAttr { pos = fst expr; record; name })
+and modelize_attr expr =
+  let* record = modelize_expr expr.record in
+  return (Abt.ExprAttr { pos = pos expr.span; record; label = expr.label })
 
-and modelize_preop expr op operand =
-  let* arg = modelize_expr operand in
-  let name = get_preop_name expr op in
-  let* abs = modelize_bind expr name in
-  return (Abt.ExprApp { pos = fst expr; abs; arg })
+and modelize_preop expr =
+  let* arg = modelize_expr expr.expr in
+  let name = get_preop_name expr.span expr.op in
+  let* abs = modelize_name expr.span name in
+  return (Abt.ExprApp { pos = pos expr.span; abs; arg })
 
-and modelize_binop expr left op right =
-  let pos = fst expr in
-  let* left = modelize_expr left in
-  let* right = modelize_expr right in
-  let name = get_binop_name expr op in
-  let* abs = modelize_bind expr name in
-  return (Abt.ExprApp { pos; abs = (Abt.ExprApp { pos; abs; arg = left }); arg = right })
+and modelize_binop expr =
+  let* left  = modelize_expr expr.left  in
+  let* right = modelize_expr expr.right in
+  let name = get_binop_name expr.span expr.op in
+  let* abs = modelize_name expr.span name in
+  return (Abt.ExprApp { pos = pos expr.span; abs = (Abt.ExprApp { pos = pos expr.span; abs; arg = left }); arg = right })
 
-and modelize_param (param: Ast.param) =
-  let* type' = map_option modelize_type param.type' in
-  let* bind = new_bind param.name in
-  return { Abt.pos = param.pos; bind; type' }
+and modelize_ascr ascr =
+  let* expr  = modelize_expr ascr.expr  in
+  let* type' = modelize_type ascr.type' in
+  return (Abt.ExprAscr { pos = pos ascr.span; expr; type' })
 
-and modelize_type_param (param: Ast.param): Abt.param_type t =
-  let* bound = (match param.type' with
-    | Some type' ->
-      modelize_type type'
-    | None ->
-      return (Abt.TypeTop { pos = param.pos })
-  ) in
-  return { Abt.bind = { name = param.name }; Abt.bound }
-
-and modelize_stmt (stmt: Ast.stmt) (expr: Ast.expr) =
-  let pos = fst expr in
-  match stmt with
-  | StmtVar (var_name, var_type, var_expr) ->
-    let* bind = new_bind var_name in
-    let* type' = map_option modelize_type var_type in
-    let param = { Abt.pos; bind; type' } in
-    let* body = with_scope (modelize_expr expr) NameMap.empty [] [var_name, bind] in
-    let abs = Abt.ExprAbs { pos; param; body } in
-    let* arg = modelize_expr var_expr in
-    return (Abt.ExprApp { pos; abs; arg})
-  | StmtExpr stmt_expr ->
+and modelize_stmt stmt =
+  match stmt.stmt with
+  | StmtVar { span; name; type'; expr } ->
+    let* bind = new_bind name in
+    let* type' = map_option modelize_type type' in
+    let param = { Abt.pos = pos span; bind; type' } in
+    let* body = with_scope (modelize_expr stmt.expr) NameMap.empty [] [name, bind] in
+    let abs = Abt.ExprAbs { pos = pos span; param; body } in
+    let* arg = modelize_expr expr in
+    return (Abt.ExprApp { pos = pos span; abs; arg})
+  | StmtExpr { span; expr } ->
     let* bind = new_bind "_" in
-    let param = { Abt.pos; bind; type' = None } in
-    let* body = modelize_expr expr in
-    let abs = Abt.ExprAbs { pos; param; body } in
-    let* arg = modelize_expr stmt_expr in
-    return (Abt.ExprApp { pos; abs; arg })
+    let param = { Abt.pos = pos span; bind; type' = None } in
+    let* body = modelize_expr stmt.expr in
+    let abs = Abt.ExprAbs { pos = pos span; param; body } in
+    let* arg = modelize_expr expr in
+    return (Abt.ExprApp { pos = pos span; abs; arg })
 
-and modelize_ascr expr type' =
-  let* expr2 = modelize_expr expr in
-  let* type' = modelize_type type' in
-  return (Abt.ExprAscr { pos = fst expr; expr = expr2; type' = type' })
+and modelize_if if' =
+  let* cond  = modelize_expr if'.cond in
+  let* then' = modelize_expr if'.then' in
+  let* else' = modelize_expr if'.else' in
+  return (Abt.ExprIf { pos = pos if'.span; cond; then'; else' })
 
-and modelize_if expr cond then' else' =
-  let* cond = modelize_expr cond in
-  let* then' = modelize_expr then' in
-  let* else' = modelize_expr else' in
-  return (Abt.ExprIf { pos = fst expr; cond = cond; then'; else' })
+and modelize_lam_abs abs =
+  modelize_lam_abs_curry abs.span abs.params abs.body
 
-and modelize_abs pos params body =
+and modelize_lam_abs_curry span params body =
   match params with
   | [] ->
     modelize_expr body
   | (param :: params) ->
-    let* param = modelize_param param in
+    let* param = modelize_param_expr param in
     let entries = [param.Abt.bind.name, param.bind] in
-    let* body = with_scope (modelize_abs pos params body) NameMap.empty [] entries in
-    return (Abt.ExprAbs { pos; param; body })
+    let* body = with_scope (modelize_lam_abs_curry span params body) NameMap.empty [] entries in
+    return (Abt.ExprAbs { pos = pos span; param; body })
 
-and modelize_app pos abs args =
+and modelize_lam_app app =
+  let* abs = modelize_expr app.abs in
+  modelize_lam_app_curry app.span abs app.args
+
+and modelize_lam_app_curry span abs args =
   match args with
   | [] ->
     return abs
   | (arg :: args) ->
     let* arg = modelize_expr arg in
-    let app = (Abt.ExprApp { pos; abs; arg }) in
-    modelize_app pos app args
+    let app = (Abt.ExprApp { pos = pos span; abs; arg }) in
+    modelize_lam_app_curry span app args
 
-and modelize_type_abs pos params body state =
+and modelize_univ_abs abs =
+  modelize_univ_abs_curry abs.span abs.params abs.body
+
+and modelize_univ_abs_curry span params body state =
   match params with
   | [] ->
     modelize_expr body state
   | (param :: params) ->
-    let (param, state) = modelize_type_param param state in
+    let (param, state) = modelize_param_type param state in
     let entries = ModelizeTypes.modelize_abs param (translate_state state) in
-    let (body, state) = with_scope (modelize_type_abs pos params body) entries [] [] state in
-    (Abt.ExprTypeAbs { pos; param; body }, state)
+    let (body, state) = with_scope (modelize_univ_abs_curry span params body) entries [] [] state in
+    (Abt.ExprTypeAbs { pos = pos span; param; body }, state)
 
-and modelize_type_app pos abs args =
+and modelize_univ_app app =
+  let* abs = modelize_expr app.abs in
+  modelize_univ_app_curry app.span abs app.args
+
+and modelize_univ_app_curry span abs args =
   match args with
   | [] ->
     return abs
   | (arg :: args) ->
     let* arg = modelize_type arg in
-    let app = (Abt.ExprTypeApp { pos; abs; arg }) in
-    modelize_type_app pos app args
+    let app = (Abt.ExprTypeApp { pos = pos span; abs; arg }) in
+    modelize_univ_app_curry span app args
+
+and modelize_param_expr (param: Ast.param_expr): Abt.param_expr t =
+  let* type' = map_option modelize_type param.type' in
+  let* bind = new_bind param.name in
+  return { Abt.pos = pos param.span; bind; type' }
+
+and modelize_param_type (param: Ast.param_type) =
+  let* bound = (match param.type' with
+    | Some type' ->
+      modelize_type type'
+    | None ->
+      return (Abt.TypeTop { pos = pos param.span })
+  ) in
+  return { Abt.bind = { name = param.name }; Abt.bound }
 
 let rec modelize_defs state =
   match NameMap.choose_opt state.scope.remains with

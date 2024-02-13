@@ -1,5 +1,8 @@
 %{
-  open Ast
+open Ast
+
+let span (start, end') =
+  { name = ""; start = start.Lexing.pos_cnum; end' = end'.Lexing.pos_cnum }
 %}
 
 %token <string> IDENT
@@ -52,142 +55,156 @@
 
 %%
 
+// PROGRAM
+
 let program :=
   | defs = list(def); EOF;
     { { defs } }
 
+// DEFINITIONS
+
 let def :=
   | TYPE; name = IDENT; ASSIGN; type_ = type_;
-    { DefType { pos = $startpos; name; type' = type_ } }
+    { DefType { span = span $loc; name; type' = type_ } }
   | DEF; name = IDENT; type_ = option(COLON; type_); ASSIGN; expr = expr;
-    { DefExpr { pos = $startpos; name; type' = type_; expr } }
+    { DefExpr { span = span $loc; name; type' = type_; expr } }
+
+// TYPES
 
 let type_ :=
   | type_2
-  | PARENTHESIS_LEFT; params = list_comma(type_); PARENTHESIS_RIGHT_ARROW; expr = type_;
-    { $startpos, TypeAbsExpr (params, expr) }
-  | CROTCHET_LEFT; params = list_comma(param); CROTCHET_RIGHT; ARROW; expr = type_;
-    { $startpos, TypeAbsExprType (params, expr) }
-  | CROTCHET_LEFT; params = list_comma(param); CROTCHET_RIGHT; DOUBLE_ARROW; type_ = type_;
-    { $startpos, TypeAbs (params, type_) }
+  | PARENTHESIS_LEFT; params = list_comma(type_); PARENTHESIS_RIGHT_ARROW; ret = type_;
+    { TypeLam { span = span $loc; params; ret } }
+  | CROTCHET_LEFT; params = list_comma(param_type); CROTCHET_RIGHT; ARROW; ret = type_;
+    { TypeUniv { span = span $loc; params; ret } }
+  | CROTCHET_LEFT; params = list_comma(param_type); CROTCHET_RIGHT; DOUBLE_ARROW; body = type_;
+    { TypeAbs { span = span $loc; params; body } }
 
 let type_2 :=
   | type_1
   | left = type_2; AND; right = type_1;
-    { $startpos, TypeInter (left, right) }
+    { TypeInter { span = span $loc; left; right } }
   | left = type_2; OR; right = type_1;
-    { $startpos, TypeUnion (left, right) }
+    { TypeUnion { span = span $loc; left; right } }
 
 let type_1 :=
   | name = IDENT;
-    { $startpos, TypeIdent name }
+    { TypeName { span = span $loc; name } }
   | PARENTHESIS_LEFT; type_ = type_; PARENTHESIS_RIGHT;
-    { type_ }
+    { type_ } // Maybe there should be a group type (and expression) for more precise positions
   | BRACE_LEFT; fields = list_comma(field_type); BRACE_RIGHT;
-    { $startpos, TypeProduct fields }
-  | type_ = type_1; CROTCHET_LEFT; args = list_comma(type_); CROTCHET_RIGHT;
-    { $startpos, TypeApp (type_, args) }
+    { TypeProduct { span = span $loc; fields } }
+  | abs = type_1; CROTCHET_LEFT; args = list_comma(type_); CROTCHET_RIGHT;
+    { TypeApp { span = span $loc; abs; args } }
 
-// Expressions
+// TYPE UTILITIES
+
+let field_type :=
+  | type_ = type_;
+    { FieldTypeElem { span = span $loc; type' = type_ } }
+  | label = IDENT; COLON; type_ = type_;
+    { FieldTypeAttr { span = span $loc; label; type' = type_ } }
+
+let param_type :=
+  | name = IDENT; type_ = option(COLON; type_);
+    { { span = span $loc; name; type' = type_ } }
+
+// EXPRESSIONS
 
 let expr :=
   | expr_8
-  | PARENTHESIS_LEFT; params = list_comma(param); PARENTHESIS_RIGHT_ARROW; expr = expr;
-    { $startpos, ExprAbs (params, expr) }
-  | CROTCHET_LEFT; params = list_comma(param); CROTCHET_RIGHT; ARROW; expr = expr;
-    { $startpos, ExprTypeAbs (params, expr) }
+  | PARENTHESIS_LEFT; params = list_comma(param_expr); PARENTHESIS_RIGHT_ARROW; body = expr;
+    { ExprLamAbs { span = span $loc; params; body } }
+  | CROTCHET_LEFT; params = list_comma(param_type); CROTCHET_RIGHT; ARROW; body = expr;
+    { ExprUnivAbs { span = span $loc; params; body } }
   | IF; cond = expr; THEN; then_ = expr; ELSE; else_ = expr;
-    { $startpos, ExprIf (cond, then_, else_) }
+    { ExprIf  { span = span $loc; cond; then' = then_; else' = else_ } }
 
 let expr_8 :=
   | expr_7
   | stmt = stmt; SEMICOLON; expr = expr;
-    { $startpos, ExprStmt (stmt, expr) }
+    { ExprStmt { span = span $loc; stmt; expr } }
 
 let expr_7 :=
   | expr_6
   | left = expr_7; op = bin_op_5; right = expr_6;
-    { $startpos, ExprBinop (left, op, right) }
+    { ExprBinop { span = span $loc; left; op; right } }
 
 let expr_6 :=
   | expr_5
   | left = expr_6; op = bin_op_4; right = expr_5;
-    { $startpos, ExprBinop (left, op, right) }
+    { ExprBinop { span = span $loc; left; op; right } }
 
 let expr_5 :=
   | expr_4
   | left = expr_5; op = bin_op_3; right = expr_4;
-    { $startpos, ExprBinop (left, op, right) }
+    { ExprBinop { span = span $loc; left; op; right } }
 
 let expr_4 :=
   | expr_3
   | left = expr_4; op = bin_op_2; right = expr_3;
-    { $startpos, ExprBinop (left, op, right) }
+    { ExprBinop { span = span $loc; left; op; right } }
 
 let expr_3 :=
   | expr_2
   | left = expr_3; op = bin_op_1; right = expr_2;
-    { $startpos, ExprBinop (left, op, right) }
+    { ExprBinop { span = span $loc; left; op; right } }
 
 let expr_2 :=
   | expr_05
   | op = pre_op; expr = expr_2;
-    { $startpos, ExprPreop (op, expr) }
+    { ExprPreop { span = span $loc; op; expr } }
 
 let expr_05 :=
   | expr_1
   | expr = expr_1; COLON; type_ = type_1;
-    { $startpos, ExprAscr (expr, type_) }
+    { ExprAscr { span = span $loc; expr; type' = type_ } }
 
 let expr_1 :=
   | UNIT;
-    { $startpos, ExprUnit }
+    { ExprUnit { span = span $loc } }
   | TRUE;
-    { $startpos, ExprTrue }
+    { ExprTrue { span = span $loc } }
   | FALSE;
-    { $startpos, ExprFalse }
-  | int = INT;
-    { $startpos, ExprInt int }
-  | string = STRING;
-    { $startpos, ExprString string }
+    { ExprFalse { span = span $loc } }
+  | value = INT;
+    { ExprInt { span = span $loc; value } }
+  | value = STRING;
+    { ExprString { span = span $loc; value } }
   | name = IDENT;
-    { $startpos, ExprBind name }
+    { ExprName  { span = span $loc; name } }
   | PARENTHESIS_LEFT; expr = expr; PARENTHESIS_RIGHT;
     { expr }
   | BRACE_LEFT; fields = list_comma(field_expr); BRACE_RIGHT;
-    { $startpos, ExprProduct (fields) }
-  | expr = expr_1; DOT; index = INT;
-    { $startpos, ExprElem (expr, index) }
-  | expr = expr_1; DOT; name = IDENT;
-    { $startpos, ExprAttr (expr, name) }
-  | expr = expr_1; PARENTHESIS_LEFT; args = list_comma(expr); PARENTHESIS_RIGHT;
-    { $startpos, ExprApp (expr, args)}
-  | expr = expr_1; CROTCHET_LEFT; args = list_comma(type_); CROTCHET_RIGHT;
-    { $startpos, ExprTypeApp (expr, args) }
+    { ExprProduct { span = span $loc; fields } }
+  | tuple = expr_1; DOT; index = INT;
+    { ExprElem { span = span $loc; tuple; index } }
+  | record = expr_1; DOT; label = IDENT;
+    { ExprAttr { span = span $loc; record; label } }
+  | abs = expr_1; PARENTHESIS_LEFT; args = list_comma(expr); PARENTHESIS_RIGHT;
+    { ExprLamApp { span = span $loc; abs; args } }
+  | abs = expr_1; CROTCHET_LEFT; args = list_comma(type_); CROTCHET_RIGHT;
+    { ExprUnivApp { span = span $loc; abs; args } }
 
-let param :=
-  | name = IDENT; type_ = option(COLON; type_);
-    { { pos = $startpos; name; type' = type_ } }
-
-let field_type :=
-  | type_ = type_;
-    { FieldTypeElem { pos = $startpos; type' = type_ } }
-  | name = IDENT; COLON; type_ = type_;
-    { FieldTypeAttr { pos = $startpos; name; type' = type_ } }
-
-let field_expr :=
-  | expr = expr;
-    { FieldExprElem { pos = $startpos; expr }}
-  | name = IDENT; ASSIGN; expr = expr;
-    { FieldExprAttr { pos = $startpos; name; expr } }
+// EXPRESSION AUXILIARIES
 
 let stmt :=
   | VAR; name = IDENT; type_ = option(COLON; type_); ASSIGN; expr = expr_7;
-    { StmtVar (name, type_, expr) }
+    { StmtVar { span = span $loc; name; type' = type_; expr } }
   | expr = expr_7;
-    { StmtExpr (expr) }
+    { StmtExpr { span = span $loc; expr } }
 
-// Operators
+let field_expr :=
+  | expr = expr;
+    { FieldExprElem { span = span $loc; expr }}
+  | label = IDENT; ASSIGN; expr = expr;
+    { FieldExprAttr { span = span $loc; label; expr } }
+
+let param_expr :=
+  | name = IDENT; type_ = option(COLON; type_);
+    { { span = span $loc; name; type' = type_ } }
+
+// OPERATORS
 
 let pre_op :=
   | PLUS;
@@ -235,6 +252,6 @@ let bin_op_5 :=
   | OR;
     { "|" }
 
-// Utilities
+// UTILITIES
 
 let list_comma(X) := separated_list(COMMA, X)

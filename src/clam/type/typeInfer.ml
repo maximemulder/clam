@@ -95,7 +95,7 @@ and infer_elem_base index tuple =
 
 and infer_attr expr =
   with_var (fun ret ->
-    let record = Type.record (Utils.NameMap.singleton expr.name { Type.name = expr.name; type' = ret }) in
+    let record = Type.record (Utils.NameMap.singleton expr.label { Type.name = expr.label; type' = ret }) in
     let* () = infer_parent expr.record record in
     return ret
   )

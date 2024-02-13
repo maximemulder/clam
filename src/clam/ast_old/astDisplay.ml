@@ -1,4 +1,4 @@
-open Ast
+(* open Ast
 
 type node =
   | Prog      of Ast.program
@@ -166,3 +166,4 @@ and display_attr tab attr =
   | AString string -> "\"" ^ string ^ "\"\n"
 
 let display_program (prog: Ast.program) = "\n" ^ (display_node 0 (Prog prog))
+*)

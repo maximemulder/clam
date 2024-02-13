@@ -1,4 +1,5 @@
 open Lexing
+open Ast
 
 exception Error of string
 
@@ -10,6 +11,12 @@ let display_pos pos =
   let line = string_of_int pos.pos_lnum in
   let column = string_of_int (pos.pos_cnum - pos.pos_bol) in
   "in file `" ^ filename ^ "` " ^ "line " ^ line ^ " " ^ "column " ^ column
+
+let display_span (span: span) =
+  let filename = span.name in
+  let line = string_of_int 0 in (* todo*)
+  let column = string_of_int 0 in
+  "in file `" ^ filename ^ "` line " ^ line ^ " column" ^ column
 
 let raise_error message =
   raise "ERROR" message

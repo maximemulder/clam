@@ -115,7 +115,7 @@ let infer_elem elem type' =
 let infer_attr (attr: expr_attr) type' =
   let type' = TypeDisplay.display type' in
   raise
-    ("expected record expression with attribute `" ^ attr.name ^ "` but found expression of type `" ^ type' ^ "`")
+    ("expected record expression with attribute `" ^ attr.label ^ "` but found expression of type `" ^ type' ^ "`")
     attr.pos
 
 let infer_abs_param (param: param_expr) =
