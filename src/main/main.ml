@@ -23,9 +23,11 @@ let interpret config file_name =
   let file_text = read_file file_name in
   try
     let ast = parse file_name file_text in
+    if config.show_ast then
+      print_endline(Ast.display_program ast);
     let abt = modelize ast in
     let def_types = type' abt in
-    if config.types then
+    if config.show_types then
       List.iter (fun (def, type') ->
         print_endline((def: Abt.bind_expr).name ^ ": " ^ TypeDisplay.display type')
       ) def_types;
