@@ -21,18 +21,48 @@ let rec fold_until_pos text pos n f acc =
 let fold_until_pos text pos f acc =
   fold_until_pos text pos 0 f acc
 
-(** Gets the line number of the start of the span, starting at 1 *)
-let get_span_line span =
+let rec fold_from_pos_until text pos f acc =
+  let stop, acc = f (String.get text pos) acc in
+  if stop then
+    acc
+  else
+    fold_from_pos_until text (pos + 1) f acc
+
+(** Gets the column number of the start of a span, starting at 1 *)
+let get_span_start_x span =
   fold_until_pos span.code.text span.start (fun char count ->
     match char with
-    | '\n'-> count + 1
+    | '\n' -> 1
+    | _ -> count + 1
+  ) 1
+
+(** Gets the line number of the start of a span, starting at 1 *)
+let get_span_start_y span =
+  fold_until_pos span.code.text span.start (fun char count ->
+    match char with
+    | '\n' -> count + 1
     | _ -> count
   ) 1
 
-(** Gets the column number of the start of the span, starting at 1 *)
-let get_span_column span =
-  fold_until_pos span.code.text span.start (fun char count ->
+(** Gets the index of the line start of the start of a span *)
+let get_span_line_start span =
+  fold_until_pos span.code.text span.start (fun char (line_count, full_count) ->
+    let line_count = line_count + 1 in
     match char with
-    | '\n'-> 1
-    | _ -> count + 1
-  ) 1
+    | '\n' -> 0, full_count + line_count
+    | _ -> line_count, full_count
+  ) (0, 0) |> snd
+
+(** Gets the index of the line end of the start of a span *)
+let get_span_line_end span =
+  fold_from_pos_until span.code.text span.start (fun char count ->
+    match char with
+    | '\n' -> true, count
+    | _ -> false, count + 1
+  ) span.start
+
+(** Gets the line of a string start *)
+let get_span_line span =
+  let start = get_span_line_start span in
+  let end'  = get_span_line_end   span in
+  String.sub span.code.text start (end' - start)
