@@ -1,8 +1,6 @@
 open Utils
 open Abt
 
-let pos (_: Ast.span) = Lexing.dummy_pos
-
 type scope = {
   parent: scope option;
   remains: Ast.type' NameMap.t;
@@ -109,14 +107,14 @@ and modelize_product product =
   let fields = List.partition_map partition_field product.fields in
   match fields with
   | ([], []) ->
-    return (Abt.TypeRecord { pos = pos product.span; attrs = NameMap.empty })
+    return (Abt.TypeRecord { span = product.span; attrs = NameMap.empty })
   | (fields, []) ->
     let* elems = map_list modelize_tuple_elem fields in
-    return (Abt.TypeTuple { pos = pos product.span; elems })
+    return (Abt.TypeTuple { span = product.span; elems })
   | ([], fields) ->
     let* attrs = map_list modelize_record_attr fields in
     let attrs = make_attrs attrs in
-    return (Abt.TypeRecord { pos = pos product.span; attrs })
+    return (Abt.TypeRecord { span = product.span; attrs })
   | _ ->
     ModelizeErrors.raise_type_product product
 
@@ -130,7 +128,7 @@ and modelize_lam_curry span params ret =
   | (param :: params) ->
     let* param = modelize_type param in
     let* ret = modelize_lam_curry span params ret in
-    return (Abt.TypeAbsExpr { pos = pos span; param; ret })
+    return (Abt.TypeAbsExpr { span = span; param; ret })
 
 and modelize_univ univ =
   modelize_univ_curry univ.span univ.params univ.ret
@@ -141,9 +139,9 @@ and modelize_univ_curry span params ret =
     modelize_type ret
   | (param :: params) ->
     let* param = modelize_param_type param in
-    let type' = (param.bind.name, Abt.TypeVar { pos = Abt.type_pos param.bound; bind = param.bind }) in
+    let type' = (param.bind.name, Abt.TypeVar { span = Abt.type_span param.bound; bind = param.bind }) in
     let* ret = with_scope (modelize_univ_curry span params ret) [type'] in
-    return (Abt.TypeAbsExprType { pos = pos span; param; ret })
+    return (Abt.TypeAbsExprType { span = span; param; ret })
 
 and modelize_abs abs =
   modelize_abs_curry abs.span abs.params abs.body
@@ -154,9 +152,9 @@ and modelize_abs_curry span params body =
     modelize_type body
   | (param :: params) ->
     let* param = modelize_param_type param in
-    let type' = (param.bind.name, Abt.TypeVar { pos = Abt.type_pos param.bound; bind = param.bind }) in
+    let type' = (param.bind.name, Abt.TypeVar { span = Abt.type_span param.bound; bind = param.bind }) in
     let* body = with_scope (modelize_abs_curry span params body) [type'] in
-    return (Abt.TypeAbs { pos = pos span; param; body })
+    return (Abt.TypeAbs { span = span; param; body })
 
 and modelize_app app =
   let* abs = modelize_type app.abs in
@@ -168,7 +166,7 @@ and modelize_app_curry span abs args =
     return abs
   | (arg :: args) ->
     let* arg = modelize_type arg in
-    let app = (Abt.TypeApp { pos = pos span; abs; arg }) in
+    let app = (Abt.TypeApp { span = span; abs; arg }) in
     modelize_app_curry span app args
 
 and modelize_param_type param: Abt.param_type t =
@@ -176,7 +174,7 @@ and modelize_param_type param: Abt.param_type t =
     | Some type' ->
       modelize_type type'
     | None ->
-      return (Abt.TypeTop { pos = pos param.span })
+      return (Abt.TypeTop { span = param.span })
   ) in
   return { Abt.bind = { name = param.name }; Abt.bound }
 
@@ -191,7 +189,7 @@ and modelize_tuple_elem field =
 and modelize_record_attr field =
   let* type' = modelize_type field.type' in
   return {
-    Abt.pos = pos field.span;
+    Abt.span = field.span;
     Abt.name = field.label;
     Abt.type' = type'
   }
@@ -199,12 +197,12 @@ and modelize_record_attr field =
 and modelize_union union =
   let* left  = modelize_type union.left  in
   let* right = modelize_type union.right in
-  return (Abt.TypeUnion { pos = pos union.span; left; right })
+  return (Abt.TypeUnion { span = union.span; left; right })
 
 and modelize_inter inter =
   let* left  = modelize_type inter.left  in
   let* right = modelize_type inter.right in
-  return (Abt.TypeInter { pos = pos inter.span; left; right })
+  return (Abt.TypeInter { span = inter.span; left; right })
 
 let modelize_type_expr type' state =
   let (type', _) = modelize_type type' state in
@@ -217,20 +215,22 @@ let rec modelize_defs state =
     let (_, state) = modelize_def name remain state in
     modelize_defs state
 
-let pos = {
-  Lexing.pos_fname = "primitives.clam";
-  Lexing.pos_lnum = 0;
-  Lexing.pos_bol = 0;
-  Lexing.pos_cnum = 0;
+let span = {
+  Code.code = {
+    name = "primitives.clam";
+    text = "";
+  };
+  start = 0;
+  end' = 0;
 }
 
 let primitives = [
-  ("Top",    Abt.TypeTop    { pos });
-  ("Bot",    Abt.TypeBot    { pos });
-  ("Unit",   Abt.TypeUnit   { pos });
-  ("Bool",   Abt.TypeBool   { pos });
-  ("Int",    Abt.TypeInt    { pos });
-  ("String", Abt.TypeString { pos });
+  ("Top",    Abt.TypeTop    { span });
+  ("Bot",    Abt.TypeBot    { span });
+  ("Unit",   Abt.TypeUnit   { span });
+  ("Bool",   Abt.TypeBool   { span });
+  ("Int",    Abt.TypeInt    { span });
+  ("String", Abt.TypeString { span });
 ]
 
 let modelize_program (program: Ast.program) =
@@ -240,6 +240,6 @@ let modelize_program (program: Ast.program) =
   (state.scope.dones, state.all)
 
 let modelize_abs (param: Abt.param_type) state =
-  let type' = (param.bind.name, Abt.TypeVar { pos = Abt.type_pos param.bound; bind = param.bind}) in
+  let type' = (param.bind.name, Abt.TypeVar { span = Abt.type_span param.bound; bind = param.bind}) in
   let (_, state) = make_child [type'] state in
   state.scope.dones

@@ -1,4 +1,4 @@
-type pos = Lexing.position
+type span = Ast.span
 
 type bind_type = {
   name: string;
@@ -27,82 +27,82 @@ type type' =
   | TypeApp         of type_app
 
 and type_top = {
-  pos: pos;
+  span: span;
 }
 
 and type_bot = {
-  pos: pos;
+  span: span;
 }
 
 and type_unit = {
-  pos: pos;
+  span: span;
 }
 
 and type_bool = {
-  pos: pos;
+  span: span;
 }
 
 and type_int = {
-  pos: pos;
+  span: span;
 }
 
 and type_string = {
-  pos: pos;
+  span: span;
 }
 
 and type_var = {
-  pos: pos;
+  span: span;
   bind: bind_type;
 }
 
 and type_tuple = {
-  pos: pos;
+  span: span;
   elems: type' list;
 }
 
 and type_record = {
-  pos: pos;
+  span: span;
   attrs: attr_type Utils.NameMap.t;
 }
 
 and type_inter = {
-  pos: pos;
+  span: span;
   left: type';
   right: type';
 }
 
 and type_union = {
-  pos: pos;
+  span: span;
   left: type';
   right: type';
 }
 
 and type_abs_expr = {
-  pos: pos;
+  span: span;
   param: type';
   ret: type';
 }
 
 and type_abs_expr_type = {
-  pos: pos;
+  span: span;
   param: param_type;
   ret: type';
 }
 
 and type_abs = {
-  pos: pos;
+  span: span;
   param: param_type;
   body: type';
 }
 
 and type_app = {
-  pos: pos;
+  span: span;
   abs: type';
   arg: type';
 }
 
 and attr_type = {
-  pos: pos;
+  span: span;
   name: string;
   type': type';
 }
@@ -112,23 +112,23 @@ and param_type = {
   bound: type';
 }
 
-let type_pos type' =
+let type_span type' =
   match type' with
-  | TypeTop         type' -> type'.pos
-  | TypeBot         type' -> type'.pos
-  | TypeUnit        type' -> type'.pos
-  | TypeBool        type' -> type'.pos
-  | TypeInt         type' -> type'.pos
-  | TypeString      type' -> type'.pos
-  | TypeVar         type' -> type'.pos
-  | TypeTuple       type' -> type'.pos
-  | TypeRecord      type' -> type'.pos
-  | TypeInter       type' -> type'.pos
-  | TypeUnion       type' -> type'.pos
-  | TypeAbsExpr     type' -> type'.pos
-  | TypeAbsExprType type' -> type'.pos
-  | TypeAbs         type' -> type'.pos
-  | TypeApp         type' -> type'.pos
+  | TypeTop         type' -> type'.span
+  | TypeBot         type' -> type'.span
+  | TypeUnit        type' -> type'.span
+  | TypeBool        type' -> type'.span
+  | TypeInt         type' -> type'.span
+  | TypeString      type' -> type'.span
+  | TypeVar         type' -> type'.span
+  | TypeTuple       type' -> type'.span
+  | TypeRecord      type' -> type'.span
+  | TypeInter       type' -> type'.span
+  | TypeUnion       type' -> type'.span
+  | TypeAbsExpr     type' -> type'.span
+  | TypeAbsExprType type' -> type'.span
+  | TypeAbs         type' -> type'.span
+  | TypeApp         type' -> type'.span
 
 type expr =
   | ExprUnit    of expr_unit
@@ -148,121 +148,121 @@ type expr =
   | ExprTypeApp of expr_type_app
 
 and expr_unit = {
-  pos: pos;
+  span: span;
 }
 
 and expr_bool = {
-  pos: pos;
+  span: span;
   value: bool;
 }
 
 and expr_int = {
-  pos: pos;
+  span: span;
   value: int;
 }
 
 and expr_string = {
-  pos: pos;
+  span: span;
   value: string;
 }
 
 and expr_bind = {
-  pos: pos;
+  span: span;
   bind: bind_expr option ref;
 }
 
 and expr_tuple = {
-  pos: pos;
+  span: span;
   elems: expr list;
 }
 
 and expr_record = {
-  pos: pos;
+  span: span;
   attrs: attr_expr list;
 }
 
 and expr_elem = {
-  pos: pos;
+  span: span;
   tuple: expr;
   index: int;
 }
 
 and expr_attr = {
-  pos: pos;
+  span: span;
   record: expr;
   label: string;
 }
 
 and expr_ascr = {
-  pos: pos;
+  span: span;
   expr: expr;
   type': type';
 }
 
 and expr_if = {
-  pos: pos;
+  span: span;
   cond: expr;
   then': expr;
   else': expr;
 }
 
 and expr_abs = {
-  pos: pos;
+  span: span;
   param: param_expr;
   body: expr;
 }
 
 and expr_app = {
-  pos: pos;
+  span: span;
   abs: expr;
   arg: expr;
 }
 
 and expr_type_abs = {
-  pos: pos;
+  span: span;
   param: param_type;
   body: expr;
 }
 
 and expr_type_app = {
-  pos: pos;
+  span: span;
   abs: expr;
   arg: type';
 }
 
 and attr_expr = {
-  pos: pos;
+  span: span;
   name: string;
   expr: expr;
 }
 
 and param_expr = {
-  pos: pos;
+  span: span;
   bind: bind_expr;
   type': type' option;
 }
 
 and def_expr = {
-  pos: pos;
+  span: span;
   bind: bind_expr;
   type': type' option;
   expr: expr;
 }
 
-let expr_pos expr =
+let expr_span expr =
   match expr with
-  | ExprUnit    expr -> expr.pos
-  | ExprBool    expr -> expr.pos
-  | ExprInt     expr -> expr.pos
-  | ExprString  expr -> expr.pos
-  | ExprBind    expr -> expr.pos
-  | ExprTuple   expr -> expr.pos
-  | ExprRecord  expr -> expr.pos
-  | ExprElem    expr -> expr.pos
-  | ExprAttr    expr -> expr.pos
-  | ExprAscr    expr -> expr.pos
-  | ExprIf      expr -> expr.pos
-  | ExprAbs     expr -> expr.pos
-  | ExprApp     expr -> expr.pos
-  | ExprTypeAbs expr -> expr.pos
-  | ExprTypeApp expr -> expr.pos
+  | ExprUnit    expr -> expr.span
+  | ExprBool    expr -> expr.span
+  | ExprInt     expr -> expr.span
+  | ExprString  expr -> expr.span
+  | ExprBind    expr -> expr.span
+  | ExprTuple   expr -> expr.span
+  | ExprRecord  expr -> expr.span
+  | ExprElem    expr -> expr.span
+  | ExprAttr    expr -> expr.span
+  | ExprAscr    expr -> expr.span
+  | ExprIf      expr -> expr.span
+  | ExprAbs     expr -> expr.span
+  | ExprApp     expr -> expr.span
+  | ExprTypeAbs expr -> expr.span
+  | ExprTypeApp expr -> expr.span

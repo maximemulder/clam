@@ -13,10 +13,10 @@ let display_pos pos =
   "in file `" ^ filename ^ "` " ^ "line " ^ line ^ " " ^ "column " ^ column
 
 let display_span (span: span) =
-  let filename = span.name in
-  let line = string_of_int 0 in (* todo*)
-  let column = string_of_int 0 in
-  "in file `" ^ filename ^ "` line " ^ line ^ " column" ^ column
+  let filename = span.code.name in
+  let line = string_of_int (Code.get_span_line span) in
+  let column = string_of_int (Code.get_span_column span) in
+  "in file `" ^ filename ^ "` line " ^ line ^ " column " ^ column
 
 let raise_error message =
   raise "ERROR" message

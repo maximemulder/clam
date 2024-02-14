@@ -6,8 +6,8 @@ open TypeSolve
 
 let rec infer_parent (expr: Abt.expr) parent =
   let* type' = infer expr in
-  let pos = Abt.expr_pos expr in
-  constrain pos type' parent
+  let span = Abt.expr_span expr in
+  constrain span type' parent
 
 and infer (expr: Abt.expr) =
   match expr with

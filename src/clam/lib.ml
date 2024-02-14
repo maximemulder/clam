@@ -11,6 +11,7 @@ let parse file_name text =
   let lexbuf = Lexing.from_string text in
   Lexing.set_filename lexbuf file_name;
   try
+    Global.code := Some { Code.name = file_name; text };
     Parser.program Lexer.read lexbuf
   with
   | Lexer.Error message ->

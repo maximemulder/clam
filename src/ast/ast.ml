@@ -1,9 +1,4 @@
-(** A span corresponds to a location in a code. *)
-type span = {
-  name: string;
-  start: int;
-  end': int;
-}
+type span = Code.span
 
 (* PROGRAM *)
 

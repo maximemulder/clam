@@ -76,8 +76,7 @@ let rec eval (expr: Abt.expr) =
   | ExprTypeApp app ->
     eval_app_type app
 
-and eval_unit unit =
-  let _ = unit.pos in
+and eval_unit _ =
   return VUnit
 
 and eval_bool bool =
