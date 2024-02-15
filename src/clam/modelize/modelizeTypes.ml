@@ -1,4 +1,4 @@
-open Utils
+open Util
 open Abt
 
 type scope = {
@@ -49,7 +49,7 @@ let find_done name state =
 
 let make_attrs attrs =
   List.fold_left (fun map (attr: Abt.attr_type) ->
-    let name = attr.name in
+    let name = attr.label in
     if NameMap.mem name map
       then ModelizeErrors.raise_type_duplicate_attribute attr
       else NameMap.add name attr map
@@ -128,7 +128,7 @@ and modelize_lam_curry span params ret =
   | (param :: params) ->
     let* param = modelize_type param in
     let* ret = modelize_lam_curry span params ret in
-    return (Abt.TypeAbsExpr { span = span; param; ret })
+    return (Abt.TypeLam { span = span; param; ret })
 
 and modelize_univ univ =
   modelize_univ_curry univ.span univ.params univ.ret
@@ -141,7 +141,7 @@ and modelize_univ_curry span params ret =
     let* param = modelize_param_type param in
     let type' = (param.bind.name, Abt.TypeVar { span = Abt.type_span param.bound; bind = param.bind }) in
     let* ret = with_scope (modelize_univ_curry span params ret) [type'] in
-    return (Abt.TypeAbsExprType { span = span; param; ret })
+    return (Abt.TypeUniv { span = span; param; ret })
 
 and modelize_abs abs =
   modelize_abs_curry abs.span abs.params abs.body
@@ -190,7 +190,7 @@ and modelize_record_attr field =
   let* type' = modelize_type field.type' in
   return {
     Abt.span = field.span;
-    Abt.name = field.label;
+    Abt.label = field.label;
     Abt.type' = type'
   }
 

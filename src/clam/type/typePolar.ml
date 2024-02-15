@@ -36,7 +36,7 @@ and occurs_base (type': Type.base) bind =
   | Tuple tuple ->
     list_any (fun elem -> occurs elem bind) tuple.elems
   | Record record ->
-    Utils.NameMap.to_list record.attrs
+    Util.NameMap.to_list record.attrs
     |> List.map snd
     |> list_any (fun (attr: Type.attr) -> occurs attr.type' bind)
   | AbsExpr abs ->
@@ -109,8 +109,8 @@ let from_pol pol neg_occs pol_occs =
 
 let from_pols left right =
   {
-    pos = Utils.option_join left.pos right.pos merge_occs;
-    neg = Utils.option_join left.neg right.neg merge_occs;
+    pos = Util.option_join left.pos right.pos merge_occs;
+    neg = Util.option_join left.neg right.neg merge_occs;
   }
 
 let rec get_pols (type': Type.type') bind pol =
@@ -119,12 +119,12 @@ let rec get_pols (type': Type.type') bind pol =
 and get_pols_union union bind pol =
   let neg_occs = extract_neg bind union.union in
   let types = List.map (fun type' -> get_pols_inter type' bind pol neg_occs) union.union in
-  Utils.list_reduce from_pols types
+  Util.list_reduce from_pols types
 
 and get_pols_inter inter bind pol neg_occs =
   let pol_occs = extract_pos bind inter.inter in
   let types = List.map (fun type' -> get_pols_base type' bind pol neg_occs pol_occs) inter.inter in
-  Utils.list_reduce from_pols types
+  Util.list_reduce from_pols types
 
 and get_pols_base type' bind pol neg_occs pol_occs =
   match type' with
@@ -134,7 +134,7 @@ and get_pols_base type' bind pol neg_occs pol_occs =
     List.map (fun elem -> get_pols elem bind pol) tuple.elems
     |> List.fold_left from_pols none
   | Record record ->
-    Utils.NameMap.to_list record.attrs
+    Util.NameMap.to_list record.attrs
     |> List.map snd
     |> List.map (fun (attr: Type.attr) -> get_pols_attr attr bind pol)
     |> List.fold_left from_pols none

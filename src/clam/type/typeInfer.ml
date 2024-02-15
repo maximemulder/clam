@@ -29,18 +29,18 @@ and infer (expr: Abt.expr) =
     infer_elem elem
   | ExprAttr attr ->
     infer_attr attr
-  | ExprIf if' ->
-    infer_if if'
-  | ExprAbs abs ->
-    infer_abs abs
-  | ExprApp app ->
-    infer_app app
-  | ExprTypeAbs abs ->
-    infer_abs_type abs
-  | ExprTypeApp app ->
-    infer_app_type app
   | ExprAscr ascr ->
     infer_ascr ascr
+  | ExprIf if' ->
+    infer_if if'
+  | ExprLamAbs abs ->
+    infer_lam_abs abs
+  | ExprLamApp app ->
+    infer_lam_app app
+  | ExprUnivAbs abs ->
+    infer_univ_abs abs
+  | ExprUnivApp app ->
+    infer_univ_app app
 
 and infer_unit _ =
   return Type.unit
@@ -70,12 +70,12 @@ and infer_tuple expr =
 
 and infer_record expr =
   let* attrs = map_list infer_record_attr expr.attrs in
-  let attrs = List.fold_left (fun map (attr: Type.attr) -> Utils.NameMap.add attr.name attr map) Utils.NameMap.empty attrs in
+  let attrs = List.fold_left (fun map (attr: Type.attr) -> Util.NameMap.add attr.name attr map) Util.NameMap.empty attrs in
   return (Type.record attrs)
 
 and infer_record_attr attr =
   let* type' = infer attr.expr in
-  return { Type.name = attr.name; type' }
+  return { Type.name = attr.label; type' }
 
 and infer_elem expr =
   let* tuple = infer expr.tuple in
@@ -95,12 +95,12 @@ and infer_elem_base index tuple =
 
 and infer_attr expr =
   with_var (fun ret ->
-    let record = Type.record (Utils.NameMap.singleton expr.label { Type.name = expr.label; type' = ret }) in
+    let record = Type.record (Util.NameMap.singleton expr.label { Type.name = expr.label; type' = ret }) in
     let* () = infer_parent expr.record record in
     return ret
   )
 
-and infer_abs expr =
+and infer_lam_abs expr =
   match expr.param.type' with
   | Some type' ->
     let* type' = validate_proper type' in
@@ -116,7 +116,7 @@ and infer_abs expr =
       )
     )
 
-and infer_app expr =
+and infer_lam_app expr =
   with_var (fun param ->
     with_var (fun ret ->
       let abs = Type.abs_expr param ret in
@@ -126,7 +126,7 @@ and infer_app expr =
     )
   )
 
-and infer_abs_type expr =
+and infer_univ_abs expr =
   let* bound = validate expr.param.bound in
   with_var (fun var ->
     let type' = Type.abs_type_expr { bind = expr.param.bind; bound } var in
@@ -135,7 +135,7 @@ and infer_abs_type expr =
     return type'
   )
 
-and infer_app_type expr =
+and infer_univ_app expr =
   let* abs = infer expr.abs in
   let* type' = TypeSearch.search_app_type infer_app_type_base abs in
   match type' with

@@ -26,7 +26,7 @@ let raise_type_recursive (type': type_name) =
   raise ("recursive type `" ^ type'.name ^ "`") type'.span
 
 let raise_type_duplicate_attribute (attr: Abt.attr_type) =
-  raise ("duplicate attribute `" ^ attr.name ^ "`") attr.span
+  raise ("duplicate attribute `" ^ attr.label ^ "`") attr.span
 
 let raise_type_product (type': type_product) =
   raise "product type cannot have both indexed and labeled fields" type'.span

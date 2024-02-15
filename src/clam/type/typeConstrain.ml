@@ -180,7 +180,7 @@ and constrain_record pos sub_record sup_record =
   map_all (fun sup_attr -> constrain_record_attr pos sub_record sup_attr) sup_record.attrs
 
 and constrain_record_attr pos sub_record sup_attr =
-  match Utils.NameMap.find_opt sup_attr.name sub_record.attrs with
+  match Util.NameMap.find_opt sup_attr.name sub_record.attrs with
   | Some sub_attr ->
     constrain pos sub_attr.type' sup_attr.type'
   | None ->

@@ -18,7 +18,7 @@ let record attrs =
   let attrs = attrs
     |> List.map (fun (name, type') -> (name, { name; type' }))
     |> List.to_seq
-    |> Utils.NameMap.of_seq in
+    |> Util.NameMap.of_seq in
   base (Record { attrs })
 
 let abs_type_expr name bound ret =
@@ -59,10 +59,10 @@ let ctx = {
 }
 
 let union types =
-  Utils.list_reduce (TypeSystem.join ctx) types
+  Util.list_reduce (TypeSystem.join ctx) types
 
 let inter types =
-  Utils.list_reduce (TypeSystem.meet ctx) types
+  Util.list_reduce (TypeSystem.meet ctx) types
 
 let a = var a
 let b = var b

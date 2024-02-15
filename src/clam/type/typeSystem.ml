@@ -53,7 +53,7 @@ and isa ctx (sub: Type.type') (sup: Type.type') =
   isa_union_1 ctx sub sup
 
 and isa_union_1 ctx (sub: Type.union) (sup: Type.union) =
-  List.for_all (Utils.flip (isa_union_2 ctx) sup) sub.union
+  List.for_all (Util.flip (isa_union_2 ctx) sup) sub.union
 
 and isa_union_2 ctx (sub: Type.inter) (sup: Type.union) =
   List.exists (isa_inter_1 ctx sub) sup.union
@@ -62,7 +62,7 @@ and isa_inter_1 ctx (sub: Type.inter) (sup: Type.inter) =
   List.for_all (isa_inter_2 ctx sub) sup.inter
 
 and isa_inter_2 ctx (sub: Type.inter) (sup: Type.base) =
-  List.exists (Utils.flip (isa_base ctx) sup) sub.inter
+  List.exists (Util.flip (isa_base ctx) sup) sub.inter
 
 and isa_base ctx (sub: Type.base) (sup: Type.base) =
   match sub, sup with
@@ -119,10 +119,10 @@ and isa_tuple ctx sub_tuple sup_tuple =
   List.equal (isa ctx) sub_tuple.elems sup_tuple.elems
 
 and isa_record ctx sub_record sup_record =
-  Utils.NameMap.for_all (fun _ sup_attr -> isa_record_attr ctx sub_record sup_attr) sup_record.attrs
+  Util.NameMap.for_all (fun _ sup_attr -> isa_record_attr ctx sub_record sup_attr) sup_record.attrs
 
 and isa_record_attr ctx sub_record sup_attr =
-  match Utils.NameMap.find_opt sup_attr.name sub_record.attrs with
+  match Util.NameMap.find_opt sup_attr.name sub_record.attrs with
   | Some sub_attr ->
     isa ctx sub_attr.type' sup_attr.type'
   | None ->
@@ -191,7 +191,7 @@ and substitute_base ctx entry (type': Type.base) =
     let elems = List.map (substitute ctx entry) tuple.elems in
     Type.tuple elems
   | Record record ->
-    let attrs = Utils.NameMap.map (substitute_attr ctx entry) record.attrs in
+    let attrs = Util.NameMap.map (substitute_attr ctx entry) record.attrs in
     Type.record attrs
   | AbsExpr abs ->
     let param = substitute ctx entry abs.param in
@@ -229,7 +229,7 @@ and substitute_attr ctx entry attr =
 (* TYPE COMPUTATION *)
 
 and compute ctx (type': Type.type') (arg: Type.type') =
-  map_type ctx (Utils.flip (compute_base ctx) arg) type'
+  map_type ctx (Util.flip (compute_base ctx) arg) type'
 
 and compute_base ctx (abs: Type.base) (arg: Type.type') =
   match abs with
@@ -245,16 +245,16 @@ and map_type ctx f type' =
 
 and map_union ctx f union =
   let types = List.map f union.union in
-  Utils.list_reduce (join ctx) types
+  Util.list_reduce (join ctx) types
 
 and map_inter ctx f inter =
   let types = List.map f inter.inter in
-  Utils.list_reduce (meet ctx) types
+  Util.list_reduce (meet ctx) types
 
 (* TYPE JOIN *)
 
 and join ctx (left: Type.type') (right: Type.type') =
-  let types = Utils.list_collapse (join_inter ctx) (left.union @ right.union) in
+  let types = Util.list_collapse (join_inter ctx) (left.union @ right.union) in
   { Type.union = types }
 
 and join_inter ctx left right =
@@ -269,12 +269,12 @@ and join_inter ctx left right =
 (* TYPE MEET *)
 
 and meet ctx left right =
-  let types = Utils.list_product (meet_inter ctx) left.union right.union in
-  let types = Utils.list_collapse (join_inter ctx) types in
+  let types = Util.list_product (meet_inter ctx) left.union right.union in
+  let types = Util.list_collapse (join_inter ctx) types in
   { Type.union = types }
 
 and meet_inter ctx (left: Type.inter) (right: Type.inter) =
-  let types = Utils.list_collapse (meet_base ctx) (left.inter @ right.inter) in
+  let types = Util.list_collapse (meet_base ctx) (left.inter @ right.inter) in
   { Type.inter = types }
 
 and meet_base ctx (left: Type.base) (right: Type.base) =
@@ -319,7 +319,7 @@ and meet_tuple ctx left right =
   Some (Tuple { elems })
 
 and meet_record ctx left right =
-  let attrs = Utils.NameMap.merge (meet_record_attr ctx) left.attrs right.attrs in
+  let attrs = Util.NameMap.merge (meet_record_attr ctx) left.attrs right.attrs in
   Some (Record { attrs })
 
 and meet_record_attr ctx name left right =

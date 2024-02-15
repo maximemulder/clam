@@ -75,4 +75,4 @@ let tests = [
   (* case (abs_expr_type ("A", top) (fun a -> inter [int; a])) (abs_expr_type ("B", top) id) (abs_expr_type ("A", top) (fun a -> inter [int; a]));
   case (abs_expr_type ("A", top) id) (abs_expr_type ("B", top) (fun b -> inter [b; int])) (abs_expr_type ("A", top) (fun a -> inter [int; a])); *)
 ]
-|> List.map (Utils.apply ctx)
+|> List.map (Util.apply ctx)

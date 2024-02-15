@@ -69,4 +69,4 @@ let tests = [
   case (abs_expr a b) (abs_expr a c) (union [abs_expr a b; abs_expr a c]);
   case (abs_expr a b) (abs_expr c d) (union [abs_expr a b; abs_expr c d]);
 ]
-|> List.map (Utils.apply ctx)
+|> List.map (Util.apply ctx)

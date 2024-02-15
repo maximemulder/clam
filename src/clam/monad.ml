@@ -1,4 +1,3 @@
-open Utils
 
 module type MONAD = sig
   type 'a t
@@ -53,14 +52,14 @@ module Monad (M: MONAD) = struct
 
   let iter_map f xs =
     let f = (fun (_, v) -> f v) in
-    let xs = List.of_seq (NameMap.to_seq xs) in
+    let xs = List.of_seq (Util.NameMap.to_seq xs) in
     list_iter f xs
 
   let map_map f xs =
     let f = (fun (k, v) -> let* v = f v in return (k, v)) in
-    let xs = List.of_seq (NameMap.to_seq xs) in
+    let xs = List.of_seq (Util.NameMap.to_seq xs) in
     let* xs = map_list f xs in
-    return (NameMap.of_seq (List.to_seq xs))
+    return (Util.NameMap.of_seq (List.to_seq xs))
 
   let rec fold_list f a xs =
     match xs with
@@ -99,7 +98,7 @@ module Monad (M: MONAD) = struct
 
   let map_all f xs =
     let f = (fun (_, v) -> f v) in
-    let xs = List.of_seq (NameMap.to_seq xs) in
+    let xs = List.of_seq (Util.NameMap.to_seq xs) in
     list_all f xs
 end
 

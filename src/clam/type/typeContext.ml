@@ -19,7 +19,7 @@ type context = {
 let empty = { assumptions = [] }
 
 let get_bind_type ctx bind =
-  let entry = List.find (Utils.flip is_bind bind) ctx.assumptions in
+  let entry = List.find (Util.flip is_bind bind) ctx.assumptions in
   entry.bound
 
 let add_bind_type ctx bind bound =

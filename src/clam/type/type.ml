@@ -32,7 +32,7 @@ and tuple = {
 }
 
 and record = {
-  attrs: attr Utils.NameMap.t;
+  attrs: attr Util.NameMap.t;
 }
 
 and abs_expr = {

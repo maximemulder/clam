@@ -5,21 +5,21 @@ let raise message span =
 
 let validate_proper (type': Abt.type') =
   let span = type_span type' in
-  let type' = AbtDisplay.display type' in
+  let type' = Abt.display type' in
   raise
     ("expected proper type but found type `" ^ type' ^ "`")
     span
 
 let validate_inter_kind (inter: Abt.type_inter) =
   let span = inter.span in
-  let inter = AbtDisplay.display (TypeInter inter) in
+  let inter = Abt.display (TypeInter inter) in
   raise
     ("both operands of intersection `" ^ inter ^ "` must be of the same kind")
     span
 
 let validate_union_kind (union: Abt.type_union) =
   let span = union.span in
-  let union = AbtDisplay.display (TypeUnion union) in
+  let union = Abt.display (TypeUnion union) in
   raise
     ("both operands of union `" ^ union ^ "` must be of the same kind")
     span
@@ -70,7 +70,7 @@ let check_record_attr (expr: Abt.expr_record) (constr: Type.attr) =
     ("expected attribute `" ^ name ^ "` of type `" ^ type' ^ "` but found no attribute with this name")
     span
 
-let check_abs (expr: Abt.expr_abs) (constr: Type.base) =
+let check_abs (expr: Abt.expr_lam_abs) (constr: Type.base) =
   let span = expr.span in
   let constr = TypeDisplay.display_base constr in
   raise
@@ -85,14 +85,14 @@ let check_abs_param (param: Abt.param_expr) (param': Type.type') (constr: Type.t
     ("expected parameter to be a supertype of `" ^ constr ^ "` but found type `" ^ param' ^ "`")
     span
 
-let check_type_abs (expr: expr_type_abs) constr =
+let check_type_abs (expr: expr_univ_abs) constr =
   let span = expr.span in
   let constr = TypeDisplay.display_base constr in
   raise
     ("expected expression of type `" ^ constr ^ "` but found type abstraction")
     span
 
-let check_type_abs_param (expr: expr_type_abs) bound (constr: Type.param) =
+let check_type_abs_param (expr: expr_univ_abs) bound (constr: Type.param) =
   let span = expr.span in
   let bound = TypeDisplay.display bound in
   let constr = TypeDisplay.display constr.bound in
@@ -123,19 +123,19 @@ let infer_abs_param (param: param_expr) =
     ("require type annotation for parameter `" ^ param.bind.name ^ "`")
     param.span
 
-let infer_app_kind (app: expr_app) type' =
+let infer_app_kind (app: expr_univ_app) type' =
   let type' = TypeDisplay.display type' in
   raise
     ("expected expression abstraction but found expression of type `" ^ type' ^ "`")
     app.span
 
-let infer_type_app_kind (app: expr_type_app) type' =
+let infer_type_app_kind (app: expr_univ_app) type' =
   let type' = TypeDisplay.display type' in
   raise
     ("expected type to expression abstraction but found type `" ^ type' ^ "`")
     app.span
 
-let infer_type_app_type (app: expr_type_app) arg bound =
+let infer_type_app_type (app: expr_univ_app) arg bound =
   let arg = TypeDisplay.display arg in
   let bound = TypeDisplay.display bound in
   raise

@@ -13,7 +13,7 @@ and contains_base bind type' =
   | Tuple tuple ->
     List.exists (contains bind) tuple.elems
   | Record record ->
-    Utils.NameMap.exists (contains_attr bind) record.attrs
+    Util.NameMap.exists (contains_attr bind) record.attrs
   | AbsExpr abs ->
     contains bind abs.param || contains bind abs.ret
   | AbsTypeExpr abs ->

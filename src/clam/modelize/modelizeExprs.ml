@@ -1,4 +1,4 @@
-open Utils
+open Util
 
 type scope = {
   parent: scope option;
@@ -209,7 +209,7 @@ and modelize_tuple_elem field =
 
 and modelize_record_attr field =
   let* expr = modelize_expr field.expr in
-  return { Abt.span = field.span; Abt.name = field.Ast.label; Abt.expr = expr }
+  return { Abt.span = field.span; Abt.label = field.Ast.label; Abt.expr = expr }
 
 and modelize_elem expr =
   let* tuple = modelize_expr expr.tuple in
@@ -224,14 +224,14 @@ and modelize_preop expr =
   let* arg = modelize_expr expr.expr in
   let name = get_preop_name expr.span expr.op in
   let* abs = modelize_name expr.span name in
-  return (Abt.ExprApp { span = expr.span; abs; arg })
+  return (Abt.ExprLamApp { span = expr.span; abs; arg })
 
 and modelize_binop expr =
   let* left  = modelize_expr expr.left  in
   let* right = modelize_expr expr.right in
   let name = get_binop_name expr.span expr.op in
   let* abs = modelize_name expr.span name in
-  return (Abt.ExprApp { span = expr.span; abs = (Abt.ExprApp { span = expr.span; abs; arg = left }); arg = right })
+  return (Abt.ExprLamApp { span = expr.span; abs = (Abt.ExprLamApp { span = expr.span; abs; arg = left }); arg = right })
 
 and modelize_ascr ascr =
   let* expr  = modelize_expr ascr.expr  in
@@ -245,16 +245,16 @@ and modelize_stmt stmt =
     let* type' = map_option modelize_type type' in
     let param = { Abt.span = span; bind; type' } in
     let* body = with_scope (modelize_expr stmt.expr) NameMap.empty [] [name, bind] in
-    let abs = Abt.ExprAbs { span = span; param; body } in
+    let abs = Abt.ExprLamAbs { span = span; param; body } in
     let* arg = modelize_expr expr in
-    return (Abt.ExprApp { span = span; abs; arg})
+    return (Abt.ExprLamApp { span = span; abs; arg})
   | StmtExpr { span; expr } ->
     let* bind = new_bind "_" in
     let param = { Abt.span = span; bind; type' = None } in
     let* body = modelize_expr stmt.expr in
-    let abs = Abt.ExprAbs { span = span; param; body } in
+    let abs = Abt.ExprLamAbs { span = span; param; body } in
     let* arg = modelize_expr expr in
-    return (Abt.ExprApp { span = span; abs; arg })
+    return (Abt.ExprLamApp { span = span; abs; arg })
 
 and modelize_if if' =
   let* cond  = modelize_expr if'.cond in
@@ -273,7 +273,7 @@ and modelize_lam_abs_curry span params body =
     let* param = modelize_param_expr param in
     let entries = [param.Abt.bind.name, param.bind] in
     let* body = with_scope (modelize_lam_abs_curry span params body) NameMap.empty [] entries in
-    return (Abt.ExprAbs { span = span; param; body })
+    return (Abt.ExprLamAbs { span = span; param; body })
 
 and modelize_lam_app app =
   let* abs = modelize_expr app.abs in
@@ -285,7 +285,7 @@ and modelize_lam_app_curry span abs args =
     return abs
   | (arg :: args) ->
     let* arg = modelize_expr arg in
-    let app = (Abt.ExprApp { span = span; abs; arg }) in
+    let app = (Abt.ExprLamApp { span = span; abs; arg }) in
     modelize_lam_app_curry span app args
 
 and modelize_univ_abs abs =
@@ -299,7 +299,7 @@ and modelize_univ_abs_curry span params body state =
     let (param, state) = modelize_param_type param state in
     let entries = ModelizeTypes.modelize_abs param (translate_state state) in
     let (body, state) = with_scope (modelize_univ_abs_curry span params body) entries [] [] state in
-    (Abt.ExprTypeAbs { span = span; param; body }, state)
+    (Abt.ExprUnivAbs { span = span; param; body }, state)
 
 and modelize_univ_app app =
   let* abs = modelize_expr app.abs in
@@ -311,7 +311,7 @@ and modelize_univ_app_curry span abs args =
     return abs
   | (arg :: args) ->
     let* arg = modelize_type arg in
-    let app = (Abt.ExprTypeApp { span = span; abs; arg }) in
+    let app = (Abt.ExprUnivApp { span = span; abs; arg }) in
     modelize_univ_app_curry span app args
 
 and modelize_param_expr (param: Ast.param_expr): Abt.param_expr t =

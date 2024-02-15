@@ -31,4 +31,4 @@ let tests = [
   case_var "T" int (fun t -> case_var "U" t (fun u -> case u int));
   case_var "T" (record ["foo", int]) (fun t -> case_var "U" t (fun u -> case u (record ["foo", int])));
 ]
-|> List.map (Utils.apply ctx)
+|> List.map (Util.apply ctx)

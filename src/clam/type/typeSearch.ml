@@ -27,11 +27,11 @@ module Searcher(S: SEARCHER) = struct
 
   and search_union state f union =
     let types = List.map (search_inter state f) union.union in
-    Utils.list_option_meet types (S.join state)
+    Util.list_option_meet types (S.join state)
 
   and search_inter state f inter =
     let types = List.map (search_base state f) inter.inter in
-    Utils.list_option_join types (S.meet state)
+    Util.list_option_join types (S.meet state)
 
   and search_base state f type' =
     match type' with

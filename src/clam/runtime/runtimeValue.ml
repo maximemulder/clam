@@ -1,5 +1,3 @@
-open Utils
-
 module BindKey = struct
   type t = Abt.bind_expr
 
@@ -16,7 +14,7 @@ type value =
 | VInt     of int
 | VString  of string
 | VTuple   of value list
-| VRecord  of value NameMap.t
+| VRecord  of value Util.NameMap.t
 | VExprAbs of abs_expr
 
 and abs_expr =
@@ -26,13 +24,8 @@ and abs_expr =
 and abs_expr_prim = context -> value
 
 and abs_expr_code = {
-  abs: Abt.expr_abs;
+  abs: Abt.expr_lam_abs;
   frame: frame
-}
-
-and abs_type = {
-  abs: Abt.expr_type_abs;
-  frame: frame;
 }
 
 and context = { value: value; out: writer }
@@ -53,9 +46,9 @@ let rec compare left right =
   | (VString left, VString right) ->
     left = right
   | (VTuple lefts, VTuple rights) ->
-    compare_lists compare lefts rights
+    Util.compare_lists compare lefts rights
   | (VRecord lefts, VRecord rights) ->
-    compare_maps compare lefts rights
+    Util.compare_maps compare lefts rights
   | (VExprAbs (VPrim left), VExprAbs (VPrim right)) ->
     left = right
   | (VExprAbs (VCode left), VExprAbs (VCode right)) ->

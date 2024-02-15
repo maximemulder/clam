@@ -75,13 +75,13 @@ let rec display (type': Type.type') =
 
 and display_union union parent =
   let self, elem = group_types union.union parent in
-  let types = List.map (Utils.flip display_inter elem) union.union in
+  let types = List.map (Util.flip display_inter elem) union.union in
   let types = String.concat " | " types in
   return self types parent
 
 and display_inter inter parent =
   let self, elem = group_types inter.inter parent in
-  let types = List.map (Utils.flip display_base elem) inter.inter in
+  let types = List.map (Util.flip display_base elem) inter.inter in
   let types = String.concat " & " types in
   return self types parent
 
@@ -108,11 +108,11 @@ and display_base type' =
     display_app app
 
 and display_tuple tuple =
-  let types = List.map (Utils.flip display N) tuple.elems in
+  let types = List.map (Util.flip display N) tuple.elems in
   return N ("{" ^ (String.concat ", " types) ^ "}")
 
 and display_record record =
-  let attrs = List.of_seq (Utils.NameMap.to_seq record.attrs)
+  let attrs = List.of_seq (Util.NameMap.to_seq record.attrs)
     |> List.map snd
     |> List.map display_record_attr
   in
@@ -123,7 +123,7 @@ and display_record_attr attr =
 
 and display_abs_expr abs =
   let params, ret = curry_abs_expr abs in
-  let params = List.map (Utils.flip display N) params in
+  let params = List.map (Util.flip display N) params in
   let type' = "(" ^ (String.concat ", " params) ^ ") -> " ^ (display ret R) in
   return R type'
 
@@ -141,7 +141,7 @@ and display_abs abs =
 
 and display_app app =
   let abs, args = curry_app app in
-  let args = List.map (Utils.flip display N) args in
+  let args = List.map (Util.flip display N) args in
   let type' = (display abs L) ^ "[" ^ (String.concat ", " args) ^ "]" in
   return L type'
 

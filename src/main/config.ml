@@ -1,5 +1,3 @@
-open Clam
-
 (* RUN CONFIGURATION *)
 
 type config = {
@@ -69,4 +67,4 @@ let parse_arg arg =
   | _                        -> configure_default arg
 
 let parse_args args =
-  List.fold_left (Utils.flip parse_arg) empty_config args
+  List.fold_left (Util.flip parse_arg) empty_config args

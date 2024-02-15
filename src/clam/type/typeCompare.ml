@@ -26,7 +26,7 @@ and substitute_base type' bind other =
     let elems = List.map (fun elem -> substitute elem bind other) tuple.elems in
     Tuple { elems }
   | Record record ->
-    let attrs = Utils.NameMap.map (fun attr -> substitute_attr attr bind other) record.attrs in
+    let attrs = Util.NameMap.map (fun attr -> substitute_attr attr bind other) record.attrs in
     Record { attrs }
   | AbsExpr abs ->
     let param = substitute abs.param bind other in
@@ -71,9 +71,9 @@ and compare_base left right =
   | Var left_var, Var right_var ->
     left_var.bind == right_var.bind
   | Tuple left_tuple, Tuple right_tuple ->
-    Utils.compare_lists compare left_tuple.elems right_tuple.elems
+    Util.compare_lists compare left_tuple.elems right_tuple.elems
   | Record left_record, Record right_record ->
-    Utils.compare_maps compare_attr left_record.attrs right_record.attrs
+    Util.compare_maps compare_attr left_record.attrs right_record.attrs
   | AbsExpr left_abs, AbsExpr right_abs ->
     compare left_abs.param right_abs.param
     && compare left_abs.ret right_abs.ret

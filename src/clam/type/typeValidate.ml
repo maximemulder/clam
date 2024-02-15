@@ -21,55 +21,39 @@ and validate ctx (type': Abt.type') =
     validate_tuple ctx tuple
   | TypeRecord record ->
     validate_record ctx record
-  | TypeInter inter ->
-    validate_inter ctx inter
-  | TypeUnion union ->
-    validate_union ctx union
-  | TypeAbsExpr abs ->
-    validate_abs_expr ctx abs
-  | TypeAbsExprType abs ->
-    validate_abs_type_expr ctx abs
+  | TypeLam lam ->
+    validate_lam ctx lam
+  | TypeUniv univ ->
+    validate_univ ctx univ
   | TypeAbs abs ->
     validate_abs ctx abs
   | TypeApp app ->
     validate_app ctx app
+  | TypeUnion union ->
+    validate_union ctx union
+  | TypeInter inter ->
+    validate_inter ctx inter
 
 and validate_tuple ctx tuple =
   let elems = List.map (validate_proper ctx) tuple.elems in
   base (Tuple { elems })
 
 and validate_record ctx record =
-  let attrs = Utils.NameMap.map (validate_record_attr ctx) record.attrs in
+  let attrs = Util.NameMap.map (validate_record_attr ctx) record.attrs in
   base (Record { attrs })
 
 and validate_record_attr ctx attr =
   let type' = validate_proper ctx attr.type' in
-  { name = attr.name; type' }
+  { name = attr.label; type' }
 
-and validate_inter ctx inter =
-  let left  = validate ctx inter.left  in
-  let right = validate ctx inter.right in
-  if TypeKind.get_kind ctx left <> TypeKind.get_kind ctx right then
-    TypeError.validate_inter_kind inter
-  else
-  TypeSystem.meet ctx left right
-
-and validate_union ctx union =
-  let left  = validate ctx union.left  in
-  let right = validate ctx union.right in
-  if TypeKind.get_kind ctx left <> TypeKind.get_kind ctx right then
-    TypeError.validate_union_kind union
-  else
-  TypeSystem.join ctx left right
-
-and validate_abs_expr ctx abs =
-  let param = validate_proper ctx abs.param in
-  let ret = validate_proper ctx abs.ret in
+and validate_lam ctx lam =
+  let param = validate_proper ctx lam.param in
+  let ret = validate_proper ctx lam.ret in
   base (AbsExpr { param; ret })
 
-and validate_abs_type_expr ctx abs =
-  let param, ret = validate_param_with ctx abs.param
-    (fun ctx -> validate_proper ctx abs.ret) in
+and validate_univ ctx univ =
+  let param, ret = validate_param_with ctx univ.param
+    (fun ctx -> validate_proper ctx univ.ret) in
   base (AbsTypeExpr { param; ret })
 
 and validate_abs ctx abs =
@@ -86,16 +70,32 @@ and validate_app ctx app =
   else
   TypeSystem.compute ctx abs arg
 
+and validate_union ctx union =
+  let left  = validate ctx union.left  in
+  let right = validate ctx union.right in
+  if TypeKind.get_kind ctx left <> TypeKind.get_kind ctx right then
+    TypeError.validate_union_kind union
+  else
+  TypeSystem.join ctx left right
+
+and validate_inter ctx inter =
+  let left  = validate ctx inter.left  in
+  let right = validate ctx inter.right in
+  if TypeKind.get_kind ctx left <> TypeKind.get_kind ctx right then
+    TypeError.validate_inter_kind inter
+  else
+  TypeSystem.meet ctx left right
+
 and validate_app_param ctx abs =
   validate_app_param_union ctx abs
 
 and validate_app_param_union ctx union =
   let types = List.map (validate_app_param_inter ctx) union.union in
-  Utils.list_reduce (TypeSystem.meet ctx) types
+  Util.list_reduce (TypeSystem.meet ctx) types
 
 and validate_app_param_inter ctx inter =
   let types = List.map (validate_app_param_base ctx) inter.inter in
-  Utils.list_reduce (TypeSystem.join ctx) types
+  Util.list_reduce (TypeSystem.join ctx) types
 
 and validate_app_param_base ctx type' =
   match type' with

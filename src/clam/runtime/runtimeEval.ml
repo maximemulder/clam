@@ -1,5 +1,4 @@
 open Abt
-open Utils
 open RuntimeValue
 
 type context = {
@@ -52,29 +51,29 @@ let rec eval (expr: Abt.expr) =
   | ExprRecord record ->
     let* attrs = fold_list (fun map (attr: attr_expr) ->
       let* value = (eval attr.expr) in
-      return (NameMap.add attr.name value map)
-    ) NameMap.empty record.attrs in
+      return (Util.NameMap.add attr.label value map)
+    ) Util.NameMap.empty record.attrs in
     return (VRecord attrs)
   | ExprElem elem ->
     let* elems = eval_tuple elem.tuple in
     return (List.nth elems elem.index)
   | ExprAttr attr ->
     let* attrs = eval_record attr.record in
-    return (NameMap.find attr.label attrs)
+    return (Util.NameMap.find attr.label attrs)
   | ExprAscr ascr ->
     eval ascr.expr
   | ExprIf if' ->
     let* cond = eval if'.cond in
     if value_bool cond then eval if'.then' else eval if'.else'
-  | ExprAbs abs ->
+  | ExprLamAbs abs ->
     let* frame = get_frame in
     return (VExprAbs (VCode { abs; frame }))
-  | ExprApp app ->
-    eval_expr_app app
-  | ExprTypeAbs abs ->
-    eval_abs_type abs
-  | ExprTypeApp app ->
-    eval_app_type app
+  | ExprLamApp app ->
+    eval_lam_app app
+  | ExprUnivAbs abs ->
+    eval_univ_abs abs
+  | ExprUnivApp app ->
+    eval_univ_app app
 
 and eval_unit _ =
   return VUnit
@@ -107,19 +106,13 @@ and eval_record expr =
   | VRecord attrs -> return attrs
   | _ -> RuntimeErrors.raise_value ()
 
-and eval_expr_app app context =
+and eval_lam_app app context =
   let value = eval app.abs context in
   match value with
-  | VExprAbs abs -> eval_expr_app_abs abs app.arg context
+  | VExprAbs abs -> eval_lam_app_abs abs app.arg context
   | _ -> RuntimeErrors.raise_value ()
 
-and eval_expr_app_print arg context =
-  let value = eval arg context in
-  let string = RuntimeDisplay.display value in
-  let _ = context.out string in
-  VUnit
-
-and eval_expr_app_abs abs arg context =
+and eval_lam_app_abs abs arg context =
   let value = eval arg context in
   match abs with
   | VPrim prim ->
@@ -129,10 +122,10 @@ and eval_expr_app_abs abs arg context =
     let context = new_frame context abs.frame binds in
     eval abs.abs.body context
 
-and eval_abs_type abs =
+and eval_univ_abs abs =
   eval abs.body
 
-and eval_app_type app =
+and eval_univ_app app =
   eval app.abs
 
 let eval_def def defs stdout =

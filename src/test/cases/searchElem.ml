@@ -107,5 +107,5 @@ let tests = [
   case (app (abs "T" top (fun t -> inter [tuple [t]; tuple [unit]])) bool) 0 (Some bot);
   case (app (abs "T" top (fun t -> inter [tuple [unit]; tuple [t]])) bool) 0 (Some bot); *)
 ]
-|> List.map (Utils.apply ctx)
+|> List.map (Util.apply ctx)
 *)

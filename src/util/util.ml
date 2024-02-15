@@ -37,7 +37,7 @@ let rec list_reduce f xs =
   match xs with
   | [x] -> x
   | x :: xs -> f x (list_reduce f xs)
-  | _ -> invalid_arg "Utils.list_reduce"
+  | _ -> invalid_arg "Util.list_reduce"
 
 let option_join x y f =
   match x, y with
