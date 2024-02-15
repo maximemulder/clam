@@ -21,8 +21,14 @@ let read_file file_name =
 
 let interpret config file_name =
   let file_text = read_file file_name in
+  let code = { Code.name = file_name; text = file_text } in
+  let ast = try
+    Parser.parse code
+  with Parser.Error message ->
+    print_endline("SYNTAX ERROR: " ^ message);
+    exit(-1)
+  in
   try
-    let ast = parse file_name file_text in
     if config.show_ast then
       print_endline(Ast.display_program ast);
     let abt = modelize ast in

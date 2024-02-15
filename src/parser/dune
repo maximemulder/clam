@@ -1,0 +1,12 @@
+(library
+  (name parser)
+  (libraries ast code))
+
+(menhir
+  (modules grammar))
+
+(ocamllex lexer)
+
+(env
+  (dev
+    (flags (:standard -warn-error -A -w -30))))

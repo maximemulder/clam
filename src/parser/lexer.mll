@@ -1,15 +1,7 @@
 {
-  open Parser
-  open Lexing
+  open Grammar
 
   exception Error of string
-
-  let next_line lexbuf =
-    let pos = lexbuf.lex_curr_p in
-    lexbuf.lex_curr_p <- { pos with
-      pos_bol = lexbuf.lex_curr_pos;
-      pos_lnum = pos.pos_lnum + 1;
-    }
 }
 
 let int = ['0'-'9']+
@@ -21,7 +13,7 @@ rule read =
   parse
   | int      { INT (Lexing.lexeme lexbuf) }
   | space    { read lexbuf }
-  | line     { next_line lexbuf; read lexbuf }
+  | line     { read lexbuf }
   | "def"    { DEF }
   | "else"   { ELSE }
   | "false"  { FALSE }
@@ -67,7 +59,7 @@ rule read =
 and read_parenthesis_right =
   parse
   | space { read_parenthesis_right lexbuf }
-  | line  { next_line lexbuf; read_parenthesis_right lexbuf }
+  | line  { read_parenthesis_right lexbuf }
   | "->"  { PARENTHESIS_RIGHT_ARROW }
   | ""    { PARENTHESIS_RIGHT }
 

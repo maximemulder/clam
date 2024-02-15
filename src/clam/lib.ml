@@ -1,23 +1,9 @@
-type ast = Ast.program
-
 type abt = {
   types: Abt.type' list;
   exprs: Abt.def_expr list;
 }
 
 type writer = RuntimeValue.writer
-
-let parse file_name text =
-  let lexbuf = Lexing.from_string text in
-  Lexing.set_filename lexbuf file_name;
-  try
-    Global.code := Some { Code.name = file_name; text };
-    Parser.program Lexer.read lexbuf
-  with
-  | Lexer.Error message ->
-    Error.raise_lexing lexbuf message
-  | Parser.Error ->
-    Error.raise_parsing lexbuf
 
 (**
   Modelize a program, building an abstract biding tree from an abstract syntax tree.

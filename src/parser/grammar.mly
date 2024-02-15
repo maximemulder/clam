@@ -3,6 +3,7 @@ open Ast
 
 let span (start, end') =
   { Code.code = Option.get !Global.code; start = start.Lexing.pos_cnum; end' = end'.Lexing.pos_cnum }
+
 %}
 
 %token <string> IDENT

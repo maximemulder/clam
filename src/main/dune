@@ -1,7 +1,7 @@
 (executable
   (name main)
   (public_name main)
-  (libraries clam))
+  (libraries clam parser))
 
 (env
   (dev

@@ -31,10 +31,11 @@ let write_buffer buffer message =
 
 let test file_name =
   let file_text = read_file file_name in
+  let code = { Code.name = file_name; text = file_text } in
   let out_buffer = make_buffer () in
   let err_result = try
     let open Clam.Lib in
-    let ast = parse file_name file_text in
+    let ast = Parser.parse code in
     let abt = modelize ast in
     let _ = type' abt in
     let () = eval abt (write_buffer out_buffer) in

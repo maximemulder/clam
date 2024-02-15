@@ -4,11 +4,6 @@
 
 (include_subdirs unqualified)
 
-(menhir
-  (modules parser))
-
-(ocamllex lexer)
-
 (env
   (dev
     (flags (:standard -warn-error -A  -w -30))))

@@ -28,21 +28,37 @@ let rec fold_from_pos_until text pos f acc =
   else
     fold_from_pos_until text (pos + 1) f acc
 
-(** Gets the column number of the start of a span, starting at 1 *)
-let get_span_start_x span =
-  fold_until_pos span.code.text span.start (fun char count ->
+(** Gets the column number of an index in a code, starting at 1 *)
+let get_x code index =
+  fold_until_pos code.text index (fun char count ->
     match char with
     | '\n' -> 1
     | _ -> count + 1
   ) 1
 
-(** Gets the line number of the start of a span, starting at 1 *)
-let get_span_start_y span =
-  fold_until_pos span.code.text span.start (fun char count ->
+(** Gets the line number of an index in a code, starting at 1 *)
+let get_y code index =
+  fold_until_pos code.text index (fun char count ->
     match char with
     | '\n' -> count + 1
     | _ -> count
   ) 1
+
+(** Gets the column number of the start of a span, starting at 1 *)
+let get_span_start_x span =
+  get_x span.code span.start
+
+(** Gets the line number of the start of a span, starting at 1 *)
+let get_span_start_y span =
+  get_y span.code span.start
+
+(** Gets the column number of the end of a span, starting at 1 *)
+let get_span_end_x span =
+  get_x span.code span.end'
+
+(** Gets the line number of the end of a span, starting at 1 *)
+let get_span_end_y span =
+  get_y span.code span.end'
 
 (** Gets the index of the line start of the start of a span *)
 let get_span_line_start span =

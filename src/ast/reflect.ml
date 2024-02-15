@@ -82,6 +82,30 @@ let get_name node =
     | FieldExprAttr _ -> "attr")
   | ParamExpr _ -> "param_expr"
 
+let get_span node =
+  match node with
+  | Program _ -> { Code.code = { name = "dummy"; text = " " }; start = 0; end' = 0}
+  | Def def -> (
+    match def with
+    | DefType def -> def.span
+    | DefExpr def -> def.span)
+  | Type type' -> Span.type_span type'
+  | FieldType field -> (
+    match field with
+    | FieldTypeElem field -> field.span
+    | FieldTypeAttr field -> field.span)
+  | ParamType param -> param.span
+  | Expr expr -> Span.expr_span expr
+  | Stmt stmt -> (
+    match stmt with
+    | StmtVar  stmt -> stmt.span
+    | StmtExpr stmt -> stmt.span)
+  | FieldExpr field -> (
+    match field with
+    | FieldExprElem field -> field.span
+    | FieldExprAttr field -> field.span)
+  | ParamExpr param -> param.span
+
 let get_attrs node =
   match node with
   | Program { defs } -> [
