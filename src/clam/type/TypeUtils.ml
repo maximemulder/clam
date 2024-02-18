@@ -14,10 +14,10 @@ and contains_base bind type' =
     List.exists (contains bind) tuple.elems
   | Record record ->
     Util.NameMap.exists (contains_attr bind) record.attrs
-  | AbsExpr abs ->
-    contains bind abs.param || contains bind abs.ret
-  | AbsTypeExpr abs ->
-    contains_param bind abs.param || contains bind abs.ret
+  | Lam lam ->
+    contains bind lam.param || contains bind lam.ret
+  | Univ univ ->
+    contains_param bind univ.param || contains bind univ.ret
   | Abs abs ->
     contains_param bind abs.param || contains bind abs.body
   | App app ->

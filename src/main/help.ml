@@ -10,12 +10,19 @@ Usage:
 
 Options:
 
-    -h   --help         Display this message.
-    -i   --interactive  Open the Clam read-eval-print loop. If this option is
-                         present, the interpreted file is optional.
-    -ast --show-ast     Display the program abstract syntax tree.
-    -t   --show-types   Display the type of all definitions.
-    -v   --show-values  Evaluate and display the results of all definitions. If
-                         this option is not present, only the 'main' definition
-                         is evaluated.
+    -h --help         Display this message.
+    -i --interactive  Open the Clam read-eval-print loop. If this option is
+                       present, the interpreted file is optional.
+    -a --show-ast     Display the program abstract syntax tree.
+    -t --show-types   Display the type of all definitions.
+    -v --show-values  Display the results of all directly evaluated
+                       definitions.
+       --eval-all     Evaluate all definitions. If this option is not present,
+                       only the 'main' definition is evaluated.
+       --no-std       Interpret the program without including the standard
+                       library.
+       --only-parse   Run the interpreter only up to parsing.
+       --only-sugar   Run the interpreter only up to desugaring.
+       --only-type    Run the interpreter only up to typing.
+       --skip-typing  Evalute the program without type checking it.
 "

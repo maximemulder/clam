@@ -1,7 +1,6 @@
 open Abt
 
-let raise message span =
-  Error.raise "TYPE ERROR" (message ^ "\n" ^ Error.display_span span)
+let raise = Error.raise
 
 let validate_proper (type': Abt.type') =
   let span = type_span type' in
@@ -64,10 +63,10 @@ let check_record (expr: expr_record) (constr: Type.base) =
 
 let check_record_attr (expr: Abt.expr_record) (constr: Type.attr) =
   let span = expr.span in
-  let name = constr.name in
+  let label = constr.label in
   let type' = TypeDisplay.display constr.type' in
   raise
-    ("expected attribute `" ^ name ^ "` of type `" ^ type' ^ "` but found no attribute with this name")
+    ("expected attribute `" ^ label ^ "` of type `" ^ type' ^ "` but found no attribute with this name")
     span
 
 let check_abs (expr: Abt.expr_lam_abs) (constr: Type.base) =

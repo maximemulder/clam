@@ -25,13 +25,13 @@ and levelize_base type' level direct =
     list_iter (fun elem -> levelize elem level false) tuple.elems
   | Record record ->
     iter_map (fun (attr: Type.attr) -> levelize attr.type' level false) record.attrs
-  | AbsExpr abs ->
-    let* () = levelize abs.param level false in
-    let* () = levelize abs.ret level false in
+  | Lam lam ->
+    let* () = levelize lam.param level false in
+    let* () = levelize lam.ret level false in
     return ()
-  | AbsTypeExpr abs ->
-    let* () = levelize abs.param.bound level false in
-    let* () = levelize abs.ret level false in
+  | Univ univ ->
+    let* () = levelize univ.param.bound level false in
+    let* () = levelize univ.ret level false in
     return ()
   | _ ->
     return ()

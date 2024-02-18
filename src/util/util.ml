@@ -1,11 +1,6 @@
-module NameKey = struct
-  type t = string
-  let compare = String.compare
-end
+include Namemap
 
-module NameMap = Map.Make(NameKey)
-
-module NameSet = Set.Make(NameKey)
+module Monad = Monad
 
 let flip f x y = f y x
 

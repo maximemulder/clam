@@ -29,14 +29,14 @@ and inline_base type' bind pol =
   | Record record ->
     let* attrs = map_map (fun attr -> inline_attr attr bind pol) record.attrs in
     return (Type.record attrs)
-  | AbsExpr abs ->
-    let* param = inline abs.param bind (inv pol) in
-    let* ret = inline abs.ret bind pol in
-    return (Type.abs_expr param ret)
-  | AbsTypeExpr abs ->
-    let* param: Type.param  = inline_param abs.param bind pol in
-    let* ret = with_type param.bind param.bound (inline abs.ret bind pol) in
-    return (Type.abs_type_expr param ret)
+  | Lam lam ->
+    let* param = inline lam.param bind (inv pol) in
+    let* ret = inline lam.ret bind pol in
+    return (Type.lam param ret)
+  | Univ univ ->
+    let* param: Type.param  = inline_param univ.param bind pol in
+    let* ret = with_type param.bind param.bound (inline univ.ret bind pol) in
+    return (Type.univ param ret)
   | _ ->
     return (Type.base type')
 

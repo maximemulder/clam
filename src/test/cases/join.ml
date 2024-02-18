@@ -59,14 +59,14 @@ let tests = [
   case (record ["foo", a]) (record ["foo", b]) (union [record ["foo", a]; record ["foo", b]]);
   case (record ["foo", a]) (record ["bar", b]) (union [record ["foo", a]; record ["bar", b]]);
 
-  (* expression to expression abstractions *)
-  case (abs_expr a b) (abs_expr a b) (abs_expr a b);
-  case (abs_expr top b) (abs_expr a b) (abs_expr a b);
-  case (abs_expr a b) (abs_expr top b) (abs_expr a b);
-  case (abs_expr a top) (abs_expr a b) (abs_expr a top);
-  case (abs_expr a b) (abs_expr a top) (abs_expr a top);
-  case (abs_expr a c) (abs_expr b c) (union [abs_expr a c; abs_expr b c]);
-  case (abs_expr a b) (abs_expr a c) (union [abs_expr a b; abs_expr a c]);
-  case (abs_expr a b) (abs_expr c d) (union [abs_expr a b; abs_expr c d]);
+  (* lambda abstractions *)
+  case (lam a b) (lam a b) (lam a b);
+  case (lam top b) (lam a b) (lam a b);
+  case (lam a b) (lam top b) (lam a b);
+  case (lam a top) (lam a b) (lam a top);
+  case (lam a b) (lam a top) (lam a top);
+  case (lam a c) (lam b c) (union [lam a c; lam b c]);
+  case (lam a b) (lam a c) (union [lam a b; lam a c]);
+  case (lam a b) (lam c d) (union [lam a b; lam c d]);
 ]
 |> List.map (Util.apply ctx)

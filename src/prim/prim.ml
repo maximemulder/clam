@@ -1,4 +1,5 @@
-open RuntimeValue
+open Eval.Value
+open Clam
 
 type primitive = {
   bind: Abt.bind_expr;
@@ -15,16 +16,16 @@ let make_primitives primitives =
 
 let unary name param ret prim =
   (name,
-  Type.abs_expr param ret,
-  VExprAbs (VPrim (fun { value; out } -> prim value out)))
+  Type.lam param ret,
+  VLam (VPrim (fun { value; out } -> prim value out)))
 
 let binary name left right ret prim =
   (
     name,
-    Type.abs_expr left (Type.abs_expr right ret),
-    VExprAbs (VPrim (fun { value; _ } ->
+    Type.lam left (Type.lam right ret),
+    VLam (VPrim (fun { value; _ } ->
       let left = value in
-      VExprAbs (VPrim (fun { value; _ } ->
+      VLam (VPrim (fun { value; _ } ->
         let right = value in
         prim left right
       ))
@@ -33,7 +34,7 @@ let binary name left right ret prim =
 
 let primitives = make_primitives [
   unary "print" Type.top Type.unit (fun value out ->
-    let string = RuntimeDisplay.display value in
+    let string = Eval.Display.display value in
     let _ = out string in
     VUnit);
   unary "__pos__" Type.int Type.int (fun value _ ->

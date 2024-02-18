@@ -1,4 +1,4 @@
-open RuntimeValue
+open Value
 
 let rec display value =
   match value with
@@ -13,4 +13,4 @@ let rec display value =
     let attrs = List.of_seq (Util.NameMap.to_seq attrs) in
     let attrs = List.map (fun (name, value) -> name ^ " = " ^ (display value)) attrs in
     "{" ^ String.concat ", " attrs ^ "}"
-  | VExprAbs _ -> "<function>"
+  | VLam _ -> "<function>"

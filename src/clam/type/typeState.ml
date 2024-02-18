@@ -42,7 +42,7 @@ type state = {
   vars: entry_var list;
 }
 
-include Monad.Monad(Monad.StateMonad(struct
+include Util.Monad.Monad(Util.Monad.StateMonad(struct
   type s = state
 end))
 

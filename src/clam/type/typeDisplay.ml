@@ -33,23 +33,23 @@ let group_types types parent =
   else
     N, parent
 
-let rec curry_abs_expr (abs: Type.abs_expr) =
-  let param = abs.param in
-  match single abs.ret with
-  | Some (Type.AbsExpr abs) ->
-    let params, ret = curry_abs_expr abs in
+let rec curry_lam (lam: Type.lam) =
+  let param = lam.param in
+  match single lam.ret with
+  | Some (Type.Lam lam) ->
+    let params, ret = curry_lam lam in
     param :: params, ret
   | _ ->
-    [abs.param], abs.ret
+    [lam.param], lam.ret
 
-let rec curry_abs_type_expr (abs: Type.abs_type_expr) =
-  let param = abs.param in
-  match single abs.ret with
-  | Some (Type.AbsTypeExpr abs) ->
-    let params, ret = curry_abs_type_expr abs in
+let rec curry_univ (univ: Type.univ) =
+  let param = univ.param in
+  match single univ.ret with
+  | Some (Type.Univ univ) ->
+    let params, ret = curry_univ univ in
     param :: params, ret
   | _ ->
-    [abs.param], abs.ret
+    [univ.param], univ.ret
 
 let rec curry_abs (abs: Type.abs) =
   let param = abs.param in
@@ -98,10 +98,10 @@ and display_base type' =
     display_tuple tuple
   | Record record ->
     display_record record
-  | AbsExpr abs ->
-    display_abs_expr abs
-  | AbsTypeExpr abs ->
-    display_abs_type_expr abs
+  | Lam lam ->
+    display_lam lam
+  | Univ univ ->
+    display_univ univ
   | Abs abs ->
     display_abs abs
   | App app ->
@@ -119,16 +119,16 @@ and display_record record =
   return N ("{" ^ (String.concat ", " attrs) ^ "}")
 
 and display_record_attr attr =
-  attr.name ^ ": " ^ display attr.type' N
+  attr.label ^ ": " ^ display attr.type' N
 
-and display_abs_expr abs =
-  let params, ret = curry_abs_expr abs in
+and display_lam lam =
+  let params, ret = curry_lam lam in
   let params = List.map (Util.flip display N) params in
   let type' = "(" ^ (String.concat ", " params) ^ ") -> " ^ (display ret R) in
   return R type'
 
-and display_abs_type_expr abs =
-  let params, ret = curry_abs_type_expr abs in
+and display_univ univ =
+  let params, ret = curry_univ univ in
   let params = List.map display_param params in
   let type' = "[" ^ (String.concat ", " params) ^ "] -> " ^ (display ret R) in
   return R type'

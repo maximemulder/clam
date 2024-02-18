@@ -58,17 +58,17 @@ let tests = [
   case (inter [a; union [b; c]]) (union [inter [a; b]; inter [a; c]]);
 
   (* meets *)
-  case (inter [abs_expr a b; abs_expr a c]) (abs_expr a (inter [b; c]));
-  case (abs_expr (union [a; b]) c) (inter [abs_expr a c; abs_expr b c]);
-  case (inter [abs_expr a b; abs_expr a c]) (abs_expr a (inter [b; c]));
-  case (abs_expr a (inter [b; c])) (inter [abs_expr a b; abs_expr a c]);
-  case (abs_expr (union [a; b]) (inter [c; d])) (inter [abs_expr a c; abs_expr b d]);
+  case (inter [lam a b; lam a c]) (lam a (inter [b; c]));
+  case (lam (union [a; b]) c) (inter [lam a c; lam b c]);
+  case (inter [lam a b; lam a c]) (lam a (inter [b; c]));
+  case (lam a (inter [b; c])) (inter [lam a b; lam a c]);
+  case (lam (union [a; b]) (inter [c; d])) (inter [lam a c; lam b d]);
 
-  (* type to expression abstractions *)
-  case (abs_type_expr "T" top id) (abs_type_expr "T" top id);
-  case (abs_type_expr "T" top id) (abs_type_expr "X" top id);
-  case (abs_type_expr "T" top (inline a)) (abs_type_expr "T" top (inline a));
-  case (abs_type_expr "T" top (inline a)) (abs_type_expr "X" top (inline a));
+  (* universal abstractions *)
+  case (univ "T" top id) (univ "T" top id);
+  case (univ "T" top id) (univ "X" top id);
+  case (univ "T" top (inline a)) (univ "T" top (inline a));
+  case (univ "T" top (inline a)) (univ "X" top (inline a));
 
   (* type abstractions *)
   case (abs "T" top id) (abs "T" top id);
@@ -104,7 +104,7 @@ let tests_not = [
   case (record ["foo", top]) (record ["foo", a]);
 
   (* meets *)
-  case (inter [abs_expr a c; abs_expr b d]) (abs_expr (union [a; b]) (inter [c; d]));
+  case (inter [lam a c; lam b d]) (lam (union [a; b]) (inter [c; d]));
 
   (* type abstractions*)
   case (abs "T" top (inline a)) (abs "T" top (inline b));

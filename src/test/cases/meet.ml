@@ -56,20 +56,20 @@ let tests = [
   case a (inter [b; c]) (inter [a; inter [b; c]]);
   case (inter [a; b]) c (inter [a; inter [b; c]]);
 
-  (* expression to expression abstractions *)
-  case (abs_expr a b) (abs_expr a b) (abs_expr a b);
-  case (abs_expr a b) (abs_expr a c) (abs_expr a (inter [b; c]));
-  case (abs_expr a c) (abs_expr b c) (abs_expr (union [a; b]) c);
-  case (abs_expr a c) (abs_expr b d) (inter [abs_expr a c; abs_expr b d]);
+  (* lambda abstractions *)
+  case (lam a b) (lam a b) (lam a b);
+  case (lam a b) (lam a c) (lam a (inter [b; c]));
+  case (lam a c) (lam b c) (lam (union [a; b]) c);
+  case (lam a c) (lam b d) (inter [lam a c; lam b d]);
 
-  (* type to expression abstractions *)
-  case (abs_type_expr "A" top (inline c)) (abs_type_expr "B" top (inline d)) (abs_type_expr "A" top (inline (inter [c; d])));
-  case (abs_type_expr "A" unit (inline a)) (abs_type_expr "B" top (inline b)) bot;
-  case (abs_type_expr "A" top (inline a)) (abs_type_expr "B" unit (inline b)) bot;
+  (* universal abstractions *)
+  case (univ "A" top (inline c)) (univ "B" top (inline d)) (univ "A" top (inline (inter [c; d])));
+  case (univ "A" unit (inline a)) (univ "B" top (inline b)) bot;
+  case (univ "A" top (inline a)) (univ "B" unit (inline b)) bot;
 
-  case (abs_type_expr "A" top (fun a -> a)) (abs_type_expr "A" top id) (abs_type_expr "A" top id);
-  case (abs_type_expr "A" top (fun a -> a)) (abs_type_expr "B" top id) (abs_type_expr "A" top id);
-  case (abs_type_expr "A" top (fun a -> tuple [a])) (abs_type_expr "B" top (fun b -> tuple [b])) (abs_type_expr "A" top (fun a -> tuple[a]));
+  case (univ "A" top (fun a -> a)) (univ "A" top id) (univ "A" top id);
+  case (univ "A" top (fun a -> a)) (univ "B" top id) (univ "A" top id);
+  case (univ "A" top (fun a -> tuple [a])) (univ "B" top (fun b -> tuple [b])) (univ "A" top (fun a -> tuple[a]));
 
   (* TODO: Add these tests once duplicates are gone (either through sorting or exhaustive meet) *)
   (* case (abs_expr_type ("A", top) (fun a -> inter [int; a])) (abs_expr_type ("B", top) id) (abs_expr_type ("A", top) (fun a -> inter [int; a]));

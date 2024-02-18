@@ -38,14 +38,14 @@ let tests = [
   case "A" z (fun a -> inter [b; a]) (inter [b; z]); *)
 
   (* abstractions and applications *)
-  case "A" z (fun a -> abs_expr a b) (abs_expr z b);
-  case "A" z (fun a -> abs_expr b a) (abs_expr b z);
-  case "A" z (fun a -> abs_type_expr "B" top (inline a)) (abs_type_expr "B" top (inline z));
-  case "A" z (fun a -> abs_type_expr "B" a id) (abs_type_expr "B" z id);
-  case "A" z (fun a -> abs_type_expr "B" a (fun b -> tuple [a; b])) (abs_type_expr "B" z (fun b -> tuple [z; b]));
+  case "A" z (fun a -> lam a b) (lam z b);
+  case "A" z (fun a -> lam b a) (lam b z);
+  case "A" z (fun a -> univ "B" top (inline a)) (univ "B" top (inline z));
+  case "A" z (fun a -> univ "B" a id) (univ "B" z id);
+  case "A" z (fun a -> univ "B" a (fun b -> tuple [a; b])) (univ "B" z (fun b -> tuple [z; b]));
 
   (* complex substitutes *)
   (* case "A" (union [b; c]) id (union [b; c]);
   case "A" (inter [b; c]) id (inter [b; c]); *)
-  case "A" (abs_expr b c) id (abs_expr b c);
+  case "A" (lam b c) id (lam b c);
 ]

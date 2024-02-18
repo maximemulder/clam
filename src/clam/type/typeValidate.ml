@@ -44,17 +44,17 @@ and validate_record ctx record =
 
 and validate_record_attr ctx attr =
   let type' = validate_proper ctx attr.type' in
-  { name = attr.label; type' }
+  { label = attr.label; type' }
 
 and validate_lam ctx lam =
   let param = validate_proper ctx lam.param in
   let ret = validate_proper ctx lam.ret in
-  base (AbsExpr { param; ret })
+  base (Lam { param; ret })
 
 and validate_univ ctx univ =
   let param, ret = validate_param_with ctx univ.param
     (fun ctx -> validate_proper ctx univ.ret) in
-  base (AbsTypeExpr { param; ret })
+  base (Univ { param; ret })
 
 and validate_abs ctx abs =
   let param, body = validate_param_with ctx abs.param

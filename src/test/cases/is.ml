@@ -66,15 +66,15 @@ let tests = [
   case (inter [a; union [b; c]]) (union [inter [a; b]; inter [a; c]]);
 
   (* meets *)
-  case (inter [abs_expr a c; abs_expr b c]) (abs_expr (union [a; b]) c);
-  case (abs_expr (union [a; b]) c) (inter [abs_expr a c; abs_expr b c]);
-  case (inter [abs_expr a b; abs_expr a c]) (abs_expr a (inter [b; c]));
-  case (abs_expr a (inter [b; c])) (inter [abs_expr a b; abs_expr a c]);
+  case (inter [lam a c; lam b c]) (lam (union [a; b]) c);
+  case (lam (union [a; b]) c) (inter [lam a c; lam b c]);
+  case (inter [lam a b; lam a c]) (lam a (inter [b; c]));
+  case (lam a (inter [b; c])) (inter [lam a b; lam a c]);
 
-  (* type to expression abstractions *)
-  case (abs_type_expr "A" top (inline a)) (abs_type_expr "A" top (inline a));
-  case (abs_type_expr "A" top id) (abs_type_expr "A" top id);
-  case (abs_type_expr "A" top id) (abs_type_expr "B" top id);
+  (* universal abstractions *)
+  case (univ "A" top (inline a)) (univ "A" top (inline a));
+  case (univ "A" top id) (univ "A" top id);
+  case (univ "A" top id) (univ "B" top id);
 ]
 |> List.map (fun case -> case true ctx)
 
@@ -116,13 +116,13 @@ let tests_not = [
   case (inter [a; b]) (inter [a; inter [b; ea]]);
 
   (* meets *)
-  case (inter [abs_expr a c; abs_expr b d]) (abs_expr (union [a; b]) (inter [c; d]));
-  case (abs_expr (union [a; b]) (inter [c; d])) (inter [abs_expr a c; abs_expr b d]);
+  case (inter [lam a c; lam b d]) (lam (union [a; b]) (inter [c; d]));
+  case (lam (union [a; b]) (inter [c; d])) (inter [lam a c; lam b d]);
 
   (* ambiguous names *)
   case_var "A" top (fun a1 -> case_var "A" top (fun a2 -> case a1 a2));
-  case (abs_type_expr "A" top (inline a)) (abs_type_expr "A" top id);
-  case (abs_type_expr "A" top id) (abs_type_expr "A" top (inline a));
+  case (univ "A" top (inline a)) (univ "A" top id);
+  case (univ "A" top id) (univ "A" top (inline a));
 
   (* type abstractions and variables *)
   case_var "T" (abs "X" top id) (fun t1 -> case_var "T" (abs "X" top id) (fun t2 -> case (app t1 top) (app t2 top)));

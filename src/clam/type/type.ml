@@ -15,13 +15,13 @@ and base =
   | Bool
   | Int
   | String
-  | Var         of var
-  | Tuple       of tuple
-  | Record      of record
-  | AbsExpr     of abs_expr
-  | AbsTypeExpr of abs_type_expr
-  | Abs         of abs
-  | App         of app
+  | Var    of var
+  | Tuple  of tuple
+  | Record of record
+  | Lam    of lam
+  | Univ   of univ
+  | Abs    of abs
+  | App    of app
 
 and var = {
   bind: Abt.bind_type;
@@ -35,12 +35,12 @@ and record = {
   attrs: attr Util.NameMap.t;
 }
 
-and abs_expr = {
+and lam = {
   param: type';
   ret: type';
 }
 
-and abs_type_expr = {
+and univ = {
   param: param;
   ret: type';
 }
@@ -56,7 +56,7 @@ and app = {
 }
 
 and attr = {
-  name: String.t;
+  label: String.t;
   type': type';
 }
 
@@ -67,16 +67,16 @@ and param = {
 
 let base base = { union = [{ inter = [base] }] }
 
-let top    = base Top
-let bot    = base Bot
-let unit   = base Unit
-let bool   = base Bool
-let int    = base Int
-let string = base String
-let var bind = base (Var { bind })
-let tuple elems = base (Tuple { elems })
-let record attrs = base (Record { attrs })
-let abs_expr param ret = base (AbsExpr { param; ret })
-let abs_type_expr param ret = base (AbsTypeExpr { param; ret })
-let abs param body = base (Abs { param; body })
-let app abs arg = base (App { abs; arg })
+let top               = base Top
+let bot               = base Bot
+let unit              = base Unit
+let bool              = base Bool
+let int               = base Int
+let string            = base String
+let var    bind       = base (Var { bind })
+let tuple  elems      = base (Tuple { elems })
+let record attrs      = base (Record { attrs })
+let lam    param ret  = base (Lam { param; ret })
+let univ   param ret  = base (Univ { param; ret })
+let abs    param body = base (Abs { param; body })
+let app    abs arg    = base (App { abs; arg })

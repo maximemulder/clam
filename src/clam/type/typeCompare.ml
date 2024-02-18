@@ -28,14 +28,14 @@ and substitute_base type' bind other =
   | Record record ->
     let attrs = Util.NameMap.map (fun attr -> substitute_attr attr bind other) record.attrs in
     Record { attrs }
-  | AbsExpr abs ->
-    let param = substitute abs.param bind other in
-    let ret = substitute abs.ret bind other in
-    AbsExpr { param; ret }
-  | AbsTypeExpr abs ->
-    let param = substitute_param abs.param bind other in
-    let ret = substitute abs.ret bind other in
-    AbsTypeExpr { param; ret }
+  | Lam lam ->
+    let param = substitute lam.param bind other in
+    let ret = substitute lam.ret bind other in
+    Lam { param; ret }
+  | Univ univ ->
+    let param = substitute_param univ.param bind other in
+    let ret = substitute univ.ret bind other in
+    Univ { param; ret }
   | Abs abs ->
     let param = substitute_param abs.param bind other in
     let body = substitute abs.body bind other in
@@ -49,7 +49,7 @@ and substitute_param param bind other =
   { bind = param.bind; bound = substitute param.bound bind other }
 
 and substitute_attr attr bind other =
-  { name = attr.name; type' = substitute attr.type' bind other }
+  { label = attr.label; type' = substitute attr.type' bind other }
 
 let rec compare (left: type') (right: type') =
   compare_union left right
@@ -74,13 +74,13 @@ and compare_base left right =
     Util.compare_lists compare left_tuple.elems right_tuple.elems
   | Record left_record, Record right_record ->
     Util.compare_maps compare_attr left_record.attrs right_record.attrs
-  | AbsExpr left_abs, AbsExpr right_abs ->
-    compare left_abs.param right_abs.param
-    && compare left_abs.ret right_abs.ret
-  | AbsTypeExpr left_abs, AbsTypeExpr right_abs ->
-    compare_param left_abs.param right_abs.param
-    && let right_ret = substitute right_abs.ret right_abs.param.bind (Var { bind = left_abs.param.bind }) in
-    compare left_abs.ret right_ret
+  | Lam left_lam, Lam right_lam ->
+    compare left_lam.param right_lam.param
+    && compare left_lam.ret right_lam.ret
+  | Univ left_univ, Univ right_univ ->
+    compare_param left_univ.param right_univ.param
+    && let right_ret = substitute right_univ.ret right_univ.param.bind (Var { bind = left_univ.param.bind }) in
+    compare left_univ.ret right_ret
   | Abs left_abs, Abs right_abs ->
     compare_param left_abs.param right_abs.param
     && let right_body = substitute right_abs.body right_abs.param.bind (Var { bind = left_abs.param.bind }) in

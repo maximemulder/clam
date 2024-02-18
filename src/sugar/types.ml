@@ -51,7 +51,7 @@ let make_attrs attrs =
   List.fold_left (fun map (attr: Abt.attr_type) ->
     let name = attr.label in
     if NameMap.mem name map
-      then ModelizeErrors.raise_type_duplicate_attribute attr
+      then Errors.raise_type_duplicate_attribute attr
       else NameMap.add name attr map
   ) NameMap.empty attrs
 
@@ -88,7 +88,7 @@ and modelize_name type' state =
   | Some def -> modelize_def name def state
   | None     ->
   match find_current name state with
-  | Some _ -> ModelizeErrors.raise_type_recursive type'
+  | Some _ -> Errors.raise_type_recursive type'
   | None   ->
   match find_done name state with
   | Some type' -> (type', state)
@@ -98,7 +98,7 @@ and modelize_name type' state =
     let parent = { state with scope } in
     let (type', parent) = modelize_name type' parent in
     (type', { parent with scope = { state.scope with parent = Some parent.scope } })
-  | None -> ModelizeErrors.raise_type_bound type'
+  | None -> Errors.raise_type_bound type'
 
 and modelize_def name _type' =
   with_name name modelize_type
@@ -116,7 +116,7 @@ and modelize_product product =
     let attrs = make_attrs attrs in
     return (Abt.TypeRecord { span = product.span; attrs })
   | _ ->
-    ModelizeErrors.raise_type_product product
+    Errors.raise_type_product product
 
 and modelize_lam lam =
   modelize_lam_curry lam.span lam.params lam.ret

@@ -34,14 +34,14 @@ let test file_name =
   let code = { Code.name = file_name; text = file_text } in
   let out_buffer = make_buffer () in
   let err_result = try
-    let open Clam.Lib in
     let ast = Parser.parse code in
-    let abt = modelize ast in
-    let _ = type' abt in
-    let () = eval abt (write_buffer out_buffer) in
+    let abt = Sugar.desugar ast Prim.binds in
+    let _ = Clam.Lib.check abt Prim.types in
+    let main = List.find (fun def -> def.Abt.bind.name = "main") abt.Abt.exprs in
+    Eval.eval main abt.exprs Prim.values (write_buffer out_buffer);
     ""
-  with Clam.Error.Error message ->
-    message
+  with Clam.Error.Error error ->
+    error.message
   in
   let out_result = out_buffer.string in
   let out_expect = read_file (file_name ^ ".out") in

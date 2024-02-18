@@ -1,6 +1,6 @@
 (library
   (name clam)
-  (libraries abt ast code util))
+  (libraries abt code util))
 
 (include_subdirs unqualified)
 

@@ -1,11 +1,14 @@
 open Abt
 open Ast
 
-let raise message span =
-  Error.raise "MODEL ERROR" (message ^ "\n" ^ (Error.display_span span))
+type error = {
+  message: string;
+  span: span;
+}
 
-let raise_expr_duplicate name =
-  Error.raise "MODEL ERROR" ("duplicate expression definition `" ^ name ^ "`")
+exception Error of error
+
+let raise message span = raise (Error { message; span })
 
 let raise_expr_bound span name =
   raise ("unbound expression `" ^ name ^ "`") span

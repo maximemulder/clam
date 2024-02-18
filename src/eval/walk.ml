@@ -1,17 +1,18 @@
 open Abt
-open RuntimeValue
+open Value
 
 type context = {
   out: writer;
   defs: def_expr BindMap.t;
+  primitives: (bind_expr * value) list;
   frame: frame;
 }
 
-let root =
-  { parent = None; binds = BindMap.of_list Primitive.values }
+let root primitives =
+  { parent = None; binds = BindMap.of_list primitives }
 
-let new_empty defs out =
-  { out; defs; frame = { parent = Some root; binds = BindMap.empty } }
+let new_empty defs primitives out =
+  { out; defs; primitives; frame = { parent = Some (root primitives); binds = BindMap.empty } }
 
 let new_scope context binds =
   { context with frame = { parent = Some context.frame; binds } }
@@ -31,7 +32,7 @@ module Reader = struct
   type r = context
 end
 
-open Monad.Monad(Monad.ReaderMonad(Reader))
+open Util.Monad.Monad(Util.Monad.ReaderMonad(Reader))
 
 let rec eval (expr: Abt.expr) =
   match expr with
@@ -67,7 +68,7 @@ let rec eval (expr: Abt.expr) =
     if value_bool cond then eval if'.then' else eval if'.else'
   | ExprLamAbs abs ->
     let* frame = get_frame in
-    return (VExprAbs (VCode { abs; frame }))
+    return (VLam (VCode { abs; frame }))
   | ExprLamApp app ->
     eval_lam_app app
   | ExprUnivAbs abs ->
@@ -90,7 +91,7 @@ and eval_string string =
 and eval_bind bind context =
   let bind = Option.get !(bind.bind) in
   match BindMap.find_opt bind context.defs with
-  | Some def -> eval def.expr (new_empty context.defs context.out)
+  | Some def -> eval def.expr (new_empty context.defs context.primitives context.out)
   | None ->
   get_bind bind context.frame
 
@@ -98,19 +99,19 @@ and eval_tuple expr =
   let* value = eval expr in
   match value with
   | VTuple values -> return values
-  | _ -> RuntimeErrors.raise_value ()
+  | _ -> Error.raise_value "tuple"
 
 and eval_record expr =
   let* value = eval expr in
   match value with
   | VRecord attrs -> return attrs
-  | _ -> RuntimeErrors.raise_value ()
+  | _ -> Error.raise_value "record"
 
 and eval_lam_app app context =
   let value = eval app.abs context in
   match value with
-  | VExprAbs abs -> eval_lam_app_abs abs app.arg context
-  | _ -> RuntimeErrors.raise_value ()
+  | VLam abs -> eval_lam_app_abs abs app.arg context
+  | _ -> Error.raise_value "function"
 
 and eval_lam_app_abs abs arg context =
   let value = eval arg context in
@@ -128,7 +129,7 @@ and eval_univ_abs abs =
 and eval_univ_app app =
   eval app.abs
 
-let eval_def def defs stdout =
+let eval_def def defs primitives stdout =
   let defs = List.map (fun def -> def.bind, def) defs in
   let defs = BindMap.of_list defs in
-  eval def.expr (new_empty defs stdout)
+  eval def.expr (new_empty defs primitives stdout)

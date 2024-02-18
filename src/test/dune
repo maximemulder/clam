@@ -1,6 +1,6 @@
 (test
   (name test)
-  (libraries alcotest clam parser)
+  (libraries alcotest clam eval parser prim sugar)
   (deps (source_tree ../../tests)))
 
 (include_subdirs unqualified)

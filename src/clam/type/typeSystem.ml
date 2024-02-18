@@ -84,10 +84,10 @@ and isa_base ctx (sub: Type.base) (sup: Type.base) =
     isa_tuple ctx sub_tuple sup_tuple
   | Record sub_record, Record sup_record ->
     isa_record ctx sub_record sup_record
-  | AbsExpr sub_abs, AbsExpr sup_abs ->
-    isa_abs_expr ctx sub_abs sup_abs
-  | AbsTypeExpr sub_abs, AbsTypeExpr sup_abs ->
-    isa_abs_type_expr ctx sub_abs sup_abs
+  | Lam sub_lam, Lam sup_lam ->
+    isa_lam ctx sub_lam sup_lam
+  | Univ sub_univ, Univ sup_univ ->
+    isa_univ ctx sub_univ sup_univ
   | Abs sub_abs, Abs sup_abs ->
     isa_abs ctx sub_abs sup_abs
   | App sub_app, App sup_app ->
@@ -122,21 +122,21 @@ and isa_record ctx sub_record sup_record =
   Util.NameMap.for_all (fun _ sup_attr -> isa_record_attr ctx sub_record sup_attr) sup_record.attrs
 
 and isa_record_attr ctx sub_record sup_attr =
-  match Util.NameMap.find_opt sup_attr.name sub_record.attrs with
+  match Util.NameMap.find_opt sup_attr.label sub_record.attrs with
   | Some sub_attr ->
     isa ctx sub_attr.type' sup_attr.type'
   | None ->
     false
 
-and isa_abs_expr ctx sub_abs sup_abs =
-  isa ctx sup_abs.param sub_abs.param &&
-  isa ctx sub_abs.ret sup_abs.ret
+and isa_lam ctx sub_lam sup_lam =
+  isa ctx sup_lam.param sub_lam.param &&
+  isa ctx sub_lam.ret sup_lam.ret
 
-and isa_abs_type_expr ctx sub_abs sup_abs =
-  is_param ctx sub_abs.param sup_abs.param &&
-  let sup_ret = substitute_body ctx sub_abs.param sup_abs.param sup_abs.ret in
-  let ctx = TypeContext.add_bind_type ctx sub_abs.param.bind sub_abs.param.bound in
-  isa ctx sub_abs.ret sup_ret
+and isa_univ ctx sub_univ sup_univ =
+  is_param ctx sub_univ.param sup_univ.param &&
+  let sup_ret = substitute_body ctx sub_univ.param sup_univ.param sup_univ.ret in
+  let ctx = TypeContext.add_bind_type ctx sub_univ.param.bind sub_univ.param.bound in
+  isa ctx sub_univ.ret sup_ret
 
 and isa_abs ctx sub_abs sup_abs =
   is_param ctx sub_abs.param sup_abs.param &&
@@ -193,15 +193,15 @@ and substitute_base ctx entry (type': Type.base) =
   | Record record ->
     let attrs = Util.NameMap.map (substitute_attr ctx entry) record.attrs in
     Type.record attrs
-  | AbsExpr abs ->
-    let param = substitute ctx entry abs.param in
-    let ret = substitute ctx entry abs.ret in
-    Type.abs_expr param ret
-  | AbsTypeExpr abs ->
-    let param = substitute_param ctx entry abs.param in
+  | Lam lam ->
+    let param = substitute ctx entry lam.param in
+    let ret = substitute ctx entry lam.ret in
+    Type.lam param ret
+  | Univ univ ->
+    let param = substitute_param ctx entry univ.param in
     let ctx = TypeContext.add_bind_type ctx param.Type.bind param.bound in
-    let ret = substitute ctx entry abs.ret in
-    Type.abs_type_expr param ret
+    let ret = substitute ctx entry univ.ret in
+    Type.univ param ret
   | Abs abs ->
     let param = substitute_param ctx entry abs.param in
     let ctx = TypeContext.add_bind_type ctx param.bind param.bound in
@@ -297,10 +297,10 @@ and meet_base ctx (left: Type.base) (right: Type.base) =
     meet_tuple ctx left_tuple right_tuple
   | Record left_record, Record right_record ->
     meet_record ctx left_record right_record
-  | AbsExpr left_abs, AbsExpr right_abs ->
-    meet_abs_expr ctx left_abs right_abs
-  | AbsTypeExpr left_abs, AbsTypeExpr right_abs ->
-    meet_abs_type_expr ctx left_abs right_abs
+  | Lam left_lam, Lam right_lam ->
+    meet_lam ctx left_lam right_lam
+  | Univ left_univ, Univ right_univ ->
+    meet_univ ctx left_univ right_univ
   | Abs left_abs, Abs right_abs ->
     meet_abs ctx left_abs right_abs
   (* For the two next rules, find the maximum type of app and check if subtype of other *)
@@ -322,11 +322,11 @@ and meet_record ctx left right =
   let attrs = Util.NameMap.merge (meet_record_attr ctx) left.attrs right.attrs in
   Some (Record { attrs })
 
-and meet_record_attr ctx name left right =
+and meet_record_attr ctx label left right =
   match left, right with
   | Some left, Some right ->
     let type' = meet ctx left.type' right.type' in
-    Some { name; type' }
+    Some { label; type' }
   | Some left, None ->
     Some left
   | None, Some right ->
@@ -334,23 +334,23 @@ and meet_record_attr ctx name left right =
   | None, None ->
     None
 
-and meet_abs_expr ctx left right =
+and meet_lam ctx left right =
   match is ctx left.param right.param, is ctx left.ret right.ret with
   | false, false ->
     None
   | _, _ ->
     let param = join ctx left.param right.param in
     let ret = meet ctx left.ret right.ret in
-    Some (AbsExpr { param; ret })
+    Some (Lam { param; ret })
 
-and meet_abs_type_expr ctx left right =
+and meet_univ ctx left right =
   if not (is_param ctx left.param right.param) then
     Some Bot
   else
   let right_ret = substitute_body ctx left.param right.param right.ret in
   let ctx = TypeContext.add_bind_type ctx left.param.bind left.param.bound in
   let ret = meet ctx left.ret right_ret in
-  Some (AbsTypeExpr { param = left.param; ret })
+  Some (Univ { param = left.param; ret })
 
 and meet_abs ctx left right =
   if not (is_param ctx left.param right.param) then

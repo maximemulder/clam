@@ -26,7 +26,7 @@ let get_preop_name span op =
   | "+" -> "__pos__"
   | "-" -> "__neg__"
   | "!" -> "__not__"
-  | _ -> ModelizeErrors.raise_expr_operator span op
+  | _ -> Errors.raise_expr_operator span op
 
 let get_binop_name span op =
   match op with
@@ -44,7 +44,7 @@ let get_binop_name span op =
   | ">=" -> "__ge__"
   | "&"  -> "__and__"
   | "|"  -> "__or__"
-  | _ -> ModelizeErrors.raise_expr_operator span op
+  | _ -> Errors.raise_expr_operator span op
 
 let find_remain name state =
   NameMap.find_opt name state.scope.remains
@@ -83,7 +83,7 @@ let make_child types remains dones state =
 let parse_int span value =
   match int_of_string_opt value with
   | Some int -> int
-  | None     -> ModelizeErrors.raise_expr_integer span value
+  | None     -> Errors.raise_expr_integer span value
 
 let parse_string (value: string) =
   value
@@ -95,21 +95,21 @@ let with_scope call types defs dones state =
 
 let rec translate_scope state =
   {
-    ModelizeTypes.parent = Option.map translate_scope state.parent;
-    ModelizeTypes.remains = NameMap.empty;
-    ModelizeTypes.currents =  NameMap.empty;
-    ModelizeTypes.dones = state.types;
+    Types.parent = Option.map translate_scope state.parent;
+    Types.remains = NameMap.empty;
+    Types.currents =  NameMap.empty;
+    Types.dones = state.types;
   }
 
 let translate_state state =
   {
-    ModelizeTypes.scope = translate_scope state.scope;
-    ModelizeTypes.all = [];
+    Types.scope = translate_scope state.scope;
+    Types.all = [];
   }
 
 (* TODO: Can I remove state from the return ? *)
 let modelize_type (type': Ast.type') state =
-  (ModelizeTypes.modelize_type_expr type' (translate_state state), state)
+  (Types.modelize_type_expr type' (translate_state state), state)
 
 let rec modelize_bind span name state =
   match find_remain name state with
@@ -126,7 +126,7 @@ let rec modelize_bind span name state =
     let parent = { state with scope } in
     let (expr, parent) = modelize_bind span name parent in
     (expr, { parent with scope = { state.scope with parent = Some parent.scope } })
-  | None -> ModelizeErrors.raise_expr_bound span name
+  | None -> Errors.raise_expr_bound span name
 
 and modelize_def def state =
   let name = def.Ast.name in
@@ -197,7 +197,7 @@ and modelize_product expr =
     let* attrs = map_list modelize_record_attr fields in
     return (Abt.ExprRecord { span = expr.span; attrs })
   | _ ->
-    ModelizeErrors.raise_expr_product expr
+    Errors.raise_expr_product expr
 
 and partition_field field =
   match field with
@@ -297,7 +297,7 @@ and modelize_univ_abs_curry span params body state =
     modelize_expr body state
   | (param :: params) ->
     let (param, state) = modelize_param_type param state in
-    let entries = ModelizeTypes.modelize_abs param (translate_state state) in
+    let entries = Types.modelize_abs param (translate_state state) in
     let (body, state) = with_scope (modelize_univ_abs_curry span params body) entries [] [] state in
     (Abt.ExprUnivAbs { span = span; param; body }, state)
 
@@ -335,9 +335,9 @@ let rec modelize_defs state =
     let (_, state) = modelize_def def state in
     modelize_defs state
 
-let modelize_program (program: Ast.program) (types: Abt.type' NameMap.t) (all_types: Abt.type' list)=
+let modelize_program (program: Ast.program) (types: Abt.type' NameMap.t) (all_types: Abt.type' list) primitives =
   let defs = Ast.get_program_exprs program in
-  let state = make_state types defs Primitive.binds in
+  let state = make_state types defs primitives in
   let state = { state with all_types = all_types } in
   let state = modelize_defs state in
   (state.all_exprs, state.all_types)

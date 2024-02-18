@@ -39,13 +39,13 @@ and occurs_base (type': Type.base) bind =
     Util.NameMap.to_list record.attrs
     |> List.map snd
     |> list_any (fun (attr: Type.attr) -> occurs attr.type' bind)
-  | AbsExpr abs ->
-    let* param = occurs abs.param bind in
-    let* ret = occurs abs.ret bind in
+  | Lam lam ->
+    let* param = occurs lam.param bind in
+    let* ret = occurs lam.ret bind in
     return (param || ret)
-  | AbsTypeExpr abs ->
-    let* param = occurs_param abs.param bind in
-    let* ret = with_type abs.param.bind abs.param.bound (occurs abs.ret bind) in
+  | Univ univ ->
+    let* param = occurs_param univ.param bind in
+    let* ret = with_type univ.param.bind univ.param.bound (occurs univ.ret bind) in
     return (param || ret)
   | _ ->
     return false
@@ -138,14 +138,14 @@ and get_pols_base type' bind pol neg_occs pol_occs =
     |> List.map snd
     |> List.map (fun (attr: Type.attr) -> get_pols_attr attr bind pol)
     |> List.fold_left from_pols none
-  | AbsExpr abs ->
+  | Lam lam ->
     from_pols
-      (get_pols abs.param bind (inv pol))
-      (get_pols abs.ret bind pol)
-  | AbsTypeExpr abs ->
+      (get_pols lam.param bind (inv pol))
+      (get_pols lam.ret bind pol)
+  | Univ univ ->
     from_pols
-      (get_pols_param abs.param bind pol)
-      (get_pols abs.ret bind pol)
+      (get_pols_param univ.param bind pol)
+      (get_pols univ.ret bind pol)
   | _ ->
     none
 

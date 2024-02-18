@@ -16,16 +16,16 @@ let bind name =
 
 let record attrs =
   let attrs = attrs
-    |> List.map (fun (name, type') -> (name, { name; type' }))
+    |> List.map (fun (label, type') -> (label, { label; type' }))
     |> List.to_seq
     |> Util.NameMap.of_seq in
   base (Record { attrs })
 
-let abs_type_expr name bound ret =
+let univ name bound ret =
   let bind = bind name in
   let param: Type.param = { bind; bound } in
   let ret = ret (var bind) in
-  base (AbsTypeExpr { param; ret })
+  base (Univ { param; ret })
 
 let abs name bound body =
   let bind = bind name in

@@ -82,7 +82,7 @@ let rec solve type' =
         (* This is a hack that probably does not generalize well *)
         inline type' bind Neg
       else
-      let type' = (Type.abs_type_expr { bind; bound = upper } type') in
+      let type' = (Type.univ { bind; bound = upper } type') in
       let* () = add_type bind upper in
       return type'
     | Some [], None ->

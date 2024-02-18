@@ -35,16 +35,16 @@ let tests = [
   case "A | B | C" (union [a; b; c]);
   case "(A & B) | (C & D)" (union [inter [a; b]; inter [c; d]]);
 
-  (* expression abstractions *)
-  case "(A) -> B" (abs_expr a b);
-  case "(A) -> (B | C)" (abs_expr a (union [b; c]));
-  case "(A, B) -> C" (abs_expr a (abs_expr b c));
+  (* lambda abstractions *)
+  case "(A) -> B" (lam a b);
+  case "(A) -> (B | C)" (lam a (union [b; c]));
+  case "(A, B) -> C" (lam a (lam b c));
 
-  (* type to expression abstractions *)
-  case "[A: Top] -> A" (abs_type_expr "A" top id);
-  case "[A: Top] -> B" (abs_type_expr "A" top (inline b));
-  case "[A: Top] -> (B | C)" (abs_type_expr "A" top (inline (union [b; c])));
-  case "[A: Top, B: Top] -> {A, B}" (abs_type_expr "A" top (fun a -> (abs_type_expr "B" top (fun b -> tuple [a; b]))));
+  (* univer abstractions *)
+  case "[A: Top] -> A" (univ "A" top id);
+  case "[A: Top] -> B" (univ "A" top (inline b));
+  case "[A: Top] -> (B | C)" (univ "A" top (inline (union [b; c])));
+  case "[A: Top, B: Top] -> {A, B}" (univ "A" top (fun a -> (univ "B" top (fun b -> tuple [a; b]))));
 
   (* type abstractions *)
   case "[A: Top] => A" (abs "A" top id);
@@ -53,8 +53,8 @@ let tests = [
   case "[A: Top, B: Top] => {A, B}" (abs "A" top (fun a -> (abs "B" top (fun b -> tuple [a; b]))));
 
   (* abstractions *)
-  case "(A) -> [B: Top] -> C" (abs_expr a (abs_type_expr "B" top (inline c)));
-  case "[A: Top] -> (B) -> C" (abs_type_expr "A" top (inline (abs_expr b c)));
+  case "(A) -> [B: Top] -> C" (lam a (univ "B" top (inline c)));
+  case "[A: Top] -> (B) -> C" (univ "A" top (inline (lam b c)));
 
   (* type applications *)
   (* NOTE: the variable bounds are wrong but it is not a problem for now *)

@@ -1,0 +1,3 @@
+(library
+  (name prim)
+  (libraries abt clam eval))

@@ -1,8 +1,4 @@
-open Clam
-open Clam.Lib
-
 open Config
-open Error
 
 let read_file file_name =
   let input =
@@ -19,28 +15,47 @@ let read_file file_name =
     close_in input;
     Failure.raise ("Cannot read file `" ^ file_name ^ "`.")
 
+let parse code config =
+  let ast = Parser.parse code in
+  if config.show_ast then
+    print_endline(Ast.display_program ast);
+  ast
+
+let desugar ast =
+  Sugar.desugar ast Prim.binds
+
+let type_check abt config =
+  let types = Clam.Lib.check abt Prim.types in
+  if config.show_types then
+    List.iter (fun (def, type') ->
+      print_endline((def: Abt.bind_expr).name ^ ": " ^ Clam.TypeDisplay.display type')
+    ) types;
+  ()
+
+let eval abt =
+  let main = (match List.find_opt (fun def -> def.Abt.bind.name = "main") abt.Abt.exprs with
+  | Some main -> main
+  | None -> Error.handle_main ()
+  ) in
+  Eval.eval main abt.exprs Prim.values print_endline
+
 let interpret config file_name =
   let file_text = read_file file_name in
   let code = { Code.name = file_name; text = file_text } in
-  let ast = try
-    Parser.parse code
-  with Parser.Error message ->
-    print_endline("SYNTAX ERROR: " ^ message);
-    exit(-1)
-  in
   try
-    if config.show_ast then
-      print_endline(Ast.display_program ast);
-    let abt = modelize ast in
-    let def_types = type' abt in
-    if config.show_types then
-      List.iter (fun (def, type') ->
-        print_endline((def: Abt.bind_expr).name ^ ": " ^ TypeDisplay.display type')
-      ) def_types;
-    eval abt print_endline
-  with Error message ->
-    print_endline message;
-    exit(-1)
+    let ast = parse code config in
+    let abt = desugar ast in
+    type_check abt config;
+    eval abt
+  with
+  | Parser.Error error ->
+    Error.handle_parser error
+  | Sugar.Error error ->
+    Error.handle_sugar error
+  | Clam.Error.Error error ->
+    Error.handle_type error
+  | Eval.Error error ->
+    Error.handle_eval error
 
 let () =
   try

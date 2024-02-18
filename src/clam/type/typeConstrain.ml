@@ -131,18 +131,18 @@ and constrain_base pos sub sup =
     constrain_tuple pos sub_tuple sup_tuple
   | Record sub_record, Record sup_record ->
     constrain_record pos sub_record sup_record
-  | AbsExpr sub_abs, AbsExpr sup_abs ->
-    constrain_abs pos sub_abs sup_abs
-  | AbsTypeExpr sub_abs, _ ->
+  | Lam sub_lam, Lam sup_lam ->
+    constrain_lam pos sub_lam sup_lam
+  | Univ sub_univ, _ ->
     let* var = make_var in
-    let* param = constrain pos var sub_abs.param.bound in
+    let* param = constrain pos var sub_univ.param.bound in
     let* ctx = get_context in
-    let ret = TypeSystem.substitute_arg ctx sub_abs.param.bind var sub_abs.ret in
+    let ret = TypeSystem.substitute_arg ctx sub_univ.param.bind var sub_univ.ret in
     let* ret = constrain pos ret (Type.base sup) in
     return (param && ret)
-  | _, AbsTypeExpr sup_abs ->
-    with_type sup_abs.param.bind sup_abs.param.bound
-      (constrain pos (Type.base sub) sup_abs.ret)
+  | _, Univ sup_univ ->
+    with_type sup_univ.param.bind sup_univ.param.bound
+      (constrain pos (Type.base sub) sup_univ.ret)
   | _, _ ->
     let* ctx = get_context in
     let result = TypeSystem.isa ctx (Type.base sub) (Type.base sup) in
@@ -180,13 +180,13 @@ and constrain_record pos sub_record sup_record =
   map_all (fun sup_attr -> constrain_record_attr pos sub_record sup_attr) sup_record.attrs
 
 and constrain_record_attr pos sub_record sup_attr =
-  match Util.NameMap.find_opt sup_attr.name sub_record.attrs with
+  match Util.NameMap.find_opt sup_attr.label sub_record.attrs with
   | Some sub_attr ->
     constrain pos sub_attr.type' sup_attr.type'
   | None ->
     return true
 
-and constrain_abs pos sub_abs sup_abs =
+and constrain_lam pos sub_abs sup_abs =
   let* param = constrain pos sup_abs.param sub_abs.param in
   let* ret = constrain pos sub_abs.ret sup_abs.ret in
   return (param && ret)
