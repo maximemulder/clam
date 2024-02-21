@@ -67,38 +67,38 @@ let make_state defs exprs =
 
 let get_context state =
   let assumptions = List.append
-    (List.map (fun (entry: entry_type) -> { TypeContext.bind = entry.bind; bound = entry.bound }) state.types)
-    (List.map (fun (entry: entry_var) -> { TypeContext.bind = entry.bind; bound = entry.upper }) state.vars)
+    (List.map (fun (entry: entry_type) -> { Type.Context.bind = entry.bind; bound = entry.bound }) state.types)
+    (List.map (fun (entry: entry_var) -> { Type.Context.bind = entry.bind; bound = entry.upper }) state.vars)
   in
-  { TypeContext.assumptions }, state
+  { Type.Context.assumptions }, state
 
 let validate type' =
   let* ctx = get_context in
-  return (TypeValidate.validate ctx type')
+  return (Type.Validate.validate ctx type')
 
 let validate_proper type' =
   let* ctx = get_context in
-  return (TypeValidate.validate_proper ctx type')
+  return (Type.Validate.validate_proper ctx type')
 
 let substitute bind arg type' =
   let* ctx = get_context in
-  return (TypeSystem.substitute_arg ctx bind arg type')
+  return (Type.System.substitute_arg ctx bind arg type')
 
 let is left right =
   let* ctx = get_context in
-  return (TypeSystem.is ctx left right)
+  return (Type.System.is ctx left right)
 
 let isa sub sup =
   let* ctx = get_context in
-  return (TypeSystem.isa ctx sub sup)
+  return (Type.System.isa ctx sub sup)
 
 let join left right =
   let* ctx = get_context in
-  return (TypeSystem.join ctx left right)
+  return (Type.System.join ctx left right)
 
 let meet left right =
   let* ctx = get_context in
-  return (TypeSystem.meet ctx left right)
+  return (Type.System.meet ctx left right)
 
 (* STATE FUNCTION *)
 
@@ -148,11 +148,11 @@ let get_var_upper bind =
 
 let update_var_lower bind bound =
   let* ctx = get_context in
-  update_var_entry bind (fun entry -> { entry with lower = TypeSystem.join ctx entry.lower bound })
+  update_var_entry bind (fun entry -> { entry with lower = Type.System.join ctx entry.lower bound })
 
 let update_var_upper bind bound =
   let* ctx = get_context in
-  update_var_entry bind (fun entry -> { entry with upper = TypeSystem.meet ctx entry.upper bound })
+  update_var_entry bind (fun entry -> { entry with upper = Type.System.meet ctx entry.upper bound })
 
 let remove_def bind state =
   let defs = List.filter (fun (entry: entry_def) -> not (cmp_bind entry.bind bind)) state.defs in

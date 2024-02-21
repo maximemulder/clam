@@ -1,9 +1,9 @@
-open Type
+open Node
 
 let rec validate_proper ctx type' =
   let type'' = validate ctx type' in
-  if TypeKind.get_kind ctx type'' <> TypeKind.Type then
-    TypeError.validate_proper type'
+  if Kind.get_kind ctx type'' <> Kind.Type then
+    Error.validate_proper type'
   else
     type''
 
@@ -65,42 +65,42 @@ and validate_app ctx app =
   let abs = validate ctx app.abs in
   let arg = validate ctx app.arg in
   let param = validate_app_param ctx abs in
-  if not (TypeSystem.isa ctx arg param) then
-    TypeError.validate_app_arg app param arg
+  if not (System.isa ctx arg param) then
+    Error.validate_app_arg app param arg
   else
-  TypeSystem.compute ctx abs arg
+  System.compute ctx abs arg
 
 and validate_union ctx union =
   let left  = validate ctx union.left  in
   let right = validate ctx union.right in
-  if TypeKind.get_kind ctx left <> TypeKind.get_kind ctx right then
-    TypeError.validate_union_kind union
+  if Kind.get_kind ctx left <> Kind.get_kind ctx right then
+    Error.validate_union_kind union
   else
-  TypeSystem.join ctx left right
+  System.join ctx left right
 
 and validate_inter ctx inter =
   let left  = validate ctx inter.left  in
   let right = validate ctx inter.right in
-  if TypeKind.get_kind ctx left <> TypeKind.get_kind ctx right then
-    TypeError.validate_inter_kind inter
+  if Kind.get_kind ctx left <> Kind.get_kind ctx right then
+    Error.validate_inter_kind inter
   else
-  TypeSystem.meet ctx left right
+  System.meet ctx left right
 
 and validate_app_param ctx abs =
   validate_app_param_union ctx abs
 
 and validate_app_param_union ctx union =
   let types = List.map (validate_app_param_inter ctx) union.union in
-  Util.list_reduce (TypeSystem.meet ctx) types
+  Util.list_reduce (System.meet ctx) types
 
 and validate_app_param_inter ctx inter =
   let types = List.map (validate_app_param_base ctx) inter.inter in
-  Util.list_reduce (TypeSystem.join ctx) types
+  Util.list_reduce (System.join ctx) types
 
 and validate_app_param_base ctx type' =
   match type' with
   | Var var ->
-    let bound = TypeContext.get_bind_type ctx var.bind in
+    let bound = Context.get_bind_type ctx var.bind in
     validate_app_param ctx bound
   | Abs abs ->
     abs.param.bound
@@ -110,5 +110,5 @@ and validate_app_param_base ctx type' =
 and validate_param_with ctx param f =
   let bound = validate ctx param.bound in
   let param = { bind = param.bind; bound } in
-  let other = f (TypeContext.add_bind_type ctx param.bind param.bound) in
+  let other = f (Context.add_bind_type ctx param.bind param.bound) in
   param, other

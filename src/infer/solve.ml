@@ -4,8 +4,8 @@
   out in which order the type variables should be treated.
 *)
 
-open TypePolar
-open TypeState
+open Polar
+open State
 
 let prioritize f vars =
   let news = List.filter f vars in
@@ -37,15 +37,15 @@ let get_variables state =
 let substitute_state bind arg state =
   let ctx, _ = get_context state in
   let vars = List.map (fun entry -> { entry with
-    lower = TypeSystem.substitute_arg ctx bind arg entry.lower;
-    upper = TypeSystem.substitute_arg ctx bind arg entry.upper;
+    lower = Type.System.substitute_arg ctx bind arg entry.lower;
+    upper = Type.System.substitute_arg ctx bind arg entry.upper;
   }) state.vars in
   let exprs =  List.map (fun entry -> {
-    entry with type' = TypeSystem.substitute_arg ctx bind arg entry.type'
+    entry with type' = Type.System.substitute_arg ctx bind arg entry.type'
   }) state.exprs in
   (), { state with vars; exprs }
 
-open TypeInline
+open Inline
 
 let inline_state bind state =
   let vars = List.map (fun entry -> { entry with

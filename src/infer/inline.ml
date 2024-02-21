@@ -1,5 +1,5 @@
-open TypePolar
-open TypeState
+open Polar
+open State
 
 let rec inline (type': Type.type') bind pol =
   inline_union type' bind pol
@@ -7,12 +7,12 @@ let rec inline (type': Type.type') bind pol =
 and inline_union union bind pol =
   let* ctx = get_context in
   let* types = map_list (fun type' -> inline_inter type' bind pol) union.union in
-  return (Util.list_reduce (TypeSystem.join ctx) types)
+  return (Util.list_reduce (Type.System.join ctx) types)
 
 and inline_inter inter bind pol =
   let* ctx = get_context in
   let* types = map_list (fun type' -> inline_base type' bind pol) inter.inter in
-  return (Util.list_reduce (TypeSystem.meet ctx) types)
+  return (Util.list_reduce (Type.System.meet ctx) types)
 
 and inline_base type' bind pol =
   match type' with

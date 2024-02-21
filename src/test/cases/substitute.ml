@@ -1,14 +1,13 @@
-open Clam
 open Vars
 
 let test ctx type' bind other (_: unit) =
-  let entry = TypeContext.entry bind other in
-  TypeSystem.substitute ctx entry type'
+  let entry = Context.entry bind other in
+  System.substitute ctx entry type'
 
 let name name' other type' expect =
-  let other = TypeDisplay.display other in
-  let type' = TypeDisplay.display type' in
-  let expect = TypeDisplay.display expect in
+  let other  = display other  in
+  let type'  = display type'  in
+  let expect = display expect in
   "app [`" ^  name' ^ "` --> `" ^ other ^ "`] `" ^ type' ^ "` `" ^ expect ^ "`"
 
 let case name' other type' expect =

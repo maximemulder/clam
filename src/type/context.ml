@@ -1,13 +1,15 @@
+open Node
+
 type entry = {
   bind: Abt.bind_type;
-  bound: Type.type';
+  bound: type';
 }
 
-let entry (bind: Abt.bind_type) (bound: Type.type') =
+let entry bind bound =
   { bind; bound }
 
-let entry_param (left: Type.param) (right: Type.param) =
-  { bind = right.bind; bound = Type.var left.bind }
+let entry_param (left: param) (right: param) =
+  { bind = right.bind; bound = var left.bind }
 
 let is_bind entry bind =
   entry.bind == bind

@@ -12,7 +12,7 @@
   ```
 *)
 
-open TypeState
+open State
 
 module type SEARCHER = sig
   type t
@@ -47,8 +47,8 @@ module Searcher(S: SEARCHER) = struct
       )
     | App app ->
       let ctx, _ = get_context state in
-      let abs = TypeSystem.promote ctx app.abs in
-      let type' = TypeSystem.compute ctx abs app.arg in
+      let abs = Type.System.promote ctx app.abs in
+      let type' = Type.System.compute ctx abs app.arg in
       search state f type'
     | _ ->
       f type'
@@ -62,10 +62,10 @@ module SearcherProj = struct
   let bot = Type.bot
   let join state =
     let ctx, _ = get_context state in
-    TypeSystem.join ctx
+    Type.System.join ctx
   let meet state =
     let ctx, _ = get_context state in
-    TypeSystem.meet ctx
+    Type.System.meet ctx
 end
 
 let make_param bound =
@@ -78,23 +78,23 @@ module SearcherAppType = struct
 
   let with_merge_param ctx bound left right f =
     let param = make_param bound in
-    let left_ret  = TypeSystem.substitute_body ctx param left.param  left.ret  in
-    let right_ret = TypeSystem.substitute_body ctx param right.param right.ret in
-    let ctx = TypeContext.add_bind_type ctx param.bind param.bound in
+    let left_ret  = Type.System.substitute_body ctx param left.param  left.ret  in
+    let right_ret = Type.System.substitute_body ctx param right.param right.ret in
+    let ctx = Type.Context.add_bind_type ctx param.bind param.bound in
     let ret = f ctx left_ret right_ret in
     { param; ret }
 
   let join state left right =
     let ctx, _ = get_context state in
-    let bound = TypeSystem.meet ctx left.param.bound right.param.bound in
-    with_merge_param ctx bound left right TypeSystem.join
+    let bound = Type.System.meet ctx left.param.bound right.param.bound in
+    with_merge_param ctx bound left right Type.System.join
 
   let meet state left right =
     let ctx, _ = get_context state in
-    if not (TypeSystem.is_param ctx left.param right.param) then
+    if not (Type.System.is_param ctx left.param right.param) then
       bot
     else
-    with_merge_param ctx left.param.bound left right TypeSystem.meet
+    with_merge_param ctx left.param.bound left right Type.System.meet
 end
 
 module SearchProj    = Searcher(SearcherProj)

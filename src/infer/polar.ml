@@ -1,4 +1,4 @@
-open TypeState
+open State
 
 let rec occurs_directly bind (type': Type.type') =
   occurs_directly_union bind type'

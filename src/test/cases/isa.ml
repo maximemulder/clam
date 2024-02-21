@@ -1,12 +1,11 @@
-open Clam
 open Vars
 
 let test ctx sub sup (_: unit) =
-  TypeSystem.isa ctx sub sup
+  System.isa ctx sub sup
 
 let name sub sup expect =
-  let sub = TypeDisplay.display sub in
-  let sup = TypeDisplay.display sup in
+  let sub = display sub in
+  let sup = display sup in
   let suffix = if expect then "" else "!" in
   "isa" ^ suffix ^ " `" ^ sub ^ "` `" ^ sup ^ "`"
 
@@ -15,8 +14,8 @@ let case sub sup expect ctx =
 
 let case_var name bound case expect ctx =
   let bind = { Abt.name } in
-  let ctx = TypeContext.add_bind_type ctx bind bound in
-  let var = Type.var bind in
+  let ctx = Context.add_bind_type ctx bind bound in
+  let var = var bind in
   case var expect ctx
 
 let tests = [

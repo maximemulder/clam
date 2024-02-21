@@ -1,12 +1,11 @@
-open Clam
 open Vars
 
 let test ctx type' (_: unit) =
-  TypeSystem.promote ctx type'
+  System.promote ctx type'
 
 let name type' expect =
-  let type' = TypeDisplay.display type' in
-  let expect = TypeDisplay.display expect in
+  let type'  = display type'  in
+  let expect = display expect in
   "prom `" ^ type' ^ "` `" ^ expect ^ "`"
 
 let case type' expect ctx =
@@ -14,8 +13,8 @@ let case type' expect ctx =
 
 let case_var name bound case ctx =
   let bind = { Abt.name } in
-  let ctx = TypeContext.add_bind_type ctx bind bound in
-  let var = Type.var bind in
+  let ctx = Context.add_bind_type ctx bind bound in
+  let var = var bind in
   case var ctx
 
 let tests = [

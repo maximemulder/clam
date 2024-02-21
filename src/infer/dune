@@ -1,0 +1,3 @@
+(library
+  (name infer)
+  (libraries abt type))

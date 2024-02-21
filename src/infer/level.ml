@@ -6,7 +6,7 @@
   occurences are lowered.
 *)
 
-open TypeState
+open State
 
 let rec levelize (type': Type.type') level direct =
   levelize_union type' level direct

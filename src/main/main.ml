@@ -1,71 +1,41 @@
-open Config
-
-let read_file file_name =
-  let input =
-  try
-    open_in file_name
-  with _ ->
-    Failure.raise ("Cannot open file `" ^ file_name ^ "`. (does the file exist ?)")
-  in
-  try
-    let text = really_input_string input (in_channel_length input) in
-    close_in input;
-    text
-  with _ ->
-    close_in input;
-    Failure.raise ("Cannot read file `" ^ file_name ^ "`.")
-
-let parse code config =
+let parse code show_ast =
   let ast = Parser.parse code in
-  if config.show_ast then
+  if show_ast then
     print_endline(Ast.display_program ast);
   ast
 
 let desugar ast =
   Sugar.desugar ast Prim.binds
 
-let type_check abt config =
-  let types = Clam.Lib.check abt Prim.types in
-  if config.show_types then
+let type_check abt show_types =
+  let types = Infer.check abt Prim.types in
+  if show_types then
     List.iter (fun (def, type') ->
-      print_endline((def: Abt.bind_expr).name ^ ": " ^ Clam.TypeDisplay.display type')
+      print_endline((def: Abt.bind_expr).name ^ ": " ^ Type.display type')
     ) types;
   ()
 
-let eval abt =
+let eval abt print_out print_err =
   let main = (match List.find_opt (fun def -> def.Abt.bind.name = "main") abt.Abt.exprs with
   | Some main -> main
-  | None -> Error.handle_main ()
+  | None -> Error.handle_main () print_err
   ) in
-  Eval.eval main abt.exprs Prim.values print_endline
+  Eval.eval main abt.exprs Prim.values print_out
 
-let interpret config file_name =
-  let file_text = read_file file_name in
-  let code = { Code.name = file_name; text = file_text } in
+let run code show_ast show_types _show_values print_out print_err =
   try
-    let ast = parse code config in
+    let ast = parse code show_ast in
     let abt = desugar ast in
-    type_check abt config;
-    eval abt
+    type_check abt show_types;
+    eval abt print_out print_err
   with
   | Parser.Error error ->
-    Error.handle_parser error
+    Error.handle_parser error print_err
   | Sugar.Error error ->
-    Error.handle_sugar error
-  | Clam.Error.Error error ->
-    Error.handle_type error
+    Error.handle_sugar error print_err
+  | Type.Error error ->
+    Error.handle_type error print_err
+  | Infer.Error error ->
+    Error.handle_infer error print_err
   | Eval.Error error ->
-    Error.handle_eval error
-
-let () =
-  try
-    let config = parse_args (Sys.argv |> Array.to_list |> List.tl) in
-    if config.help then
-      print_endline Help.help
-    else match config.file with
-    | Some file_name ->
-      interpret config file_name
-    | None ->
-      Failure.raise "Missing filename argument."
-  with Failure.Error message ->
-    Failure.exit message
+    Error.handle_eval error print_err

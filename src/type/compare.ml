@@ -1,4 +1,4 @@
-open Type
+open Node
 
 let rec substitute type' bind other =
   substitute_union type' bind other

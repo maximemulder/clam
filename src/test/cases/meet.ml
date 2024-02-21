@@ -1,13 +1,12 @@
-open Clam
 open Vars
 
 let test ctx left right (_: unit) =
-  TypeSystem.meet ctx left right
+  System.meet ctx left right
 
 let name left right expect =
-  let left   = TypeDisplay.display left   in
-  let right  = TypeDisplay.display right  in
-  let expect = TypeDisplay.display expect in
+  let left   = display left   in
+  let right  = display right  in
+  let expect = display expect in
   "meet `" ^ left ^ "` `" ^ right ^ "` `" ^ expect ^ "`"
 
 let case left right expect ctx =

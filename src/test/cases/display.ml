@@ -1,7 +1,7 @@
 open Vars
 
 let test type' (_: unit) =
-  Clam.TypeDisplay.display type'
+  display type'
 
 let case name type' =
   Case.make_case Case.string name (test type') name

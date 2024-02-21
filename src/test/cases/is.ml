@@ -1,12 +1,11 @@
-open Clam
 open Vars
 
 let test ctx left right (_: unit) =
-  TypeSystem.is ctx left right
+  System.is ctx left right
 
 let name left right expect =
-  let left  = TypeDisplay.display left in
-  let right = TypeDisplay.display right in
+  let left  = display left in
+  let right = display right in
   let suffix = if expect then "" else "!" in
   "is" ^ suffix ^ " `" ^ left ^ "` `" ^ right ^ "`"
 
@@ -15,8 +14,8 @@ let case left right expect ctx =
 
 let case_var name bound case expect ctx =
   let bind = { Abt.name } in
-  let ctx = TypeContext.add_bind_type ctx bind bound in
-  let var = Type.var bind in
+  let ctx = Context.add_bind_type ctx bind bound in
+  let var = var bind in
   case var expect ctx
 
 let tests = [

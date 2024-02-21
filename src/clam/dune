@@ -1,9 +1,8 @@
-(library
+(executable
   (name clam)
-  (libraries abt code util))
-
-(include_subdirs unqualified)
+  (public_name clam)
+  (libraries main parser prim sugar))
 
 (env
   (dev
-    (flags (:standard -warn-error -A  -w -30))))
+    (flags (:standard -warn-error -A))))

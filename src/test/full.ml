@@ -33,17 +33,10 @@ let test file_name =
   let file_text = read_file file_name in
   let code = { Code.name = file_name; text = file_text } in
   let out_buffer = make_buffer () in
-  let err_result = try
-    let ast = Parser.parse code in
-    let abt = Sugar.desugar ast Prim.binds in
-    let _ = Clam.Lib.check abt Prim.types in
-    let main = List.find (fun def -> def.Abt.bind.name = "main") abt.Abt.exprs in
-    Eval.eval main abt.exprs Prim.values (write_buffer out_buffer);
-    ""
-  with Clam.Error.Error error ->
-    error.message
-  in
+  let err_buffer = make_buffer () in
+  Main.run code false false false (write_buffer out_buffer) (write_buffer err_buffer);
   let out_result = out_buffer.string in
+  let err_result = err_buffer.string in
   let out_expect = read_file (file_name ^ ".out") in
   if out_result <> out_expect then (
     print_endline "TEST ERROR:";

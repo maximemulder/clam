@@ -1,6 +1,14 @@
-open Abt
+type error = {
+  message: string;
+  span: Code.span;
+}
 
-let raise = Error.raise
+exception Error of error
+
+let raise message span =
+  raise (Error { message; span })
+
+open Abt
 
 let validate_proper (type': Abt.type') =
   let span = type_span type' in
@@ -23,30 +31,30 @@ let validate_union_kind (union: Abt.type_union) =
     ("both operands of union `" ^ union ^ "` must be of the same kind")
     span
 
-let validate_app_arg (app: Abt.type_app) (param: Type.type') (arg: Type.type') =
+let validate_app_arg (app: Abt.type_app) (param: Node.type') (arg: Node.type') =
   let span = app.span in
-  let param = TypeDisplay.display param in
-  let arg = TypeDisplay.display arg in
+  let param = Display.display param in
+  let arg = Display.display arg in
   raise
     ("expected subtype of `" ^ param ^ "` but found type `" ^ arg ^ "`")
     span
 
-let check_type expr (type': Type.type') (constr: Type.type') =
+let check_type expr (type': Node.type') (constr: Node.type') =
   let span = expr_span expr in
-  let type' = TypeDisplay.display type' in
-  let constr = TypeDisplay.display constr in
+  let type' = Display.display type' in
+  let constr = Display.display constr in
   raise
     ("expected expression of type `" ^ constr ^ "` but found expression of type `" ^ type' ^ "`")
     span
 
-let check_tuple (expr: Abt.expr_tuple) (constr: Type.base) =
+let check_tuple (expr: Abt.expr_tuple) (constr: Node.base) =
   let span = expr.span in
-  let constr = TypeDisplay.display_base constr in
+  let constr = Display.display_base constr in
   raise
     ("expected expression of type `" ^ constr ^ "` but found a tuple")
     span
 
-let check_tuple_arity (expr: Abt.expr_tuple) (constr: Type.tuple) =
+let check_tuple_arity (expr: Abt.expr_tuple) (constr: Node.tuple) =
   let span = expr.span in
   let arity = string_of_int (List.length expr.elems) in
   let constr_arity = string_of_int (List.length constr.elems) in
@@ -54,47 +62,47 @@ let check_tuple_arity (expr: Abt.expr_tuple) (constr: Type.tuple) =
     ("expected tuple of " ^ constr_arity ^ " elements but found tuple of " ^ arity ^ " elements")
     span
 
-let check_record (expr: expr_record) (constr: Type.base) =
+let check_record (expr: expr_record) (constr: Node.base) =
   let span = expr.span in
-  let constr = TypeDisplay.display_base constr in
+  let constr = Display.display_base constr in
   raise
     ("expected expression of type `" ^ constr ^ "` but found a record")
     span
 
-let check_record_attr (expr: Abt.expr_record) (constr: Type.attr) =
+let check_record_attr (expr: Abt.expr_record) (constr: Node.attr) =
   let span = expr.span in
   let label = constr.label in
-  let type' = TypeDisplay.display constr.type' in
+  let type' = Display.display constr.type' in
   raise
     ("expected attribute `" ^ label ^ "` of type `" ^ type' ^ "` but found no attribute with this name")
     span
 
-let check_abs (expr: Abt.expr_lam_abs) (constr: Type.base) =
+let check_abs (expr: Abt.expr_lam_abs) (constr: Node.base) =
   let span = expr.span in
-  let constr = TypeDisplay.display_base constr in
+  let constr = Display.display_base constr in
   raise
     ("expected expression of type `" ^ constr ^ "` but found abstraction")
     span
 
-let check_abs_param (param: Abt.param_expr) (param': Type.type') (constr: Type.type') =
+let check_abs_param (param: Abt.param_expr) (param': Node.type') (constr: Node.type') =
   let span = param.span in
-  let param' = TypeDisplay.display param' in
-  let constr = TypeDisplay.display constr in
+  let param' = Display.display param' in
+  let constr = Display.display constr in
   raise
     ("expected parameter to be a supertype of `" ^ constr ^ "` but found type `" ^ param' ^ "`")
     span
 
 let check_type_abs (expr: expr_univ_abs) constr =
   let span = expr.span in
-  let constr = TypeDisplay.display_base constr in
+  let constr = Display.display_base constr in
   raise
     ("expected expression of type `" ^ constr ^ "` but found type abstraction")
     span
 
-let check_type_abs_param (expr: expr_univ_abs) bound (constr: Type.param) =
+let check_type_abs_param (expr: expr_univ_abs) bound (constr: Node.param) =
   let span = expr.span in
-  let bound = TypeDisplay.display bound in
-  let constr = TypeDisplay.display constr.bound in
+  let bound = Display.display bound in
+  let constr = Display.display constr.bound in
   raise
     ("expected type parameter of type `" ^ constr ^ "` but found parameter of type `" ^ bound ^ "`")
     span
@@ -104,15 +112,8 @@ let infer_recursive def =
     ("recursive definition `" ^ def.bind.name ^ "`, type annotation needed")
     def.span
 
-let infer_elem elem type' =
-  let type' = TypeDisplay.display type' in
-  let index = string_of_int elem.index in
-  raise
-    ("expected tuple expression with element `" ^ index ^"` but found expression of type `" ^ type' ^ "`")
-    elem.span
-
 let infer_attr (attr: expr_attr) type' =
-  let type' = TypeDisplay.display type' in
+  let type' = Display.display type' in
   raise
     ("expected record expression with attribute `" ^ attr.label ^ "` but found expression of type `" ^ type' ^ "`")
     attr.span
@@ -123,30 +124,10 @@ let infer_abs_param (param: param_expr) =
     param.span
 
 let infer_app_kind (app: expr_univ_app) type' =
-  let type' = TypeDisplay.display type' in
+  let type' = Display.display type' in
   raise
     ("expected expression abstraction but found expression of type `" ^ type' ^ "`")
     app.span
-
-let infer_type_app_kind (app: expr_univ_app) type' =
-  let type' = TypeDisplay.display type' in
-  raise
-    ("expected type to expression abstraction but found type `" ^ type' ^ "`")
-    app.span
-
-let infer_type_app_type (app: expr_univ_app) arg bound =
-  let arg = TypeDisplay.display arg in
-  let bound = TypeDisplay.display bound in
-  raise
-    ("expected subtype of `" ^ bound ^ "` but found type `" ^ arg ^ "`")
-    app.span
-
-let infer_constrain span (sub: Type.type') (sup: Type.type') =
-  let sub = TypeDisplay.display sub in
-  let sup = TypeDisplay.display sup in
-  raise
-    ("cannot constrain `" ^ sub ^ "` as a subtype of `" ^ sup ^ "`")
-    span
 
 let infer_recursive_type (def: def_expr) =
   raise

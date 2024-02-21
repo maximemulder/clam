@@ -1,6 +1,6 @@
-open TypeState
-open TypeConstrain
-open TypeSolve
+open State
+open Constrain
+open Solve
 
 (* TYPE INFERENCE *)
 
@@ -79,12 +79,12 @@ and infer_record_attr attr =
 
 and infer_elem expr =
   let* tuple = infer expr.tuple in
-  let* type' = TypeSearch.search_proj (infer_elem_base expr.index) tuple in
+  let* type' = Search.search_proj (infer_elem_base expr.index) tuple in
   match type' with
   | Some type' ->
     return type'
   | None ->
-    TypeError.infer_elem expr tuple
+    Error.raise_elem expr tuple
 
 and infer_elem_base index tuple =
   match tuple with
@@ -137,17 +137,17 @@ and infer_univ_abs expr =
 
 and infer_univ_app expr =
   let* univ = infer expr.abs in
-  let* type' = TypeSearch.search_app_type infer_univ_app_base univ in
+  let* type' = Search.search_app_type infer_univ_app_base univ in
   match type' with
   | Some { param; ret } ->
     let* arg = validate expr.arg in
     let* sub = isa arg param.bound in
     if not sub then
-      TypeError.infer_type_app_type expr arg param.bound
+      Error.raise_univ_type expr arg param.bound
     else
     substitute param.bind arg ret
   | None ->
-    TypeError.infer_type_app_kind expr univ
+    Error.raise_univ_kind expr univ
 
 and infer_univ_app_base univ =
   match univ with
@@ -202,5 +202,5 @@ let check_defs defs primitives =
   List.map (fun (entry: entry_expr) -> entry.bind, entry.type') state.exprs
 
 let check_types types =
-  let _ = List.map (TypeValidate.validate TypeContext.empty) types in
+  let _ = List.map (Type.Validate.validate Type.Context.empty) types in
   ()

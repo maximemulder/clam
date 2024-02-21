@@ -1,4 +1,6 @@
-(*
+open Node
+
+(**
   Direction in which the syntax of a type is recursive.
 *)
 type recursion =
@@ -7,7 +9,7 @@ type recursion =
   | R (* Right *)
   | B (* Both *)
 
-let single (type': Type.type') =
+let single (type': type') =
   match type' with
   | { union = [{ inter = [base] }] } ->
     Some base
@@ -33,44 +35,44 @@ let group_types types parent =
   else
     N, parent
 
-let rec curry_lam (lam: Type.lam) =
+let rec curry_lam (lam: lam) =
   let param = lam.param in
   match single lam.ret with
-  | Some (Type.Lam lam) ->
+  | Some (Lam lam) ->
     let params, ret = curry_lam lam in
     param :: params, ret
   | _ ->
     [lam.param], lam.ret
 
-let rec curry_univ (univ: Type.univ) =
+let rec curry_univ (univ: univ) =
   let param = univ.param in
   match single univ.ret with
-  | Some (Type.Univ univ) ->
+  | Some (Univ univ) ->
     let params, ret = curry_univ univ in
     param :: params, ret
   | _ ->
     [univ.param], univ.ret
 
-let rec curry_abs (abs: Type.abs) =
+let rec curry_abs (abs: abs) =
   let param = abs.param in
   match single abs.body with
-  | Some (Type.Abs abs) ->
+  | Some (Abs abs) ->
     let params, ret = curry_abs abs in
     param :: params, ret
   | _ ->
     [abs.param], abs.body
 
-let rec curry_app (abs: Type.type') args =
+let rec curry_app (abs: type') args =
   match single abs with
-  | Some (Type.App app) ->
+  | Some (App app) ->
     curry_app app.abs (app.arg :: args)
   | _ ->
     abs, args
 
-let curry_app (app: Type.app) =
+let curry_app (app: app) =
   curry_app app.abs [app.arg]
 
-let rec display (type': Type.type') =
+let rec display (type': type') =
   display_union type'
 
 and display_union union parent =
@@ -155,9 +157,9 @@ let display type' =
 let display_base type' =
   display_base type' N
 
-let display_context_entry (entry: TypeContext.entry) =
+let display_context_entry (entry: Context.entry) =
     entry.bind.name ^ " <: " ^ display entry.bound
 
-let display_context (ctx: TypeContext.context) =
+let display_context (ctx: Context.context) =
   let entries = List.map display_context_entry ctx.assumptions in
   String.concat ", " entries

@@ -1,5 +1,4 @@
-open Clam
-open TypeContext
+open Type.Context
 
 let inline v _ = v
 
@@ -59,10 +58,10 @@ let ctx = {
 }
 
 let union types =
-  Util.list_reduce (TypeSystem.join ctx) types
+  Util.list_reduce (System.join ctx) types
 
 let inter types =
-  Util.list_reduce (TypeSystem.meet ctx) types
+  Util.list_reduce (System.meet ctx) types
 
 let a = var a
 let b = var b

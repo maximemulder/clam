@@ -1,5 +1,5 @@
-open TypeLevel
-open TypeState
+open Level
+open State
 
 (*
   This file contains the type constraining algorithm, which updates the environment constraints
@@ -137,7 +137,7 @@ and constrain_base pos sub sup =
     let* var = make_var in
     let* param = constrain pos var sub_univ.param.bound in
     let* ctx = get_context in
-    let ret = TypeSystem.substitute_arg ctx sub_univ.param.bind var sub_univ.ret in
+    let ret = Type.System.substitute_arg ctx sub_univ.param.bind var sub_univ.ret in
     let* ret = constrain pos ret (Type.base sup) in
     return (param && ret)
   | _, Univ sup_univ ->
@@ -145,7 +145,7 @@ and constrain_base pos sub sup =
       (constrain pos (Type.base sub) sup_univ.ret)
   | _, _ ->
     let* ctx = get_context in
-    let result = TypeSystem.isa ctx (Type.base sub) (Type.base sup) in
+    let result = Type.System.isa ctx (Type.base sub) (Type.base sup) in
     return result
 
 and constrain_sub_var pos sub_var sup =
@@ -196,4 +196,4 @@ let constrain pos sub sup =
   if result then
     return ()
   else
-    TypeError.infer_constrain pos sub sup
+    Error.raise_constrain pos sub sup
