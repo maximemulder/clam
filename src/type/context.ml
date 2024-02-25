@@ -21,6 +21,8 @@ type context = {
 let empty = { assumptions = [] }
 
 let get_bind_type ctx bind =
+  if List.for_all (fun a -> Util.flip is_bind bind a |> not) ctx.assumptions then
+    print_endline bind.name;
   let entry = List.find (Util.flip is_bind bind) ctx.assumptions in
   entry.bound
 

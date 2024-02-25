@@ -23,6 +23,7 @@ type entry_type = {
 
 type entry_var = {
   bind: Abt.bind_type;
+  level_orig: int;
   level: int;
   lower: Type.type';
   upper: Type.type';
@@ -125,6 +126,7 @@ let update_var_entry bind f state =
       entry
     ) state.vars in
   (), { state with vars }
+
 let get_def bind =
   let* entry = get_def_entry bind in
   return entry.def
@@ -189,7 +191,7 @@ let make_var state =
   let bind = { Abt.name = "'" ^ string_of_int counter.contents } in
   counter := counter.contents + 1;
   let type' = Type.var bind in
-  let var = { bind; level = state.level; lower = Type.bot; upper = Type.top } in
+  let var = { bind; level_orig = state.level; level = state.level; lower = Type.bot; upper = Type.top } in
   let state = { state with vars = var :: state.vars } in
   type', state
 
