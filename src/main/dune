@@ -1,3 +1,3 @@
 (library
   (name main)
-  (libraries code eval infer parser prim sugar type))
+  (libraries code eval infer parser prim sugar type util))

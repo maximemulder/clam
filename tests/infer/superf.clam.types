@@ -1,0 +1,4 @@
+bar: {Int, String}
+id: ['806: Top] -> ('806) -> '806
+foo: ['798: Top, '800: Top] -> (((Int) -> '798) & ((String) -> '800)) -> {'798, '800}
+main: Unit

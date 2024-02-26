@@ -1,41 +1,51 @@
-let parse code show_ast =
+type config = {
+  show_ast:    Util.writer option;
+  show_types:  Util.writer option;
+  show_values: Util.writer option;
+  print_out:   Util.writer;
+  print_err:   Util.writer;
+}
+
+let parse code config =
   let ast = Parser.parse code in
-  if show_ast then
-    print_endline(Ast.display_program ast);
+  (match config.show_ast with
+  | Some show_ast -> show_ast(Ast.display_program ast);
+  | None -> ());
   ast
 
 let desugar ast =
   Sugar.desugar ast Prim.binds
 
-let type_check abt show_types =
+let type_check abt config =
   let types = Infer.check abt Prim.types in
-  if show_types then
+  match config.show_types with
+  | Some show_types ->
     List.iter (fun (def, type') ->
-      print_endline((def: Abt.bind_expr).name ^ ": " ^ Type.display type')
-    ) types;
-  ()
+      show_types((def: Abt.bind_expr).name ^ ": " ^ Type.display type')
+    ) types
+  | None -> ()
 
-let eval abt print_out print_err =
+let eval abt config =
   let main = (match List.find_opt (fun def -> def.Abt.bind.name = "main") abt.Abt.exprs with
   | Some main -> main
-  | None -> Error.handle_main () print_err
+  | None -> Error.handle_main () config.print_err
   ) in
-  Eval.eval main abt.exprs Prim.values print_out
+  Eval.eval main abt.exprs Prim.values config.print_out
 
-let run code show_ast show_types _show_values print_out print_err =
+let run code config =
   try
-    let ast = parse code show_ast in
+    let ast = parse code config in
     let abt = desugar ast in
-    type_check abt show_types;
-    eval abt print_out print_err
+    type_check abt config;
+    eval abt config
   with
   | Parser.Error error ->
-    Error.handle_parser error print_err
-  | Sugar.Error error ->
-    Error.handle_sugar error print_err
-  | Type.Error error ->
-    Error.handle_type error print_err
-  | Infer.Error error ->
-    Error.handle_infer error print_err
-  | Eval.Error error ->
-    Error.handle_eval error print_err
+    Error.handle_parser error config.print_err
+  | Sugar.Error  error ->
+    Error.handle_sugar  error config.print_err
+  | Type.Error   error ->
+    Error.handle_type   error config.print_err
+  | Infer.Error  error ->
+    Error.handle_infer  error config.print_err
+  | Eval.Error   error ->
+    Error.handle_eval   error config.print_err

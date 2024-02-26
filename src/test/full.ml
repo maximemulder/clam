@@ -19,35 +19,77 @@ let read_file file_name =
   close_in input;
   text
 
+let read_file_opt file_name =
+  if Sys.file_exists (directory ^ file_name) then
+    read_file file_name
+  else
+    ""
+
 type buffer = {
-  mutable string: string;
+  mutable text: string;
 }
 
 let make_buffer () =
-  { string = "" }
+  { text = "" }
 
 let write_buffer buffer message =
-  buffer.string <- buffer.string ^ message ^ "\n"
+  buffer.text <- buffer.text ^ message ^ "\n"
+
+type channel = {
+  name: string;
+  expect: string;
+  result: buffer;
+}
+
+let make_channel file_name name ext =
+  {
+    name;
+    expect = read_file_opt (file_name ^ ext);
+    result = make_buffer ();
+  }
+
+let make_channel_opt file_name name ext =
+  if Sys.file_exists (directory ^ file_name ^ ext) then
+    Some (make_channel file_name name ext)
+  else
+    None
+
+let compare_channel file_name channel =
+  if channel.result.text <> channel.expect then (
+    print_endline("TEST ERROR (" ^ file_name ^ ", " ^ channel.name ^ "):");
+    print_endline("EXPECTED: \n" ^ channel.expect);
+    print_endline("FOUND: \n" ^ channel.result.text);
+    false)
+  else
+    true
+
+let compare_channel_opt file_name channel =
+  match channel with
+  | Some channel ->
+    compare_channel file_name channel
+  | None ->
+    true
 
 let test file_name =
   let file_text = read_file file_name in
   let code = { Code.name = file_name; text = file_text } in
-  let out_buffer = make_buffer () in
-  let err_buffer = make_buffer () in
-  Main.run code false false false (write_buffer out_buffer) (write_buffer err_buffer);
-  let out_result = out_buffer.string in
-  let err_result = err_buffer.string in
-  let out_expect = read_file (file_name ^ ".out") in
-  if out_result <> out_expect then (
-    print_endline "TEST ERROR:";
-    print_endline ("Expected output \"" ^ (String.escaped out_expect) ^ "\"");
-    print_endline ("Found output:   \"" ^ (String.escaped out_result) ^ "\"");
-    false
-  )
-  else if String.length err_result != 0 then
-    false
-  else
-    true
+  let channel_ast    = make_channel_opt file_name "ast"             ".ast"    in
+  let channel_types  = make_channel_opt file_name "types"           ".types"  in
+  let channel_values = make_channel_opt file_name "values"          ".values" in
+  let channel_out    = make_channel     file_name "standard output" ".out"    in
+  let channel_err    = make_channel     file_name "standard error"  ".err"    in
+  Main.run code {
+    show_ast    = Option.map (fun channel -> write_buffer channel.result) channel_ast;
+    show_types  = Option.map (fun channel -> write_buffer channel.result) channel_types;
+    show_values = Option.map (fun channel -> write_buffer channel.result) channel_values;
+    print_out   = write_buffer channel_out.result;
+    print_err   = write_buffer channel_err.result;
+  };
+  compare_channel_opt file_name channel_ast    &&
+  compare_channel_opt file_name channel_types  &&
+  compare_channel_opt file_name channel_values &&
+  compare_channel     file_name channel_out    &&
+  compare_channel     file_name channel_err
 
 let file_to_test file_name =
   let name = "full `" ^ file_name ^ "`" in

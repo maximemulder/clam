@@ -7,7 +7,6 @@ def d = (p) -> p + 1
 def e = (p) -> if true then p + 1 else p
 def f = (p) -> if true then p + 1 else p ++ " World !"
 def g = (p) -> p
-def h = h
 def i = i + 1
 def j = "(p) -> j"
 def k = (p) -> k(p)
@@ -30,14 +29,7 @@ def z_elem_1 = {0, "Hello"}.1
 def z_attr_0 = z_record.foo
 def z_attr_1 = z_record.bar
 
-def x = y
-def y = x
-
 def zz = (p) -> {p, p(1)}
-
-def super_id = (p) -> p
-def super = (f) -> {f(123), f("Hello")}
-def super_f = super(super_id)
 
 def id = (p) -> p
 

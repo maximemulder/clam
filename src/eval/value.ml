@@ -6,8 +6,6 @@ end
 
 module BindMap = Map.Make(BindKey)
 
-type writer = string -> unit
-
 type value =
 | VUnit
 | VBool   of bool
@@ -28,7 +26,7 @@ and lam_code = {
   frame: frame
 }
 
-and context = { value: value; out: writer }
+and context = { value: value; out: Util.writer }
 
 and frame = {
   parent: frame option;

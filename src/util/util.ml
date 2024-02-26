@@ -1,5 +1,7 @@
 include Namemap
 
+type writer = string -> unit
+
 module Monad = Monad
 
 let flip f x y = f y x
@@ -27,6 +29,13 @@ let compare_maps compare map other =
   List.for_all (fun (entry, other_entry) ->
     (fst entry) = (fst other_entry) && compare (snd entry) (snd other_entry)
   ) pairs
+
+let bool_then bool value =
+  match bool with
+  | true ->
+    Some value
+  | false ->
+    None
 
 let rec list_reduce f xs =
   match xs with
