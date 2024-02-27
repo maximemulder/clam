@@ -31,7 +31,7 @@ More examples of Clam code can be found in the `tests` directory.
 
 You can build this project on Linux using Dune.
 
-In a terminal, enter `dune build` to build the project or `dune exec main example.clam` to run the interpreter with the code file `example.clam` as its input.
+In a terminal, enter `dune build` to build the project or `dune exec clam example.clam` to run the interpreter with the code file `example.clam` as its input.
 
 # Features
 
@@ -233,7 +233,7 @@ Type inference is impossible for some expressions using tuple projections or typ
 
 Some of these examples, as well as several parts of the algorithm, were inspired by TACO Lab's [SuperF](https://hkust-taco.github.io/superf/) and [MLScript](https://hkust-taco.github.io/mlscript/) languages.
 
-*\* The type inference algorithm is a little dirty and probably has a few bugs in it (notably with recursive types). Type inference for such a complex type system is still an open problem, and I would probably need one or two months of work to fully finish it. However, all the examples provided and all tests work, which I think is a nice achievement.*
+*\* The type inference algorithm is still a little dirty and probably has a few bugs in it (notably with recursive types). Nevertheless, most programs as well as all the examples provided work, and I am in the process of cleaning the algorithm and adding better testing.*
 
 ## Recursive types
 
