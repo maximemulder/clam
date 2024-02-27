@@ -56,7 +56,7 @@ let get_var bind state =
     raise Not_found
 
 let make_state defs exprs =
-  let defs = List.map (fun def -> { bind = def.Abt.bind; def }) defs in
+  let defs = List.map (fun (def: Abt.def_expr) -> { bind = def.bind; def }) defs in
   { level = 0; defs; exprs; types = []; vars = [] }
 
 (*

@@ -88,12 +88,12 @@ and eval_int int =
 and eval_string string =
   return (VString string.value)
 
-and eval_bind bind context =
-  let bind = Option.get !(bind.bind) in
-  match BindMap.find_opt bind context.defs with
-  | Some def -> eval def.expr (new_empty context.defs context.primitives context.out)
+and eval_bind expr context =
+  match BindMap.find_opt expr.bind context.defs with
+  | Some def ->
+    eval def.expr (new_empty context.defs context.primitives context.out)
   | None ->
-  get_bind bind context.frame
+    get_bind expr.bind context.frame
 
 and eval_tuple expr =
   let* value = eval expr in
@@ -130,6 +130,6 @@ and eval_univ_app app =
   eval app.abs
 
 let eval_def def defs primitives stdout =
-  let defs = List.map (fun def -> def.bind, def) defs in
+  let defs = List.map (fun (def: Abt.def_expr) -> def.bind, def) defs in
   let defs = BindMap.of_list defs in
-  eval def.expr (new_empty defs primitives stdout)
+  eval (def: Abt.def_expr).expr (new_empty defs primitives stdout)

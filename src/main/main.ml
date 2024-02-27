@@ -26,7 +26,7 @@ let type_check abt config =
   | None -> ()
 
 let eval abt config =
-  let main = (match List.find_opt (fun def -> def.Abt.bind.name = "main") abt.Abt.exprs with
+  let main = (match List.find_opt (fun (def: Abt.def_expr) -> def.bind.name = "main") abt.Abt.exprs with
   | Some main -> main
   | None -> Error.handle_main () config.print_err
   ) in

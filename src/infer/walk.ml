@@ -55,13 +55,12 @@ and infer_string _ =
   return Type.string
 
 and infer_bind expr =
-  let bind = Option.get !(expr.bind) in
-  let* type' = get_expr_type bind in
+  let* type' = get_expr_type expr.bind in
   match type' with
   | Some type' ->
     return type'
   | None ->
-    let* def = get_def bind in
+    let* def = get_def expr.bind in
     infer_def def
 
 and infer_tuple expr =
@@ -201,6 +200,6 @@ let check_defs defs primitives =
   let state = check_defs state in
   List.map (fun (entry: entry_expr) -> entry.bind, entry.type') state.exprs
 
-let check_types types =
-  let _ = List.map (Type.Validate.validate Type.Context.empty) types in
+let check_types defs =
+  let _ = List.map (fun (def: Abt.def_type) -> Type.Validate.validate Type.Context.empty def.type') defs in
   ()

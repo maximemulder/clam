@@ -1,8 +1,16 @@
-module NameKey = struct
+module StringKey = struct
   type t = string
   let compare = String.compare
 end
 
-module NameMap = Map.Make(NameKey)
+module IntKey = struct
+  type t = int
 
-module NameSet = Set.Make(NameKey)
+  let compare = Int.compare
+end
+
+module NameMap = Map.Make(StringKey)
+
+module NameSet = Set.Make(StringKey)
+
+module IntMap = Map.Make(IntKey)

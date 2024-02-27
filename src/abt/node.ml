@@ -11,9 +11,31 @@ type bind_expr = {
   name: string;
 }
 
+(* ABT *)
+
+type abt = {
+  types: def_type list;
+  exprs: def_expr list;
+}
+
+(* DEFINITIONS *)
+
+and def_type = {
+  span: span;
+  name: string;
+  type': type';
+}
+
+and def_expr = {
+  span: span;
+  bind: bind_expr;
+  type': type' option;
+  expr: expr;
+}
+
 (* TYPES *)
 
-type type' =
+and type' =
   | TypeTop    of type_top
   | TypeBot    of type_bot
   | TypeUnit   of type_unit
@@ -158,7 +180,7 @@ and expr_string = {
 
 and expr_bind = {
   span: span;
-  bind: bind_expr option ref;
+  bind: bind_expr;
 }
 
 and expr_tuple = {
@@ -232,11 +254,4 @@ and param_expr = {
   span: span;
   bind: bind_expr;
   type': type' option;
-}
-
-and def_expr = {
-  span: span;
-  bind: bind_expr;
-  type': type' option;
-  expr: expr;
 }

@@ -15,6 +15,14 @@ let extract key map =
   let map = NameMap.remove key map in
   (value, map)
 
+(**
+  Returns both the index and the value of the leftmost element that satisfies
+  the given predicate
+*)
+let list_find_entry_opt f xs =
+  List.find_index f xs
+  |> Option.map (fun i -> (i, List.nth xs i))
+
 let compare_lists compare list other =
   if List.compare_lengths list other != 0 then false else
   let pairs = List.combine list other in
