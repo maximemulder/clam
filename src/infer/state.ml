@@ -125,6 +125,7 @@ let update_var_entry bind f state =
       entry
     ) state.vars in
   (), { state with vars }
+
 let get_def bind =
   let* entry = get_def_entry bind in
   return entry.def
@@ -153,10 +154,6 @@ let update_var_lower bind bound =
 let update_var_upper bind bound =
   let* ctx = get_context in
   update_var_entry bind (fun entry -> { entry with upper = Type.System.meet ctx entry.upper bound })
-
-let remove_def bind state =
-  let defs = List.filter (fun (entry: entry_def) -> not (cmp_bind entry.bind bind)) state.defs in
-  (), { state with defs }
 
 let add_expr bind type' state =
   let exprs = { bind; type' } :: state.exprs in

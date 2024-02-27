@@ -55,13 +55,7 @@ and infer_string _ =
   return Type.string
 
 and infer_bind expr =
-  let* type' = get_expr_type expr.bind in
-  match type' with
-  | Some type' ->
-    return type'
-  | None ->
-    let* def = get_def expr.bind in
-    infer_def def
+  infer_bind_bis expr.bind
 
 and infer_tuple expr =
   let* elems = map_list infer expr.elems in
@@ -167,9 +161,8 @@ and infer_if expr =
   join then' else'
 
 and infer_def def =
-  let* () = remove_def def.bind in
   let* type' = infer_def_type def in
-  let* () = add_expr def.bind type' in
+  let* () = add_expr (def: Abt.def_expr).bind type' in
   return type'
 
 and infer_def_type def =
@@ -186,13 +179,19 @@ and infer_def_type def =
       return var
     )
 
-let rec check_defs state =
-  match state.defs with
-  | entry :: _ ->
-    let _, state = infer_def entry.def state in
-    check_defs state
-  | [] ->
-    state
+and infer_bind_bis bind =
+  let* type' = get_expr_type bind in
+  match type' with
+  | Some type' ->
+    return type'
+  | None ->
+    let* def = get_def bind in
+    infer_def def
+
+let check_defs state =
+  List.fold_left (fun state entry ->
+    infer_bind_bis entry.def.bind state |> snd
+  ) state state.defs
 
 let check_defs defs primitives =
   let primitives = List.map (fun primitive -> { bind = fst primitive; type' = snd primitive }) primitives in

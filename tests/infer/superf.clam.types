@@ -1,4 +1,4 @@
-bar: {Int, String}
-id: ['806: Top] -> ('806) -> '806
-foo: ['798: Top, '800: Top] -> (((Int) -> '798) & ((String) -> '800)) -> {'798, '800}
 main: Unit
+id: ['792: Top] -> ('792) -> '792
+foo: ['799: Top, '801: Top] -> (((Int) -> '799) & ((String) -> '801)) -> {'799, '801}
+bar: {Int, String}
