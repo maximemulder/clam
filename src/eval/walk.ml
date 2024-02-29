@@ -47,7 +47,7 @@ let rec eval (expr: Abt.expr) =
   | ExprBind bind ->
     eval_bind bind
   | ExprTuple tuple ->
-    let* values = map_list eval tuple.elems in
+    let* values = list_map eval tuple.elems in
     return (VTuple values)
   | ExprRecord record ->
     let* attrs = fold_list (fun map (attr: attr_expr) ->

@@ -174,10 +174,10 @@ and desugar_product expr =
   | ([], []) ->
     return (Abt.ExprRecord { span = expr.span; attrs = [] })
   | (fields, []) ->
-    let* elems = map_list desugar_tuple_elem fields in
+    let* elems = list_map desugar_tuple_elem fields in
     return (Abt.ExprTuple { span = expr.span; elems })
   | ([], fields) ->
-    let* attrs = map_list desugar_record_attr fields in
+    let* attrs = list_map desugar_record_attr fields in
     return (Abt.ExprRecord { span = expr.span; attrs })
   | _ ->
     Errors.raise_expr_product expr

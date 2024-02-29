@@ -6,12 +6,12 @@ let rec inline (type': Type.type') bind pol =
 
 and inline_union union bind pol =
   let* ctx = get_context in
-  let* types = map_list (fun type' -> inline_inter type' bind pol) union.union in
+  let* types = list_map (fun type' -> inline_inter type' bind pol) union.union in
   return (Util.list_reduce (Type.System.join ctx) types)
 
 and inline_inter inter bind pol =
   let* ctx = get_context in
-  let* types = map_list (fun type' -> inline_base type' bind pol) inter.inter in
+  let* types = list_map (fun type' -> inline_base type' bind pol) inter.inter in
   return (Util.list_reduce (Type.System.meet ctx) types)
 
 and inline_base type' bind pol =
@@ -24,7 +24,7 @@ and inline_base type' bind pol =
       get_var_lower var.bind
     )
   | Tuple tuple ->
-    let* elems = map_list (fun elem -> inline elem bind pol) tuple.elems in
+    let* elems = list_map (fun elem -> inline elem bind pol) tuple.elems in
     return (Type.tuple elems)
   | Record record ->
     let* attrs = map_map (fun attr -> inline_attr attr bind pol) record.attrs in

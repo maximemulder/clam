@@ -58,11 +58,11 @@ and infer_bind expr =
   infer_bind_bis expr.bind
 
 and infer_tuple expr =
-  let* elems = map_list infer expr.elems in
+  let* elems = list_map infer expr.elems in
   return (Type.tuple elems)
 
 and infer_record expr =
-  let* attrs = map_list infer_record_attr expr.attrs in
+  let* attrs = list_map infer_record_attr expr.attrs in
   let attrs = List.fold_left (fun map (attr: Type.attr) -> Util.NameMap.add attr.label attr map) Util.NameMap.empty attrs in
   return (Type.record attrs)
 

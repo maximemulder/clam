@@ -26,12 +26,13 @@ module Monad (M: MONAD) = struct
       let* () = f x in
       list_iter f xs
 
-  let rec map_list f xs =
+  let rec list_map f xs =
     match xs with
-    | [] -> return []
+    | [] ->
+      return []
     | x :: xs ->
       let* x = f x in
-      let* xs = map_list f xs in
+      let* xs = list_map f xs in
       return (x :: xs)
 
   let rec iter_list2 f xs ys =
@@ -59,7 +60,7 @@ module Monad (M: MONAD) = struct
   let map_map f xs =
     let f = (fun (k, v) -> let* v = f v in return (k, v)) in
     let xs = List.of_seq (NameMap.to_seq xs) in
-    let* xs = map_list f xs in
+    let* xs = list_map f xs in
     return (NameMap.of_seq (List.to_seq xs))
 
   let rec fold_list f a xs =
