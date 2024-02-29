@@ -25,7 +25,7 @@ def main =
     unit
 ```
 
-More examples of Clam code can be found in the `tests/` directory.
+More examples of Clam code can be found in the `tests` directory.
 
 # How to build
 
@@ -229,11 +229,9 @@ is_odd: (Int) -> Bool
     </tr>
 </table>
 
-Type inference is impossible for some expressions using tuple projections or type applications. More example of type inference can be found in the `tests/infer/` directory.
+More examples of type inference can be found in the `tests/infer` directory. Some of these examples, as well as several parts of the algorithm, were inspired by TACO Lab's [SuperF](https://hkust-taco.github.io/superf/) and [MLScript](https://hkust-taco.github.io/mlscript/) languages.
 
-Some of these examples, as well as several parts of the algorithm, were inspired by TACO Lab's [SuperF](https://hkust-taco.github.io/superf/) and [MLScript](https://hkust-taco.github.io/mlscript/) languages.
-
-*\* The type inference algorithm is still a little dirty and probably has a few bugs in it (notably with recursive types). Nevertheless, most programs as well as all the examples provided work, and I am in the process of cleaning the algorithm and adding better testing.*
+*\* The type inference algorithm is still a little dirty and probably has a few bugs in it (notably with recursive types). Nevertheless, most programs as well as all the tests and examples provided work, and I am in the process of cleaning the algorithm. It should also be noted that type inference is impossible for some expressions involving tuple projections or type applications.*
 
 ## Recursive types
 
@@ -241,7 +239,7 @@ Clam does not feature recursive types yet, which is quite limiting.
 
 # Correctness
 
-There is currently no mathematical proof of correctness for this language or interpeter. But I hope I will be able to write one one day. While some code (notably for type inference) is still rough at the time of writing these lines, all the examples provided work, as well as all the unit tests and the sample programs found in the `tests/` directory.
+There is currently no mathematical proof of correctness for this language or interpeter. But I hope I will be able to write one one day. While some code (notably for type inference) is still rough at the time of writing these lines, all the examples provided work, as well as all the unit tests and the sample programs found in the `tests` directory.
 
 # Roadmap
 
