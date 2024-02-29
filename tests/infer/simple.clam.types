@@ -1,0 +1,13 @@
+main: Unit
+zero: Int
+two: Int
+none: Unit
+bool: Bool
+hello: String
+tuple: {Int, String}
+elem_0: Int
+elem_1: String
+record: {bar: String, foo: Int}
+attr_0: Int
+attr_1: String
+one_hello: Int | String

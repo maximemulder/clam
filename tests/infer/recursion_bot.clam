@@ -1,6 +1,0 @@
-def main = unit
-
-def x = x
-
-def y = z
-def z = y

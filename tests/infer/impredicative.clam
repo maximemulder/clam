@@ -1,0 +1,16 @@
+def main = unit
+
+def iter = (n, v, f) ->
+    if n == 0 then
+        v
+    else
+        iter(n - 1, f(v), f)
+
+def id      = (p) -> p
+def double  = (p) -> 2 * p
+def apply_2 = iter(2)
+
+def iter_double = apply_2(2, double)
+def iter_int    = apply_2(1, id)
+def iter_id     = apply_2(id, id)
+def iter_iter   = apply_2(iter, id)

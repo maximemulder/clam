@@ -162,6 +162,7 @@ and infer_if expr =
 
 and infer_def def =
   let* type' = infer_def_type def in
+  let type' = Rename.rename type' in
   let* () = add_expr (def: Abt.def_expr).bind type' in
   return type'
 

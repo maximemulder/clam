@@ -1,0 +1,16 @@
+def main = unit
+
+def a = (p) -> 1
+def b = (p) -> p + 1
+def c = (p) -> if true then p + 1 else p
+def d = (p) -> if true then p + 1 else p ++ " World !"
+
+def e = (f) -> f(0)
+def f = (f) -> f(0) + 1
+def g = (f) -> f(0) + f("Hello")
+def h = (f, p) -> f(p)
+
+def bounded = (p) -> {p, p(1)}
+
+def if_bis = (a, b, c) -> if a then b else c
+def max = (a, b) -> if a > b then a else b

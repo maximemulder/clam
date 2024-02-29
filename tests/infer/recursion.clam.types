@@ -1,0 +1,10 @@
+main: Unit
+x: Bot
+y: Bot
+z: Bot
+i: Int
+a: (Top) -> Bot
+b: (Int) -> Unit
+c: ['A: Top] -> ('A) -> 'A
+is_even: (Int) -> Bool
+is_odd: (Int) -> Bool

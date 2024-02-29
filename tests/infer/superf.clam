@@ -1,5 +1,13 @@
 def main = unit
 
 def id = (p) -> p
+def tuple = (p) -> {p}
+
 def foo = (f) -> {f(123), f("Hello")}
-def bar = foo(id)
+def foo_id = foo(id)
+def foo_tuple = foo(tuple)
+
+def bar = (f) -> {f((x) -> x), f((x) -> tuple(x))}
+def bar_foo = bar(foo)
+
+def baz = (p) -> {a = p.i(123), b = p.s("Hello")}

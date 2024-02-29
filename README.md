@@ -25,7 +25,7 @@ def main =
     unit
 ```
 
-More examples of Clam code can be found in the `tests` directory.
+More examples of Clam code can be found in the `tests/` directory.
 
 # How to build
 
@@ -216,20 +216,20 @@ def is_even = (n) -> !is_odd(n)
 def is_odd = (n) -> if n == 0
              then false else !is_even(n - 1)</code></pre></td>
 <td><pre><code>two: Int
-id: [T] -> (T) -> T
+id: ['A] -> ('A) -> 'A
 inf: (Top) -> Bot
-foo: [T, U] -> (((Int) -> T) & ((String) -> U)) -> {T, U}
+foo: ['A, 'B] -> (((Int) -> 'A) & ((String) -> 'B)) -> {'A, 'B}
 bar: {Int, String}
-bounded: [T, U: (Int) -> T] -> (U) -> {U, T}
-not_ml: {id_bis: [T] -> (T) -> T, z: Int}
-max: [T: Int] -> (T, T) -> T
+bounded: ['A, 'B: (Int) -> 'A] -> ('B) -> {'B, 'A}
+not_ml: {id_bis: ['A] -> ('A) -> 'A, z: Int}
+max: ['A: Int] -> ('A, 'A) -> 'A
 is_even: (Int) -> Bool
 is_odd: (Int) -> Bool
 ​</code></pre></td>
     </tr>
 </table>
 
-Type inference is impossible for some expressions using tuple projections or type applications.
+Type inference is impossible for some expressions using tuple projections or type applications. More example of type inference can be found in the `tests/infer/` directory.
 
 Some of these examples, as well as several parts of the algorithm, were inspired by TACO Lab's [SuperF](https://hkust-taco.github.io/superf/) and [MLScript](https://hkust-taco.github.io/mlscript/) languages.
 
@@ -241,7 +241,7 @@ Clam does not feature recursive types yet, which is quite limiting.
 
 # Correctness
 
-There is currently no mathematical proof of correctness for this language or interpeter. But I hope I will be able to write one one day. While some code (notably for type inference) is still rough at the time of writing these lines, all the examples provided work, as well as all the unit tests and the sample programs found in the `tests` directory.
+There is currently no mathematical proof of correctness for this language or interpeter. But I hope I will be able to write one one day. While some code (notably for type inference) is still rough at the time of writing these lines, all the examples provided work, as well as all the unit tests and the sample programs found in the `tests/` directory.
 
 # Roadmap
 

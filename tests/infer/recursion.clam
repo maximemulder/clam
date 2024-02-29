@@ -1,0 +1,15 @@
+def main = unit
+
+def x = x
+
+def y = z
+def z = y
+
+def i = i + 1
+
+def a = (p) -> a(p)
+def b = (p) -> if p == 0 then b(p - 1) else unit
+def c = (p) -> if true then p else c(p)
+
+def is_even = (n) -> !is_odd(n)
+def is_odd = (n) -> if n == 0 then false else !is_even(n - 1)

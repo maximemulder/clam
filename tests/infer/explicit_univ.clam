@@ -1,0 +1,8 @@
+def main = unit
+
+def a = [T] -> (p) -> p + 1
+def b: (Int) -> Int = [T] -> (p: T) -> p
+
+def c: [T] -> T = c
+def d: Bot = c
+def e: [T] -> T = e

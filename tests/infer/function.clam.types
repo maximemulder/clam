@@ -1,0 +1,12 @@
+main: Unit
+a: (Top) -> Int
+b: (Int) -> Int
+c: (Int) -> Int
+d: (Bot) -> (Int | String)
+e: ['A: Top] -> ((Int) -> 'A) -> 'A
+f: ((Int) -> Int) -> Int
+g: ((Int | String) -> Int) -> Int
+h: ['A: Top, 'B: Top] -> (('A) -> 'B, 'A) -> 'B
+bounded: ['A: Top, 'B: (Int) -> 'A] -> ('B) -> {'B, 'A}
+if_bis: (Bool) -> ['A: Top] -> ('A, 'A) -> 'A
+max: ['A: Int] -> ('A, 'A) -> 'A

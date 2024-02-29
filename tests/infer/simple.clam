@@ -1,0 +1,17 @@
+def main = unit
+
+def zero = 0
+def two = 1 + 1
+def none = unit
+def bool = true
+def hello = "Hello world !"
+
+def tuple = {0, "Hello"}
+def elem_0 = tuple.0
+def elem_1 = tuple.1
+
+def record = {foo = 0, bar = "Hello"}
+def attr_0 = record.foo
+def attr_1 = record.bar
+
+def one_hello = if true then 1 else "Hello"
