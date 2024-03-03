@@ -61,6 +61,7 @@ and validate_abs ctx abs =
     (fun ctx -> validate ctx abs.body) in
   base (Abs { param; body })
 
+(* TODO: Handle lower bounds *)
 and validate_app ctx app =
   let abs = validate ctx app.abs in
   let arg = validate ctx app.arg in
@@ -100,15 +101,16 @@ and validate_app_param_inter ctx inter =
 and validate_app_param_base ctx type' =
   match type' with
   | Var var ->
-    let bound = Context.get_bind_type ctx var.bind in
-    validate_app_param ctx bound
+    let _, upper = Context.get_bounds ctx var.bind in
+    validate_app_param ctx upper
   | Abs abs ->
-    abs.param.bound
+    abs.param.upper
   | _ ->
     invalid_arg "validate_app_param_base"
 
 and validate_param_with ctx param f =
   let bound = validate ctx param.bound in
-  let param = { bind = param.bind; bound } in
-  let other = f (Context.add_bind_type ctx param.bind param.bound) in
+  let param = { bind = param.bind; lower = Node.bot; upper = bound } in
+  let ctx = Context.add_param ctx param in
+  let other = f ctx in
   param, other

@@ -45,7 +45,7 @@ and occurs_base (type': Type.base) bind =
     return (param || ret)
   | Univ univ ->
     let* param = occurs_param univ.param bind in
-    let* ret = with_type univ.param.bind univ.param.bound (occurs univ.ret bind) in
+    let* ret = with_type univ.param.bind univ.param.lower univ.param.upper (occurs univ.ret bind) in
     return (param || ret)
   | _ ->
     return false
@@ -57,7 +57,9 @@ and occurs_bind var bind =
     return false
 
 and occurs_param param bind =
-  occurs param.bound bind
+  let* lower = occurs param.lower bind in
+  let* upper = occurs param.upper bind in
+  return (lower || upper)
 
 (* EXTRACT *)
 
@@ -153,4 +155,6 @@ and get_pols_attr attr bind pol =
   get_pols attr.type' bind pol
 
 and get_pols_param param bind pol =
-  get_pols param.bound bind (inv pol)
+  from_pols
+    (get_pols param.lower bind pol)
+    (get_pols param.upper bind (inv pol))

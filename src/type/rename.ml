@@ -45,7 +45,9 @@ and rename_attr bind other attr =
   { attr with type' = rename bind other attr.type' }
 
 and rename_param bind other param =
-  { param with bound = rename bind other param.bound }
+  let lower = rename bind other param.lower in
+  let upper = rename bind other param.upper in
+  { param with lower; upper }
 
 let rename type' bind other =
   rename bind other type'

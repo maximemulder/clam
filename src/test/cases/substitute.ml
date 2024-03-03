@@ -1,8 +1,7 @@
 open Vars
 
 let test ctx type' bind other (_: unit) =
-  let entry = Context.entry bind other in
-  System.substitute ctx entry type'
+  System.substitute ctx type' bind other
 
 let name name' other type' expect =
   let other  = display other  in

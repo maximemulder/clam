@@ -22,13 +22,13 @@ let record attrs =
 
 let univ name bound ret =
   let bind = bind name in
-  let param: Type.param = { bind; bound } in
+  let param: Type.param = { bind; lower = bot; upper = bound } in
   let ret = ret (var bind) in
   base (Univ { param; ret })
 
 let abs name bound body =
   let bind = bind name in
-  let param: Type.param = { bind; bound } in
+  let param: Type.param = { bind; lower = bot; upper = bound } in
   let body = body (var bind) in
   base (Abs { param; body })
 
@@ -45,15 +45,15 @@ let fa = bind "FA"
 
 let ctx = {
   assumptions = [
-    { bind = a; bound = top };
-    { bind = b; bound = top };
-    { bind = c; bound = top };
-    { bind = d; bound = top };
-    { bind = e; bound = top };
-    { bind = f; bound = top };
-    { bind = z; bound = top };
-    { bind = ea; bound = var a };
-    { bind = fa; bound = var a };
+    { bind = a; lower = bot; upper = top };
+    { bind = b; lower = bot; upper = top };
+    { bind = c; lower = bot; upper = top };
+    { bind = d; lower = bot; upper = top };
+    { bind = e; lower = bot; upper = top };
+    { bind = f; lower = bot; upper = top };
+    { bind = z; lower = bot; upper = top };
+    { bind = ea; lower = bot; upper = var a };
+    { bind = fa; lower = bot; upper = var a };
   ]
 }
 

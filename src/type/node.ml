@@ -62,7 +62,8 @@ and attr = {
 
 and param = {
   bind: Abt.bind_type;
-  bound: type';
+  lower: type';
+  upper: type';
 }
 
 let base base = { union = [{ inter = [base] }] }

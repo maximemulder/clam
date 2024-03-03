@@ -1,6 +1,6 @@
 main: Unit
-a: [T: Top] -> (Int) -> Int
+a: [T] -> (Int) -> Int
 b: (Int) -> Int
-c: [T: Top] -> T
+c: [T] -> T
 d: Bot
-e: [T: Top] -> T
+e: [T] -> T

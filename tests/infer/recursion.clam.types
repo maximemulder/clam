@@ -5,6 +5,6 @@ z: Bot
 i: Int
 a: (Top) -> Bot
 b: (Int) -> Unit
-c: ['A: Top] -> ('A) -> 'A
+c: ['A] -> ('A) -> 'A
 is_even: (Int) -> Bool
 is_odd: (Int) -> Bool

@@ -64,8 +64,9 @@ and rename_attr attr =
   return { attr with type' }
 
 and rename_param param =
-  let* bound = rename param.bound in
-  return { param with bound }
+  let* lower = rename param.lower in
+  let* upper = rename param.upper in
+  return { param with lower; upper }
 
 and rename_infer univ i =
   if Str.string_match pattern univ.param.bind.name 0 then

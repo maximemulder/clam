@@ -148,18 +148,16 @@ and display_app app =
   return L type'
 
 and display_param param =
-  let bound = display param.bound N in
-  param.bind.name ^ ": " ^ bound
+  param.bind.name ^
+  let lower = Compare.compare param.lower Node.bot |> not in
+  let upper = Compare.compare param.upper Node.top |> not in
+  (if lower || upper then ": " else "") ^
+  (if lower then display param.lower N ^ " " else "") ^
+  (if lower || upper then "<" else "") ^
+  (if upper then " " ^ display param.upper N else "")
 
 let display type' =
   display type' N
 
 let display_base type' =
   display_base type' N
-
-let display_context_entry (entry: Context.entry) =
-    entry.bind.name ^ " <: " ^ display entry.bound
-
-let display_context (ctx: Context.context) =
-  let entries = List.map display_context_entry ctx.assumptions in
-  String.concat ", " entries

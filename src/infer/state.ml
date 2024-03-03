@@ -18,7 +18,8 @@ type entry_expr = {
 
 type entry_type = {
   bind: Abt.bind_type;
-  bound: Type.type';
+  lower: Type.type';
+  upper: Type.type';
 }
 
 type entry_var = {
@@ -67,8 +68,8 @@ let make_state defs exprs =
 
 let get_context state =
   let assumptions = List.append
-    (List.map (fun (entry: entry_type) -> { Type.Context.bind = entry.bind; bound = entry.bound }) state.types)
-    (List.map (fun (entry: entry_var) -> { Type.Context.bind = entry.bind; bound = entry.upper }) state.vars)
+    (List.map (fun (entry: entry_type) -> { Type.Context.bind = entry.bind; lower = entry.lower; upper = entry.upper }) state.types)
+    (List.map (fun (entry: entry_var) -> { Type.Context.bind = entry.bind; lower = entry.lower; upper = entry.upper }) state.vars)
   in
   { Type.Context.assumptions }, state
 
@@ -82,7 +83,7 @@ let validate_proper type' =
 
 let substitute bind arg type' =
   let* ctx = get_context in
-  return (Type.System.substitute_arg ctx bind arg type')
+  return (Type.System.substitute ctx type' bind arg)
 
 let is left right =
   let* ctx = get_context in
@@ -114,9 +115,6 @@ let get_var_entry bind state =
 let get_var_entry_opt bind state =
   List.find_opt (fun (entry: entry_var) -> entry.bind == bind) state.vars, state
 
-let get_type_entry bind state =
-  List.find (fun (entry: entry_type) -> entry.bind == bind) state.types, state
-
 let update_var_entry bind f state =
   let vars = List.map (fun (entry: entry_var) ->
     if entry.bind == bind then
@@ -134,10 +132,6 @@ let get_expr_type bind =
   let* entry = get_expr_entry bind in
   let type' = Option.map (fun entry -> entry.type') entry in
   return type'
-
-let get_type_bound bind =
-  let* entry = get_type_entry bind in
-  return entry.bound
 
 let get_var_lower bind =
   let* entry = get_var_entry bind in
@@ -169,11 +163,11 @@ let with_expr bind type' f =
   let* () = remove_expr bind in
   return x
 
-let add_type bind bound state =
-  (), { state with types = { bind; bound } :: state.types }
+let add_type bind lower upper state =
+  (), { state with types = { bind; lower; upper } :: state.types }
 
-let with_type bind bound f state =
-  let (), state = add_type bind bound state in
+let with_type bind lower upper f state =
+  let (), state = add_type bind lower upper state in
   f state
   (* TODO: Remove type variables when they are no longer needed. Type variables are probably not
     scope so an "add" function may be better than a "with" function. The current leak is not

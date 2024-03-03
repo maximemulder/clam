@@ -30,8 +30,8 @@ and base_is_bot ctx (type': Node.base) =
   | _       -> false
 
 and var_is_bot ctx (var: Node.var) =
-  let bound = Context.get_bind_type ctx var.bind in
-  type_is_bot ctx bound
+  let _, upper = Context.get_bounds ctx var.bind in
+  type_is_bot ctx upper
 
 (* TYPE EQUIVALENCE *)
 
@@ -47,7 +47,8 @@ let rec is ctx left right =
   isa ctx left right && isa ctx right left
 
 and is_param ctx (left: Node.param) (right: Node.param) =
-  is ctx left.bound right.bound
+  is ctx left.lower right.lower
+  && is ctx left.upper right.upper
 
 (* SUBTYPING *)
 
@@ -68,17 +69,17 @@ and isa_inter_2 ctx (sub: Node.inter) (sup: Node.base) =
 
 and isa_base ctx (sub: Node.base) (sup: Node.base) =
   match sub, sup with
-  |        _, Top    ->
+  | _, Top ->
     isa_top ctx sub
-  | Bot    ,       _ ->
-    true (* TODO: kinding *)
-  | Unit   , Unit    ->
+  | Bot, _ ->
+    isa_bot ctx sup
+  | Unit, Unit ->
     true
-  | Bool   , Bool    ->
+  | Bool, Bool ->
     true
-  | Int    , Int     ->
+  | Int, Int ->
     true
-  | String , String  ->
+  | String, String ->
     true
   | Var sub_var, _ ->
     isa_var ctx sub_var sup
@@ -102,20 +103,21 @@ and isa_base ctx (sub: Node.base) (sup: Node.base) =
     false
 
 and isa_top ctx sub =
-  match Kind.get_kind_base ctx sub with
-  | Kind.Type ->
-    true
-  | Kind.Abs _ ->
-    false
+  Kind.get_kind_base ctx sub = Kind.Type
+
+and isa_bot ctx sup =
+  Kind.get_kind_base ctx sup = Kind.Type
 
 and isa_var ctx sub_var sup =
-  var_is_bot ctx sub_var ||
+  if var_is_bot ctx sub_var then
+    isa_bot ctx sup
+  else
   match sup with
   | Var sup_var when sub_var.bind == sup_var.bind ->
     true
   | _ ->
-    let sub_bound = Context.get_bind_type ctx sub_var.bind in
-    isa ctx sub_bound (Node.base sup)
+    let _, sub_upper = Context.get_bounds ctx sub_var.bind in
+    isa ctx sub_upper (base sup)
 
 and isa_tuple ctx sub_tuple sup_tuple =
   List.equal (isa ctx) sub_tuple.elems sup_tuple.elems
@@ -137,13 +139,13 @@ and isa_lam ctx sub_lam sup_lam =
 and isa_univ ctx sub_univ sup_univ =
   is_param ctx sub_univ.param sup_univ.param &&
   let sup_ret = substitute_body ctx sub_univ.param sup_univ.param sup_univ.ret in
-  let ctx = Context.add_bind_type ctx sub_univ.param.bind sub_univ.param.bound in
+  let ctx = Context.add_param ctx sub_univ.param in
   isa ctx sub_univ.ret sup_ret
 
 and isa_abs ctx sub_abs sup_abs =
   is_param ctx sub_abs.param sup_abs.param &&
   let sup_body = substitute_body ctx sub_abs.param sup_abs.param sup_abs.body in
-  let ctx = Context.add_bind_type ctx sub_abs.param.bind sub_abs.param.bound in
+  let ctx = Context.add_param ctx sub_abs.param in
   isa ctx sub_abs.body sup_body
 
 and isa_app ctx sub_app sup_app =
@@ -157,75 +159,67 @@ and promote ctx type' =
 
 and promote_base ctx type' =
   match type' with
-  | Node.Var var ->
-    let type' = Context.get_bind_type ctx var.bind in
-    promote ctx type'
+  | Var var ->
+    let _, upper = Context.get_bounds ctx var.bind in
+    promote ctx upper
   | _ ->
     Node.base type'
 
 (* TYPE SUBSTITUTION *)
 
-and substitute_arg ctx bind arg type' =
-  let entry = Context.entry bind arg in
-  substitute ctx entry type'
-
 and substitute_body ctx param param_body body =
-  let ctx = Context.add_bind_type ctx param.bind param.bound in
-  let ctx = Context.add_bind_type ctx param_body.bind param_body.bound in
+  let ctx = Context.add_param ctx param in
+  let ctx = Context.add_param ctx param in
   let var = Node.var param.bind in
-  let entry = Context.entry param_body.bind var in
-  substitute ctx entry body
+  substitute ctx param_body.bind var body
 
-and substitute ctx entry (type': Node.type') =
-  map_type ctx (substitute_base ctx entry) type'
+and substitute ctx bind other (type': Node.type') =
+  map_type ctx (substitute_base ctx bind other) type'
 
-and substitute_base ctx entry (type': Node.base) =
+and substitute_base ctx bind other (type': Node.base) =
   match type' with
-  | Top    -> Node.base Top
-  | Bot    -> Node.base Bot
-  | Unit   -> Node.base Unit
-  | Bool   -> Node.base Bool
-  | Int    -> Node.base Int
-  | String -> Node.base String
+  | Top | Bot | Unit | Bool | Int | String ->
+    base type'
   | Var var ->
-    substitute_var entry var
+    substitute_var bind other var
   | Tuple tuple ->
-    let elems = List.map (substitute ctx entry) tuple.elems in
+    let elems = List.map (substitute ctx bind other) tuple.elems in
     Node.tuple elems
   | Record record ->
-    let attrs = Util.NameMap.map (substitute_attr ctx entry) record.attrs in
+    let attrs = Util.NameMap.map (substitute_attr ctx bind other) record.attrs in
     Node.record attrs
   | Lam lam ->
-    let param = substitute ctx entry lam.param in
-    let ret = substitute ctx entry lam.ret in
+    let param = substitute ctx bind other lam.param in
+    let ret = substitute ctx bind other lam.ret in
     Node.lam param ret
   | Univ univ ->
-    let param = substitute_param ctx entry univ.param in
-    let ctx = Context.add_bind_type ctx param.Node.bind param.bound in
-    let ret = substitute ctx entry univ.ret in
+    let param = substitute_param ctx bind other univ.param in
+    let ctx = Context.add_param ctx param in
+    let ret = substitute ctx bind other univ.ret in
     Node.univ param ret
   | Abs abs ->
-    let param = substitute_param ctx entry abs.param in
-    let ctx = Context.add_bind_type ctx param.bind param.bound in
-    let body = substitute ctx entry abs.body in
+    let param = substitute_param ctx bind other abs.param in
+    let ctx = Context.add_param ctx param in
+    let body = substitute ctx bind other abs.body in
     Node.abs param body
   | App app ->
-    let abs = substitute ctx entry app.abs in
-    let arg = substitute ctx entry app.arg in
+    let abs = substitute ctx bind other app.abs in
+    let arg = substitute ctx bind other app.arg in
     compute ctx abs arg
 
-and substitute_var entry var =
-  if var.bind == entry.bind then
-    entry.bound
+and substitute_var bind other var =
+  if var.bind == bind then
+    other
   else
     Node.var var.bind
 
-and substitute_param ctx entry param =
-  let bound = substitute ctx entry param.bound in
-  { param with bound }
+and substitute_param ctx bind other param =
+  let lower = substitute ctx bind other param.lower in
+  let upper = substitute ctx bind other param.upper in
+  { param with lower; upper }
 
-and substitute_attr ctx entry attr =
-  let type' = substitute ctx entry attr.type' in
+and substitute_attr ctx bind other attr =
+  let type' = substitute ctx bind other attr.type' in
   { attr with type' }
 
 (* TYPE COMPUTATION *)
@@ -236,7 +230,7 @@ and compute ctx (type': Node.type') (arg: Node.type') =
 and compute_base ctx (abs: Node.base) (arg: Node.type') =
   match abs with
   | Abs abs ->
-    substitute_arg ctx abs.param.bind arg abs.body
+    substitute ctx abs.param.bind arg abs.body
   | _ ->
     Node.app (Node.base abs) arg
 
@@ -350,7 +344,7 @@ and meet_univ ctx left right =
     Some Bot
   else
   let right_ret = substitute_body ctx left.param right.param right.ret in
-  let ctx = Context.add_bind_type ctx left.param.bind left.param.bound in
+  let ctx = Context.add_param ctx left.param in
   let ret = meet ctx left.ret right_ret in
   Some (Univ { param = left.param; ret })
 
@@ -359,6 +353,11 @@ and meet_abs ctx left right =
     Some Bot
   else
   let right_body = substitute_body ctx left.param right.param right.body in
-  let ctx = Context.add_bind_type ctx left.param.bind left.param.bound in
+  let ctx = Context.add_param ctx left.param in
   let body = meet ctx left.body right_body in
   Some (Abs { param = left.param; body })
+
+(* PUBLIC FUNCTIONS *)
+
+let substitute ctx type' bind other =
+  substitute ctx bind other type'

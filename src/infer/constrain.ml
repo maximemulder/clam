@@ -135,13 +135,14 @@ and constrain_base pos sub sup =
     constrain_lam pos sub_lam sup_lam
   | Univ sub_univ, _ ->
     let* var = make_var in
-    let* param = constrain pos var sub_univ.param.bound in
+    let* lower = constrain pos sub_univ.param.lower var in
+    let* upper = constrain pos var sub_univ.param.upper in
     let* ctx = get_context in
-    let ret = Type.System.substitute_arg ctx sub_univ.param.bind var sub_univ.ret in
+    let ret = Type.System.substitute ctx sub_univ.ret sub_univ.param.bind var in
     let* ret = constrain pos ret (Type.base sup) in
-    return (param && ret)
+    return (lower && upper && ret)
   | _, Univ sup_univ ->
-    with_type sup_univ.param.bind sup_univ.param.bound
+    with_type sup_univ.param.bind sup_univ.param.lower sup_univ.param.upper
       (constrain pos (Type.base sub) sup_univ.ret)
   | _, _ ->
     let* ctx = get_context in

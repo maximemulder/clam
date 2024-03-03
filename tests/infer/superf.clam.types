@@ -1,9 +1,9 @@
 main: Unit
-id: ['A: Top] -> ('A) -> 'A
-tuple: ['A: Top] -> ('A) -> {'A}
-foo: ['A: Top, 'B: Top] -> (((Int) -> 'A) & ((String) -> 'B)) -> {'A, 'B}
+id: ['A] -> ('A) -> 'A
+tuple: ['A] -> ('A) -> {'A}
+foo: ['A, 'B] -> (((Int) -> 'A) & ((String) -> 'B)) -> {'A, 'B}
 foo_id: {Int, String}
 foo_tuple: {{Int}, {String}}
-bar: ['A: Top, 'B: Top] -> (((['C: Top] -> ('C) -> 'C) -> 'A) & ((['D: Top] -> ('D) -> {'D}) -> 'B)) -> {'A, 'B}
+bar: ['A, 'B] -> (((['C] -> ('C) -> 'C) -> 'A) & ((['D] -> ('D) -> {'D}) -> 'B)) -> {'A, 'B}
 bar_foo: {{Int, String}, {{Int}, {String}}}
-baz: ['A: Top, 'B: Top] -> ({i: (Int) -> 'A, s: (String) -> 'B}) -> {a: 'A, b: 'B}
+baz: ['A, 'B] -> ({i: (Int) -> 'A, s: (String) -> 'B}) -> {a: 'A, b: 'B}

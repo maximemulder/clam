@@ -25,7 +25,7 @@ and contains_base bind type' =
   | _ -> false
 
 and contains_param bind param =
-  contains bind param.bound
+  contains bind param.lower || contains bind param.upper
 
 and contains_attr bind _ attr =
   contains bind attr.type'

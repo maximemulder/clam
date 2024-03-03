@@ -37,11 +37,11 @@ let get_variables state =
 let substitute_state bind arg state =
   let ctx, _ = get_context state in
   let vars = List.map (fun entry -> { entry with
-    lower = Type.System.substitute_arg ctx bind arg entry.lower;
-    upper = Type.System.substitute_arg ctx bind arg entry.upper;
+    lower = Type.System.substitute ctx entry.lower bind arg;
+    upper = Type.System.substitute ctx entry.upper bind arg;
   }) state.vars in
   let exprs =  List.map (fun entry -> {
-    entry with type' = Type.System.substitute_arg ctx bind arg entry.type'
+    entry with type' = Type.System.substitute ctx entry.type' bind arg
   }) state.exprs in
   (), { state with vars; exprs }
 
@@ -76,14 +76,10 @@ let rec solve type' =
       let* _ = substitute_state bind pos in
       substitute bind pos type'
     | Some [], Some [] ->
-      let* upper = get_var_upper bind in
       let* lower = get_var_lower bind in
-      if lower <> Type.bot then
-        (* This is a hack that probably does not generalize well *)
-        inline type' bind Neg
-      else
-      let type' = (Type.univ { bind; bound = upper } type') in
-      let* () = add_type bind upper in
+      let* upper = get_var_upper bind in
+      let type' = (Type.univ { bind; lower; upper } type') in
+      let* () = add_type bind lower upper in
       return type'
     | Some [], None ->
       let* () = inline_state bind in

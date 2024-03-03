@@ -4,6 +4,8 @@ type writer = string -> unit
 
 module Monad = Monad
 
+let id x = x
+
 let flip f x y = f y x
 
 let uncurry f (x, y) = f x y

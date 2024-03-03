@@ -14,11 +14,11 @@ and get_kind_inter ctx (inter: Node.inter) =
 and get_kind_base ctx (type': Node.base) =
   match type' with
   | Var var ->
-    let bound = Context.get_bind_type ctx var.bind in
-    get_kind ctx bound
+    let _, upper = Context.get_bounds ctx var.bind in
+    get_kind ctx upper
   | Abs abs ->
-    let param = get_kind ctx abs.param.bound in
-    let ctx = Context.add_bind_type ctx abs.param.bind abs.param.bound in
+    let param = get_kind ctx abs.param.lower in
+    let ctx = Context.add_param ctx abs.param in
     let body  = get_kind ctx abs.body in
     Abs (param, body)
   | App app ->
@@ -32,4 +32,3 @@ and get_kind_app ctx app =
     body
   | Type ->
     invalid_arg "TypeKind.get_kind"
-

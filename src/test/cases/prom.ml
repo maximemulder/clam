@@ -13,7 +13,7 @@ let case type' expect ctx =
 
 let case_var name bound case ctx =
   let bind = { Abt.name } in
-  let ctx = Context.add_bind_type ctx bind bound in
+  let ctx = Context.add_bounds ctx bind Type.bot bound in
   let var = var bind in
   case var ctx
 

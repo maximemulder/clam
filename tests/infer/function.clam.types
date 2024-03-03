@@ -3,10 +3,10 @@ a: (Top) -> Int
 b: (Int) -> Int
 c: (Int) -> Int
 d: (Bot) -> (Int | String)
-e: ['A: Top] -> ((Int) -> 'A) -> 'A
+e: ['A] -> ((Int) -> 'A) -> 'A
 f: ((Int) -> Int) -> Int
 g: ((Int | String) -> Int) -> Int
-h: ['A: Top, 'B: Top] -> (('A) -> 'B, 'A) -> 'B
-bounded: ['A: Top, 'B: (Int) -> 'A] -> ('B) -> {'B, 'A}
-if_bis: (Bool) -> ['A: Top] -> ('A, 'A) -> 'A
-max: ['A: Int] -> ('A, 'A) -> 'A
+h: ['A, 'B] -> (('A) -> 'B, 'A) -> 'B
+bounded: ['A, 'B: < (Int) -> 'A] -> ('B) -> {'B, 'A}
+if_bis: (Bool) -> ['A] -> ('A, 'A) -> 'A
+max: ['A: < Int] -> ('A, 'A) -> 'A

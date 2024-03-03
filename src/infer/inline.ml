@@ -34,8 +34,8 @@ and inline_base type' bind pol =
     let* ret = inline lam.ret bind pol in
     return (Type.lam param ret)
   | Univ univ ->
-    let* param: Type.param  = inline_param univ.param bind pol in
-    let* ret = with_type param.bind param.bound (inline univ.ret bind pol) in
+    let* param: Type.param = inline_param univ.param bind pol in
+    let* ret = with_type param.bind param.lower param.upper (inline univ.ret bind pol) in
     return (Type.univ param ret)
   | _ ->
     return (Type.base type')
@@ -45,5 +45,6 @@ and inline_attr attr bind pol =
   return { attr with type' }
 
 and inline_param param bind pol =
-  let* bound = inline param.bound bind (inv pol) in
-  return { param with bound }
+  let* lower = inline param.lower bind pol in
+  let* upper = inline param.upper bind (inv pol) in
+  return { param with lower; upper }

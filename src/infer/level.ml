@@ -30,7 +30,8 @@ and levelize_base type' level direct =
     let* () = levelize lam.ret level false in
     return ()
   | Univ univ ->
-    let* () = levelize univ.param.bound level false in
+    let* () = levelize univ.param.lower level false in
+    let* () = levelize univ.param.upper level false in
     let* () = levelize univ.ret level false in
     return ()
   | _ ->

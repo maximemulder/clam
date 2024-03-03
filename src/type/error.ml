@@ -102,7 +102,7 @@ let check_type_abs (expr: expr_univ_abs) constr =
 let check_type_abs_param (expr: expr_univ_abs) bound (constr: Node.param) =
   let span = expr.span in
   let bound = Display.display bound in
-  let constr = Display.display constr.bound in
+  let constr = Display.display constr.upper in (* TODO lower *)
   raise
     ("expected type parameter of type `" ^ constr ^ "` but found parameter of type `" ^ bound ^ "`")
     span

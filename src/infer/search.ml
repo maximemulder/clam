@@ -41,7 +41,7 @@ module Searcher(S: SEARCHER) = struct
       let entry, _ = get_var var.bind state in
       match entry with
       | Param entry ->
-        search state f entry.bound
+        search state f entry.upper (* TODO check this *)
       | Infer entry ->
         search state f entry.lower
       )
@@ -69,7 +69,7 @@ module SearcherProj = struct
 end
 
 let make_param bound =
-  { Type.bind = { name = "_" }; bound }
+  { Type.bind = { name = "_" }; lower = Type.bot; upper = bound } (* TODO lower *)
 
 module SearcherAppType = struct
   type t = { param: Type.param; ret: Type.type' }
@@ -80,13 +80,13 @@ module SearcherAppType = struct
     let param = make_param bound in
     let left_ret  = Type.System.substitute_body ctx param left.param  left.ret  in
     let right_ret = Type.System.substitute_body ctx param right.param right.ret in
-    let ctx = Type.Context.add_bind_type ctx param.bind param.bound in
+    let ctx = Type.Context.add_param ctx param in
     let ret = f ctx left_ret right_ret in
     { param; ret }
 
   let join state left right =
     let ctx, _ = get_context state in
-    let bound = Type.System.meet ctx left.param.bound right.param.bound in
+    let bound = Type.System.meet ctx left.param.upper right.param.upper in
     with_merge_param ctx bound left right Type.System.join
 
   let meet state left right =
@@ -94,7 +94,7 @@ module SearcherAppType = struct
     if not (Type.System.is_param ctx left.param right.param) then
       bot
     else
-    with_merge_param ctx left.param.bound left right Type.System.meet
+    with_merge_param ctx left.param.upper left right Type.System.meet
 end
 
 module SearchProj    = Searcher(SearcherProj)

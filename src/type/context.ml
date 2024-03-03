@@ -2,17 +2,9 @@ open Node
 
 type entry = {
   bind: Abt.bind_type;
-  bound: type';
+  lower: type';
+  upper: type';
 }
-
-let entry bind bound =
-  { bind; bound }
-
-let entry_param (left: param) (right: param) =
-  { bind = right.bind; bound = var left.bind }
-
-let is_bind entry bind =
-  entry.bind == bind
 
 type context = {
   assumptions: entry list;
@@ -20,9 +12,24 @@ type context = {
 
 let empty = { assumptions = [] }
 
-let get_bind_type ctx bind =
-  let entry = List.find (Util.flip is_bind bind) ctx.assumptions in
-  entry.bound
+let add_bounds ctx bind lower upper =
+  { assumptions = { bind; lower; upper } :: ctx.assumptions }
 
-let add_bind_type ctx bind bound =
-  { assumptions = { bind; bound } :: ctx.assumptions }
+let add_param ctx param =
+  { assumptions = { bind = param.Node.bind; lower = param.lower; upper = param.upper } :: ctx.assumptions }
+
+let get_bounds ctx bind =
+  let entry = List.find (fun entry -> entry.bind == bind) ctx.assumptions in
+  entry.lower, entry.upper
+
+let display_entry entry =
+  entry.bind.name ^ ": " ^
+  let lower = Compare.compare entry.lower Node.bot in
+  let upper = Compare.compare entry.upper Node.bot in
+  (if lower then Display.display entry.lower else "") ^
+  (if lower || upper then " < " else "") ^
+  (if upper then Display.display entry.upper else "")
+
+let display ctx =
+  let entries = List.map display_entry ctx.assumptions in
+  String.concat ", " entries
