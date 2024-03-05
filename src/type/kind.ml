@@ -32,3 +32,24 @@ and get_kind_app ctx app =
     body
   | Type ->
     invalid_arg "TypeKind.get_kind"
+
+(* TODO: These two functions do not work when type abstractions have non-extremal bounds.
+  Since type abstractions are invariant with regards to their parameter, an extremal type is
+  only so with regards to some parameters, which should be added to a kind. *)
+let rec get_top ctx kind =
+  match kind with
+  | Type ->
+    Node.top
+  | Abs (param, kind) ->
+    let bind: Abt.bind_type = { name = "_" } in
+    let param: Node.param = { bind; lower = (get_bot ctx param); upper = (get_top ctx param)} in
+    Node.abs param (get_bot ctx kind)
+
+and get_bot ctx kind =
+  match kind with
+  | Type ->
+    Node.bot
+  | Abs (param, kind) ->
+    let bind: Abt.bind_type = { name = "_" } in
+    let param: Node.param = { bind; lower = (get_bot ctx param); upper = (get_top ctx param)} in
+    Node.abs param (get_bot ctx kind)

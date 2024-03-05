@@ -153,7 +153,7 @@ and display_param param =
   let upper = Compare.compare param.upper Node.top |> not in
   (if lower || upper then ": " else "") ^
   (if lower then display param.lower N ^ " " else "") ^
-  (if lower || upper then "<" else "") ^
+  (if lower || upper then ".." else "") ^
   (if upper then " " ^ display param.upper N else "")
 
 let display type' =

@@ -82,7 +82,9 @@ and isa_base ctx (sub: Node.base) (sup: Node.base) =
   | String, String ->
     true
   | Var sub_var, _ ->
-    isa_var ctx sub_var sup
+    isa_var_sub ctx sub_var sup
+  | _, Var sup_var ->
+    isa_var_sup ctx sub sup_var
   | Tuple sub_tuple, Tuple sup_tuple ->
     isa_tuple ctx sub_tuple sup_tuple
   | Record sub_record, Record sup_record ->
@@ -108,16 +110,21 @@ and isa_top ctx sub =
 and isa_bot ctx sup =
   Kind.get_kind_base ctx sup = Kind.Type
 
-and isa_var ctx sub_var sup =
-  if var_is_bot ctx sub_var then
-    isa_bot ctx sup
-  else
+and isa_var_sub ctx sub_var sup =
   match sup with
   | Var sup_var when sub_var.bind == sup_var.bind ->
     true
   | _ ->
     let _, sub_upper = Context.get_bounds ctx sub_var.bind in
     isa ctx sub_upper (base sup)
+
+and isa_var_sup ctx sub sup_var =
+  match sub with
+  | Var sub_var when sub_var.bind == sup_var.bind ->
+    true
+  | _ ->
+    let sup_lower, _ = Context.get_bounds ctx sup_var.bind in
+    isa ctx (base sub) sup_lower
 
 and isa_tuple ctx sub_tuple sup_tuple =
   List.equal (isa ctx) sub_tuple.elems sup_tuple.elems
@@ -283,9 +290,9 @@ and meet_base ctx (left: Node.base) (right: Node.base) =
   | Bool   , Bool   -> Some Bool
   | Int    , Int    -> Some Int
   | String , String -> Some String
-  | Var left_var, _ when isa_var ctx left_var right ->
+  | Var left_var, _ when isa_var_sub ctx left_var right ->
     Some (Var left_var)
-  | _, Var right_var  when isa_var ctx right_var left ->
+  | _, Var right_var  when isa_var_sub ctx right_var left ->
     Some (Var right_var)
   | Var _, _ -> None
   | _, Var _ -> None

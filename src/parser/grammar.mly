@@ -26,6 +26,7 @@ let span (start, end') =
 %token DIV
 %token DOT
 %token DOUBLE_ARROW
+%token DOUBLE_DOT
 %token EQ
 %token GE
 %token GT
@@ -107,8 +108,12 @@ let field_type :=
     { FieldTypeAttr { span = span $loc; label; type' = type_ } }
 
 let param_type :=
-  | name = IDENT; type_ = option(COLON; type_);
-    { { span = span $loc; name; type' = type_ } }
+  | name = IDENT; interval = option(COLON; interval);
+    { { span = span $loc; name; interval = interval } }
+
+let interval :=
+  | lower = option(type_); DOUBLE_DOT; upper = option(type_);
+  { { span = span $loc; lower; upper }}
 
 // EXPRESSIONS
 

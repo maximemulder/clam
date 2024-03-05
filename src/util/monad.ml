@@ -11,7 +11,7 @@ module Monad (M: MONAD) = struct
 
   let (let*) = bind
 
-  let map_option f x =
+  let option_map f x =
     match x with
     | None -> return None
     | Some x ->

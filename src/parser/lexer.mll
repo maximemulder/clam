@@ -26,6 +26,7 @@ rule read =
   | ident    { IDENT (Lexing.lexeme lexbuf) }
   | "->"     { ARROW }
   | "++"     { CONCAT }
+  | ".."     { DOUBLE_DOT }
   | "=>"     { DOUBLE_ARROW }
   | "=="     { EQ }
   | ">="     { GE }

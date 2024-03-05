@@ -137,7 +137,13 @@ and attr_type = {
 
 and param_type = {
   bind: bind_type;
-  bound: type';
+  interval: interval;
+}
+
+and interval = {
+  span: span;
+  lower: type' option;
+  upper: type' option;
 }
 
 (* EXPRESSIONS *)

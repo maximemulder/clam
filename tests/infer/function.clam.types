@@ -7,6 +7,6 @@ e: ['A] -> ((Int) -> 'A) -> 'A
 f: ((Int) -> Int) -> Int
 g: ((Int | String) -> Int) -> Int
 h: ['A, 'B] -> (('A) -> 'B, 'A) -> 'B
-bounded: ['A, 'B: < (Int) -> 'A] -> ('B) -> {'B, 'A}
+bounded: ['A, 'B: .. (Int) -> 'A] -> ('B) -> {'B, 'A}
 if_bis: (Bool) -> ['A] -> ('A, 'A) -> 'A
-max: ['A: < Int] -> ('A, 'A) -> 'A
+max: ['A: .. Int] -> ('A, 'A) -> 'A

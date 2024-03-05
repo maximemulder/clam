@@ -120,10 +120,10 @@ and infer_lam_app expr =
   )
 
 and infer_univ_abs expr =
-  let* upper = validate expr.param.bound in
+  let* param = validate_param expr.param in
   with_var (fun var ->
-    let type' = Type.univ { bind = expr.param.bind; lower = Type.bot; upper } var in
-    let* () = with_type expr.param.bind Type.bot upper
+    let type' = Type.univ param var in
+    let* () = with_type expr.param.bind param.lower param.upper
       (infer_parent expr.body var) in
     return type'
   )

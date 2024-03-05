@@ -142,7 +142,7 @@ def distributivity = [A, B, C] -> (developed: (A & B) | (A & C)) ->
 
 ## Universal types
 
-Clam features universal types, which allow expressions to abstract over types. Type parameters have an upper bound, which is `Top` by default.
+Clam features universal types, which allow expressions to abstract over types. Type parameters have a lower and an upper bound, which are respectively `Bot` and `Top` by default.
 
 ```
 type Iter = [T] -> (Int, T, (T) -> T) -> T
@@ -179,7 +179,7 @@ def pair: Pair[Int] = {0, 0}
 Clam features higher-kinded types, which allow type constructors to abstract over other type constructors. Higher-kinded types are currently invariant with regards to their parameters.
 
 ```
-type Monad = [M: [T] => Top, A] => {
+type Monad = [M: .. [T] => Top, A] => {
     return: (A) -> M[A],
     bind: [B] -> (M[A], (A) -> M[B]) -> M[B]
 }
@@ -220,9 +220,9 @@ id: ['A] -> ('A) -> 'A
 inf: (Top) -> Bot
 foo: ['A, 'B] -> (((Int) -> 'A) & ((String) -> 'B)) -> {'A, 'B}
 bar: {Int, String}
-bounded: ['A, 'B: (Int) -> 'A] -> ('B) -> {'B, 'A}
+bounded: ['A, 'B: .. (Int) -> 'A] -> ('B) -> {'B, 'A}
 not_ml: {id_bis: ['A] -> ('A) -> 'A, z: Int}
-max: ['A: Int] -> ('A, 'A) -> 'A
+max: ['A: .. Int] -> ('A, 'A) -> 'A
 is_even: (Int) -> Bool
 is_odd: (Int) -> Bool
 ​</code></pre></td>

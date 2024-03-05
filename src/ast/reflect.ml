@@ -6,6 +6,7 @@ type node =
   | Type      of type'
   | ParamType of param_type
   | FieldType of field_type
+  | Interval  of interval
   | Expr      of expr
   | Stmt      of stmt
   | ParamExpr of param_expr
@@ -13,22 +14,23 @@ type node =
 
 type value =
   | VString of string
-  | VMaybe  of value option
+  | VOption of value option
   | VList   of value list
   | VNode   of node
 
-let v_string string    = VString string
-let v_maybe node f     = VMaybe (Option.map f node)
-let v_list  node f     = VList (List.map f node)
-let v_program program  = VNode (Program program)
-let v_def  def         = VNode (Def def)
-let v_type type'       = VNode (Type type')
-let v_field_type field = VNode (FieldType field)
-let v_param_type param = VNode (ParamType param)
-let v_expr expr        = VNode (Expr expr)
-let v_stmt stmt        = VNode (Stmt stmt)
-let v_field_expr field = VNode (FieldExpr field)
-let v_param_expr param = VNode (ParamExpr param)
+let v_string string     = VString string
+let v_option f node     = VOption (Option.map f node)
+let v_list f node       = VList (List.map f node)
+let v_program program   = VNode (Program program)
+let v_def  def          = VNode (Def def)
+let v_type type'        = VNode (Type type')
+let v_field_type field  = VNode (FieldType field)
+let v_param_type param  = VNode (ParamType param)
+let v_interval interval = VNode (Interval interval)
+let v_expr expr         = VNode (Expr expr)
+let v_stmt stmt         = VNode (Stmt stmt)
+let v_field_expr field  = VNode (FieldExpr field)
+let v_param_expr param  = VNode (ParamExpr param)
 
 let get_name node =
   match node with
@@ -52,6 +54,7 @@ let get_name node =
     | FieldTypeElem _ -> "elem"
     | FieldTypeAttr _ -> "attr")
   | ParamType _ -> "param_type"
+  | Interval _ -> "interval"
   | Expr expr -> "expr." ^ (
     match expr with
     | ExprUnit    _ -> "unit"
@@ -95,6 +98,7 @@ let get_span node =
     | FieldTypeElem field -> field.span
     | FieldTypeAttr field -> field.span)
   | ParamType param -> param.span
+  | Interval interval -> interval.span
   | Expr expr -> Span.expr_span expr
   | Stmt stmt -> (
     match stmt with
@@ -109,7 +113,7 @@ let get_span node =
 let get_attrs node =
   match node with
   | Program { defs } -> [
-      "defs", v_list defs v_def;
+      "defs", v_list v_def defs;
     ]
   | Def def -> (
     match def with
@@ -119,7 +123,7 @@ let get_attrs node =
       ]
     | DefExpr { name; type'; expr; _ } -> [
         "name", v_string name;
-        "type", v_maybe  type' v_type;
+        "type", v_option v_type type';
         "expr", v_expr   expr;
       ])
   | Type type' -> (
@@ -128,23 +132,23 @@ let get_attrs node =
         "name", v_string name;
       ]
     | TypeProduct { fields; _ } -> [
-        "fields", v_list fields v_field_type;
+        "fields", v_list v_field_type fields;
       ]
     | TypeLam { params; ret; _ } -> [
-        "params", v_list params v_type;
+        "params", v_list v_type params;
         "ret",    v_type ret;
       ]
     | TypeUniv { params; ret; _ } -> [
-        "params", v_list params v_param_type;
+        "params", v_list v_param_type params;
         "ret",    v_type ret;
       ]
     | TypeAbs { params; body; _ } -> [
-        "params", v_list params v_param_type;
+        "params", v_list v_param_type params;
         "body",   v_type body;
       ]
     | TypeApp { abs; args; _ } -> [
         "abs",  v_type abs;
-        "args", v_list args v_type;
+        "args", v_list v_type args;
       ]
     | TypeUnion { left; right; _ } -> [
         "left",  v_type left;
@@ -163,10 +167,14 @@ let get_attrs node =
         "label", v_string label;
         "type",  v_type type';
       ])
-  | ParamType { name; type'; _ } -> [
+  | ParamType { name; interval; _ } -> [
       "name", v_string name;
-      "type", v_maybe type' v_type;
+      "interval", v_option v_interval interval;
     ]
+  | Interval { lower; upper; _ } -> [
+    "lower", v_option v_type lower;
+    "upper", v_option v_type upper;
+  ]
   | Expr expr -> (
     match expr with
     | ExprUnit  _ -> []
@@ -182,7 +190,7 @@ let get_attrs node =
         "name", v_string name;
       ]
     | ExprProduct { fields; _ } -> [
-        "fields", v_list fields v_field_expr;
+        "fields", v_list v_field_expr fields;
       ]
     | ExprElem { tuple; index; _ } -> [
         "tuple", v_expr tuple;
@@ -215,26 +223,26 @@ let get_attrs node =
         "else", v_expr else';
       ]
     | ExprLamAbs { params; body; _ } -> [
-        "params", v_list params v_param_expr;
+        "params", v_list v_param_expr params;
         "body",   v_expr body;
       ]
     | ExprLamApp { abs; args; _ } -> [
         "abs",  v_expr abs;
-        "args", v_list args v_expr;
+        "args", v_list v_expr args;
       ]
     | ExprUnivAbs { params; body; _ } -> [
-        "params", v_list params v_param_type;
+        "params", v_list v_param_type params;
         "body",   v_expr body;
       ]
     | ExprUnivApp { abs; args; _ } -> [
         "abs",  v_expr abs;
-        "args", v_list args v_type;
+        "args", v_list v_type args;
       ])
   | Stmt stmt -> (
     match stmt with
     | StmtVar { name; type'; expr; _ } -> [
         "name", v_string name;
-        "type", v_maybe type' v_type;
+        "type", v_option v_type type';
         "expr", v_expr expr;
       ]
     | StmtExpr { expr; _ } -> [
@@ -251,5 +259,5 @@ let get_attrs node =
       ])
   | ParamExpr { name; type'; _ } ->[
       "name", v_string name;
-      "type", v_maybe type' v_type;
+      "type", v_option v_type type';
     ]

@@ -11,7 +11,7 @@ let rec indent buffer level =
 let rec display buffer level value =
   match value with
   | VString string -> display_string buffer string
-  | VMaybe  maybe  -> display_maybe  buffer level maybe
+  | VOption option -> display_option buffer level option
   | VList   list   -> display_list   buffer level list
   | VNode   node   -> display_node   buffer level node
 
@@ -20,8 +20,8 @@ and display_string buffer string =
   Buffer.add_string buffer string;
   Buffer.add_string buffer "\""
 
-and display_maybe buffer level maybe =
-  match maybe with
+and display_option buffer level option =
+  match option with
   | Some value ->
     Buffer.add_string buffer "some ";
     display buffer level value

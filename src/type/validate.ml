@@ -108,9 +108,28 @@ and validate_app_param_base ctx type' =
   | _ ->
     invalid_arg "validate_app_param_base"
 
+and validate_param ctx (param: Abt.param_type) =
+  let lower, upper = match param.interval.lower, param.interval.upper with
+  | Some lower, Some upper ->
+    validate ctx lower, validate ctx upper
+  | Some lower, None ->
+    let lower = validate ctx lower in
+    lower, Node.top
+  | None, Some upper ->
+    let upper = validate ctx upper in
+    let kind = Kind.get_kind ctx upper in
+    let bot = Kind.get_bot ctx kind in
+    bot, upper
+  | None, None ->
+    Node.bot, Node.top
+  in
+  if not(System.isa ctx lower upper) then
+    Error.validate_interval param.interval lower upper
+  else
+  { bind = param.bind; lower; upper }
+
 and validate_param_with ctx param f =
-  let bound = validate ctx param.bound in
-  let param = { bind = param.bind; lower = Node.bot; upper = bound } in
+  let param = validate_param ctx param in
   let ctx = Context.add_param ctx param in
   let other = f ctx in
   param, other

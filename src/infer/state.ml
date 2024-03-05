@@ -77,6 +77,10 @@ let validate type' =
   let* ctx = get_context in
   return (Type.Validate.validate ctx type')
 
+let validate_param param =
+  let* ctx = get_context in
+  return (Type.Validate.validate_param ctx param)
+
 let validate_proper type' =
   let* ctx = get_context in
   return (Type.Validate.validate_proper ctx type')

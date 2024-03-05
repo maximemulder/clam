@@ -39,6 +39,14 @@ let validate_app_arg (app: Abt.type_app) (param: Node.type') (arg: Node.type') =
     ("expected subtype of `" ^ param ^ "` but found type `" ^ arg ^ "`")
     span
 
+let validate_interval (interval: Abt.interval) lower upper =
+  let span = interval.span in
+  let lower = Display.display lower in
+  let upper = Display.display upper in
+  raise
+    ("inconsistent type interval, expected the lower bound to be a subtype of the upper bound but found types `" ^ lower ^ "` and `" ^ upper ^ "`")
+    span
+
 let check_type expr (type': Node.type') (constr: Node.type') =
   let span = expr_span expr in
   let type' = Display.display type' in
@@ -106,30 +114,3 @@ let check_type_abs_param (expr: expr_univ_abs) bound (constr: Node.param) =
   raise
     ("expected type parameter of type `" ^ constr ^ "` but found parameter of type `" ^ bound ^ "`")
     span
-
-let infer_recursive def =
-  raise
-    ("recursive definition `" ^ def.bind.name ^ "`, type annotation needed")
-    def.span
-
-let infer_attr (attr: expr_attr) type' =
-  let type' = Display.display type' in
-  raise
-    ("expected record expression with attribute `" ^ attr.label ^ "` but found expression of type `" ^ type' ^ "`")
-    attr.span
-
-let infer_abs_param (param: param_expr) =
-  raise
-    ("require type annotation for parameter `" ^ param.bind.name ^ "`")
-    param.span
-
-let infer_app_kind (app: expr_univ_app) type' =
-  let type' = Display.display type' in
-  raise
-    ("expected expression abstraction but found expression of type `" ^ type' ^ "`")
-    app.span
-
-let infer_recursive_type (def: def_expr) =
-  raise
-    ("cannot infer recursive type for definition `" ^ def.bind.name ^ "`")
-    def.span

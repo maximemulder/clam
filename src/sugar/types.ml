@@ -139,7 +139,7 @@ and desugar_univ_curry span params ret =
     desugar_type ret
   | (param :: params) ->
     let* param = desugar_param_type param in
-    let type' = (param.bind.name, Abt.TypeVar { span = Abt.type_span param.bound; bind = param.bind }) in
+    let type' = (param.bind.name, Abt.TypeVar { span = param.interval.span; bind = param.bind }) in
     let* ret = with_scope (desugar_univ_curry span params ret) [type'] in
     return (Abt.TypeUniv { span = span; param; ret })
 
@@ -152,7 +152,7 @@ and desugar_abs_curry span params body =
     desugar_type body
   | (param :: params) ->
     let* param = desugar_param_type param in
-    let type' = (param.bind.name, Abt.TypeVar { span = Abt.type_span param.bound; bind = param.bind }) in
+    let type' = (param.bind.name, Abt.TypeVar { span = param.interval.span; bind = param.bind }) in
     let* body = with_scope (desugar_abs_curry span params body) [type'] in
     return (Abt.TypeAbs { span = span; param; body })
 
@@ -170,13 +170,18 @@ and desugar_app_curry span abs args =
     desugar_app_curry span app args
 
 and desugar_param_type param: Abt.param_type t =
-  let* bound = (match param.type' with
-    | Some type' ->
-      desugar_type type'
-    | None ->
-      return (Abt.TypeTop { span = param.span })
-  ) in
-  return { Abt.bind = { name = param.name }; Abt.bound }
+  let* interval = desugar_interval param in
+  return { Abt.bind = { name = param.name }; interval }
+
+and desugar_interval param =
+  match param.interval with
+  | Some interval ->
+    let* lower = option_map desugar_type interval.lower in
+    let* upper = option_map desugar_type interval.upper in
+    return { span = interval.span; lower; upper }
+  | None ->
+    return {
+      span = param.span; lower = None; upper = None }
 
 and partition_field field =
   match field with
@@ -240,6 +245,6 @@ let desugar_program (program: Ast.program) =
   (state.scope.dones, state.all)
 
 let desugar_abs (param: Abt.param_type) state =
-  let type' = (param.bind.name, Abt.TypeVar { span = Abt.type_span param.bound; bind = param.bind }) in
+  let type' = (param.bind.name, Abt.TypeVar { span = param.interval.span; bind = param.bind }) in
   let (_, state) = make_child [type'] state in
   state.scope.dones

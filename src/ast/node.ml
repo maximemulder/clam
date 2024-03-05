@@ -103,7 +103,13 @@ and field_type_attr = {
 and param_type = {
   span: span;
   name: string;
-  type': type' option;
+  interval: interval option;
+}
+
+and interval = {
+  span: span;
+  lower: type' option;
+  upper: type' option;
 }
 
 (* EXPRESSIONS *)

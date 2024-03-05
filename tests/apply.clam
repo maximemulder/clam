@@ -1,7 +1,7 @@
 type Id = [T] => T
 
 type Pair = [T] => {T, T}
-type Apply = [T: [T] => Top, U] => T[U]
+type Apply = [T: .. [T] => Top, U] => T[U]
 
 def a: Apply[Id, Int] = 0
 def b: Apply[Pair, Int] = {0, 0}

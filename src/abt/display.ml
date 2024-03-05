@@ -136,8 +136,21 @@ and display_inter inter =
   return B type'
 
 and display_param param =
-  let bound = display param.bound N in
-  param.bind.name ^ ": " ^ bound
+  let lower = (
+    match param.interval.lower with
+    | Some(type') -> display type' N
+    | None -> "")
+  in
+  let upper = (
+    match param.interval.upper with
+    | Some(type') -> display type' N
+    | None -> "")
+  in
+  param.bind.name ^
+  (if lower != "" || upper != "" then ": " else "") ^
+  lower ^
+  (if lower != "" || upper != "" then ".." else "") ^
+  upper
 
 let display type' =
   display type' N

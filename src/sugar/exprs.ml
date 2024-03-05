@@ -225,7 +225,7 @@ and desugar_stmt stmt =
   match stmt.stmt with
   | StmtVar { span; name; type'; expr } ->
     let* bind = new_bind name in
-    let* type' = map_option desugar_type type' in
+    let* type' = option_map desugar_type type' in
     let param = { Abt.span = span; bind; type' } in
     let* body = with_scope NameMap.empty (NameMap.singleton name bind)
       (desugar_expr stmt.expr) in
@@ -300,18 +300,22 @@ and desugar_univ_app_curry span abs args =
     desugar_univ_app_curry span app args
 
 and desugar_param_expr (param: Ast.param_expr): Abt.param_expr t =
-  let* type' = map_option desugar_type param.type' in
+  let* type' = option_map desugar_type param.type' in
   let* bind = new_bind param.name in
   return { Abt.span = param.span; bind; type' }
 
-and desugar_param_type (param: Ast.param_type) =
-  let* bound = (match param.type' with
-    | Some type' ->
-      desugar_type type'
-    | None ->
-      return (Abt.TypeTop { span = param.span })
-  ) in
-  return { Abt.bind = { name = param.name }; Abt.bound }
+and desugar_param_type param =
+  let* interval = desugar_interval param in
+  return { Abt.bind = { name = param.name }; interval }
+
+and desugar_interval param =
+  match param.interval with
+  | Some interval ->
+    let* lower = option_map desugar_type interval.lower in
+    let* upper = option_map desugar_type interval.upper in
+    return { Abt.span = interval.span; lower; upper }
+  | None ->
+    return { Abt.span = param.span; lower = None; upper = None }
 
 let desugar_defs state defs =
   List.fold_left (fun state (def: Ast.def_expr) ->

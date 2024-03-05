@@ -1,4 +1,4 @@
-type Monad = [M: [T] => Top, A] => {
+type Monad = [M: .. [T] => Top, A] => {
     return: (A) -> M[A],
     bind: [B] -> (M[A], (A) -> M[B]) -> M[B]
 }

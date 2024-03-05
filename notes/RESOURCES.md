@@ -40,3 +40,8 @@ Implicit Polarized F: local type inference for impredicativity
 
 Greedy Implicit Bounded Quantification
 - https://i.cs.hku.hk/~bruno/papers/oopsla23.pdf
+
+## Subtyping
+
+A Theory of Higher-Order Subtyping with Type Intervals
+- https://dl.acm.org/doi/pdf/10.1145/3473574
