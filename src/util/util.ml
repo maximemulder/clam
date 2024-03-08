@@ -12,11 +12,6 @@ let uncurry f (x, y) = f x y
 
 let apply x f = f x
 
-let extract key map =
-  let value = NameMap.find key map in
-  let map = NameMap.remove key map in
-  (value, map)
-
 (**
   Returns both the index and the value of the leftmost element that satisfies
   the given predicate

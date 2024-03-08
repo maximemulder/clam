@@ -12,8 +12,9 @@ Options:
 
     -h --help         Display this message.
     -a --show-ast     Display the program abstract syntax tree.
-    -t --show-types   Display the type of all definitions.
-    -v --show-values  Display the results of all evaluated definitions.
+    -k --show-kinds   Display the kinds of all type definitions.
+    -t --show-types   Display the types of all expression definitions.
+    -v --show-values  Display the results of evaluated expression definitions.
 "
 
 (* CONSIDERED OTHER OPTIONS:

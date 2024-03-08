@@ -20,8 +20,8 @@ def fibonacci = (n) ->
         fibonacci(n - 2) + fibonacci(n - 1)
 
 def main =
-    print(fibonacci(2));
-    print(fibonacci(5));
+    var three = fibonacci(4);
+    print(three);
     unit
 ```
 
@@ -29,9 +29,7 @@ More examples of Clam code can be found in the `tests` directory.
 
 # How to build
 
-You can build this project on Linux using Dune.
-
-In a terminal, enter `dune build` to build the project or `dune exec clam example.clam` to run the interpreter with the code file `example.clam` as its input.
+You can build this project on Linux using Dune. In a terminal, enter `dune build` to build the project, which outputs the binary in `_build/install/default/bin`. You can then use `clam example.clam` to interpret the file `example.clam` or use `clam --help` to get more information on the interpreter.
 
 # Features
 
@@ -84,7 +82,7 @@ def sphere: Sphere = ball
 
 ## Subtyping
 
-Clam features structural subtyping, which means that there exists a partial order between types where some types can be considered more specific or more general versions of others. Records notably support both width and depth subtyping, while tuples only support the latter.
+Clam features structural subtyping, which means that some types can be considered more specific or more general versions of others. Records notably support both width and depth subtyping, while tuples only support the latter.
 
 ```
 type Double = {x: Int, y: Int}
@@ -104,7 +102,7 @@ def u: Unit = unit
 
 ## Top type
 
-Clam has a top type named `Top`, which contains all values and is therefore a supertype of all proper types.
+Clam has a top type named `Top`, which is a supertype of all proper types and contains all values.
 
 ```
 def a: Top = 0
@@ -113,7 +111,7 @@ def b: Top = "Hello world !"
 
 ## Bottom type
 
-Clam has a bottom type named `Bot`, which contains no value and is therefore a subtype of all proper types.
+Clam has a bottom type named `Bot`, which is a subtype of all proper types and contains no values.
 
 ```
 def foo = (bot: Bot) ->
@@ -124,7 +122,7 @@ def foo = (bot: Bot) ->
 
 ## Union and intersection types
 
-Clam features union and intersection types, with a support for distributivity, joins and meets.
+Clam features union and intersection types, which allow to represent set-theoric operations between types.
 
 ```
 type Union = {foo: Int} | {foo: String}
@@ -134,34 +132,46 @@ def union: Union = {foo = 1}
 def inter: Inter = {bar = 2, baz = "World"}
 
 def foo: Int | String = union.foo
+```
 
-def distributivity = [A, B, C] -> (developed: (A & B) | (A & C)) ->
-    var factorized: A & (B | C) = developed;
+Clam's union and intersections also support distributivity, joins and meets.
+
+```
+def distrib = [A, B, C] -> (p: (A & B) | (A & C)) ->
+    var foo: A & (B | C) = p;
+    unit
+
+def meet = [A, B, C] -> (p: ((A) -> C) & ((B) -> C)) ->
+    var bar: (A | B) -> C = p;
     unit
 ```
 
 ## Universal types
 
-Clam features universal types, which allow expressions to abstract over types. Type parameters have a lower and an upper bound, which are respectively `Bot` and `Top` by default.
+Clam features universal types, which allow expressions to abstract over types.
 
 ```
-type Iter = [T] -> (Int, T, (T) -> T) -> T
+type ApplyTwice = [T] -> ((T) -> T, T) -> T
 
-def iter: Iter = [T] -> (n, v, f) ->
-    if n == 0 then
-        v
-    else
-        iter[T](n - 1, f(v), f)
+def apply_twice: ApplyTwice = [T] -> (f, v) ->
+    f(f(v))
 
-def eight = iter[Int](3, 1, (i) -> i * 2)
+def eight = apply_twice[Int]((i) -> i * 2, 4)
 ```
 
-Clam also features higher-rank polymorphism subtyping, which adds a lot of flexibility to universal types.
+Type parameters have a lower and an upper bound, which are declared as an interval using `..` and are respectively `Bot` and `Top` by default. The bounds of a type parameter must be consistent, that is, the lower bound must be a subtype of the upper bound, and universal types are currently invariant with regards to these bounds.
 
 ```
-def int_id: (Int) -> Int = [T] -> (p: T) -> p
-def inverted: [A, B] -> (A, B) -> Unit
-            = [B, A] -> (a: A, b: B) -> unit
+def max = [T: .. Int] -> (a: T, b: T) ->
+    if a > b then a else b
+```
+
+Clam also features higher-rank polymorphism subtyping, which allow to use universal types in a more flexible way.
+
+```
+def id: [T] -> (T) -> T = (p) -> p
+def int_id: (Int) -> Int = id
+def single: [T] -> Int = 0
 ```
 
 ## Type constructors
@@ -176,7 +186,7 @@ def pair: Pair[Int] = {0, 0}
 
 ## Higher-kinded types
 
-Clam features higher-kinded types, which allow type constructors to abstract over other type constructors. Higher-kinded types are currently invariant with regards to their parameters.
+Clam features higher-kinded types, which allow type constructors to abstract over other type constructors.
 
 ```
 type Monad = [M: .. [T] => Top, A] => {
@@ -194,6 +204,8 @@ def state_monad: [S, A] -> Monad[State[S], A] = [S, A] -> {
 }
 ```
 
+Whenever a type parameter only has one declared bound, the other bound is inferred to the corresponding extremal type of the same kind. Also, since a type can only have one kind, all the types that compose a union or intersection must be of the same kind. Finally, like univeral types, higher-kinded types are currently invariant with regards to their parameter bounds.
+
 ## Type inference
 
 Clam features a constraint-based type inference algorithm capable of inferring types for most expressions.
@@ -210,6 +222,7 @@ def inf = (p) -> inf(p)
 def foo = (f) -> {f(123), f("Hello")}
 def bar = foo(id)
 def bounded = (f) -> {f, f(1)}
+def unpred = id(id)
 def not_ml = {id_bis = (p) -> p, z = 0}
 def max = (l, r) -> if l > r then l else r
 def is_even = (n) -> !is_odd(n)
@@ -221,6 +234,7 @@ inf: (Top) -> Bot
 foo: ['A, 'B] -> (((Int) -> 'A) & ((String) -> 'B)) -> {'A, 'B}
 bar: {Int, String}
 bounded: ['A, 'B: .. (Int) -> 'A] -> ('B) -> {'B, 'A}
+unpred: ['A] -> ('A) -> 'A
 not_ml: {id_bis: ['A] -> ('A) -> 'A, z: Int}
 max: ['A: .. Int] -> ('A, 'A) -> 'A
 is_even: (Int) -> Bool

@@ -105,10 +105,10 @@ and isa_base ctx (sub: Node.base) (sup: Node.base) =
     false
 
 and isa_top ctx sub =
-  Kind.get_kind_base ctx sub = Kind.Type
+  Kind.get_kind_base ctx sub = Type
 
 and isa_bot ctx sup =
-  Kind.get_kind_base ctx sup = Kind.Type
+  Kind.get_kind_base ctx sup = Type
 
 and isa_var_sub ctx sub_var sup =
   match sup with
@@ -368,3 +368,19 @@ and meet_abs ctx left right =
 
 let substitute ctx type' bind other =
   substitute ctx bind other type'
+
+(* KIND EQUALITY *)
+
+(**
+  Determines if two given kinds are equal.
+*)
+let rec is_kind ctx left right =
+  match left, right with
+  | Kind.Type, Kind.Type ->
+    true
+  | Kind.Abs left_abs, Kind.Abs right_abs ->
+    is ctx left_abs.lower right_abs.lower &&
+    is ctx left_abs.upper right_abs.upper &&
+    is_kind ctx left_abs.ret right_abs.ret
+  | _, _ ->
+    false

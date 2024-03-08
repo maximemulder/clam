@@ -202,5 +202,4 @@ let check_defs defs primitives =
   List.map (fun (entry: entry_expr) -> entry.bind, entry.type') state.exprs
 
 let check_types defs =
-  let _ = List.map (fun (def: Abt.def_type) -> Type.Validate.validate Type.Context.empty def.type') defs in
-  ()
+  List.map (fun (def: Abt.def_type) -> def.name, Type.Validate.validate Type.Context.empty def.type' |> Type.Kind.get_kind Type.Context.empty) defs

@@ -2,7 +2,7 @@ open Node
 
 let rec validate_proper ctx type' =
   let type'' = validate ctx type' in
-  if Kind.get_kind ctx type'' <> Kind.Type then
+  if Kind.get_kind ctx type'' <> Type then
     Error.validate_proper type'
   else
     type''
@@ -74,7 +74,7 @@ and validate_app ctx app =
 and validate_union ctx union =
   let left  = validate ctx union.left  in
   let right = validate ctx union.right in
-  if Kind.get_kind ctx left <> Kind.get_kind ctx right then
+  if not (System.is_kind ctx (Kind.get_kind ctx left) (Kind.get_kind ctx right)) then
     Error.validate_union_kind union
   else
   System.join ctx left right
@@ -82,7 +82,7 @@ and validate_union ctx union =
 and validate_inter ctx inter =
   let left  = validate ctx inter.left  in
   let right = validate ctx inter.right in
-  if Kind.get_kind ctx left <> Kind.get_kind ctx right then
+  if not (System.is_kind ctx (Kind.get_kind ctx left) (Kind.get_kind ctx right)) then
     Error.validate_inter_kind inter
   else
   System.meet ctx left right
@@ -114,12 +114,14 @@ and validate_param ctx (param: Abt.param_type) =
     validate ctx lower, validate ctx upper
   | Some lower, None ->
     let lower = validate ctx lower in
-    lower, Node.top
+    let kind = Kind.get_kind ctx lower in
+    let upper = Kind.get_kind_max ctx kind in
+    lower, upper
   | None, Some upper ->
     let upper = validate ctx upper in
     let kind = Kind.get_kind ctx upper in
-    let bot = Kind.get_bot ctx kind in
-    bot, upper
+    let lower = Kind.get_kind_min ctx kind in
+    lower, upper
   | None, None ->
     Node.bot, Node.top
   in

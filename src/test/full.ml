@@ -74,12 +74,14 @@ let test file_name =
   let file_text = read_file file_name in
   let code = { Code.name = file_name; text = file_text } in
   let channel_ast    = make_channel_opt file_name "ast"             ".ast"    in
+  let channel_kinds  = make_channel_opt file_name "kinds"           ".kinds"  in
   let channel_types  = make_channel_opt file_name "types"           ".types"  in
   let channel_values = make_channel_opt file_name "values"          ".values" in
   let channel_out    = make_channel     file_name "standard output" ".out"    in
   let channel_err    = make_channel     file_name "standard error"  ".err"    in
   Main.run code {
     show_ast    = Option.map (fun channel -> write_buffer channel.result) channel_ast;
+    show_kinds  = Option.map (fun channel -> write_buffer channel.result) channel_kinds;
     show_types  = Option.map (fun channel -> write_buffer channel.result) channel_types;
     show_values = Option.map (fun channel -> write_buffer channel.result) channel_values;
     print_out   = write_buffer channel_out.result;

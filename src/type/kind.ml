@@ -1,26 +1,33 @@
+open Node
+
 type kind =
   | Type
-  | Abs of kind * kind
+  | Abs of abs
 
-let rec get_kind ctx (type': Node.type') =
+and abs = {
+  lower: type';
+  upper: type';
+  ret: kind;
+}
+
+let rec get_kind ctx type' =
   get_kind_union ctx type'
 
-and get_kind_union ctx (union: Node.union) =
+and get_kind_union ctx union =
   get_kind_inter ctx (List.nth union.union 0)
 
-and get_kind_inter ctx (inter: Node.inter) =
+and get_kind_inter ctx inter =
   get_kind_base ctx (List.nth inter.inter 0)
 
-and get_kind_base ctx (type': Node.base) =
+and get_kind_base ctx type' =
   match type' with
   | Var var ->
-    let _, upper = Context.get_bounds ctx var.bind in
-    get_kind ctx upper
+    let lower, _ = Context.get_bounds ctx var.bind in
+    get_kind ctx lower
   | Abs abs ->
-    let param = get_kind ctx abs.param.lower in
     let ctx = Context.add_param ctx abs.param in
-    let body  = get_kind ctx abs.body in
-    Abs (param, body)
+    let ret  = get_kind ctx abs.body in
+    Abs { lower = abs.param.lower; upper = abs.param.upper; ret }
   | App app ->
     get_kind_app ctx app
   | _ ->
@@ -28,28 +35,30 @@ and get_kind_base ctx (type': Node.base) =
 
 and get_kind_app ctx app =
   match get_kind ctx app.abs with
-  | Abs (_, body) ->
-    body
+  | Abs { ret; _ } ->
+    ret
   | Type ->
     invalid_arg "TypeKind.get_kind"
 
-(* TODO: These two functions do not work when type abstractions have non-extremal bounds.
-  Since type abstractions are invariant with regards to their parameter, an extremal type is
-  only so with regards to some parameters, which should be added to a kind. *)
-let rec get_top ctx kind =
+let rec get_kind_max ctx kind =
   match kind with
   | Type ->
     Node.top
-  | Abs (param, kind) ->
+  | Abs { lower; upper; ret } ->
     let bind: Abt.bind_type = { name = "_" } in
-    let param: Node.param = { bind; lower = (get_bot ctx param); upper = (get_top ctx param)} in
-    Node.abs param (get_bot ctx kind)
+    let param: Node.param = { bind; lower; upper } in
+    Node.abs param (get_kind_max ctx ret)
 
-and get_bot ctx kind =
+let rec get_kind_min ctx kind =
   match kind with
   | Type ->
     Node.bot
-  | Abs (param, kind) ->
+  | Abs { lower; upper; ret } ->
     let bind: Abt.bind_type = { name = "_" } in
-    let param: Node.param = { bind; lower = (get_bot ctx param); upper = (get_top ctx param)} in
-    Node.abs param (get_bot ctx kind)
+    let param: Node.param = { bind; lower; upper } in
+    Node.abs param (get_kind_min ctx ret)
+
+let rec display kind =
+  match kind with
+  | Type -> "*"
+  | Abs abs -> "[" ^ Display.display abs.lower ^ " .. " ^ Display.display abs.upper ^ "] -> " ^ display abs.ret

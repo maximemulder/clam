@@ -1,5 +1,6 @@
 type config = {
   show_ast:    Util.writer option;
+  show_kinds:  Util.writer option;
   show_types:  Util.writer option;
   show_values: Util.writer option;
   print_out:   Util.writer;
@@ -17,7 +18,13 @@ let desugar ast =
   Sugar.desugar ast Prim.binds
 
 let type_check abt config =
-  let types = Infer.check abt Prim.types in
+  let kinds, types = Infer.check abt Prim.types in
+  (match config.show_kinds with
+  | Some show_kinds ->
+    List.iter (fun (name, kind) ->
+      show_kinds(name ^ " :: " ^ Type.Kind.display kind)
+    ) kinds
+  | None -> ());
   match config.show_types with
   | Some show_types ->
     List.iter (fun (def, type') ->

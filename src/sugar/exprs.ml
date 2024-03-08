@@ -57,9 +57,6 @@ let new_bind name =
   let* id = new_id in
   return { Abt.id; name }
 
-let fold_remain map (remain: Ast.def_expr) =
-  NameMap.add remain.Ast.name remain map
-
 let make_state ast_defs types exprs =
   let scope = { parent = None; types; exprs } in
   { id = 0; scope; ast_defs; abt_defs = IntMap.empty }
@@ -84,7 +81,6 @@ let parse_string (value: string) =
 let rec translate_scope state =
   {
     Types.parent = Option.map translate_scope state.parent;
-    Types.remains = NameMap.empty;
     Types.currents = NameMap.empty;
     Types.dones = state.types;
   }
@@ -92,7 +88,8 @@ let rec translate_scope state =
 let translate_state state =
   {
     Types.scope = translate_scope state.scope;
-    Types.all = [];
+    Types.ast_defs = [];
+    Types.abt_defs = IntMap.empty;
   }
 
 (* TODO: Can I remove state from the return ? *)
@@ -110,11 +107,11 @@ let rec desugar_bind span name state =
     (expr, { parent with scope = { state.scope with parent = Some parent.scope } })
   | None ->
   match find_ast_def name state with
-  | Some (id, def) -> desugar_def (id, def) state
+  | Some (id, def) -> desugar_def id def state
   | None     ->
     Errors.raise_expr_bound span name
 
-and desugar_def (id, def) state =
+and desugar_def id def state =
   let bind, state = new_bind def.name state in
   let exprs = NameMap.add def.name bind state.scope.exprs in
   let state = { state with scope = { state.scope with exprs } } in
@@ -317,13 +314,13 @@ and desugar_interval param =
   | None ->
     return { Abt.span = param.span; lower = None; upper = None }
 
-let desugar_defs state defs =
+let desugar_defs state =
   List.fold_left (fun state (def: Ast.def_expr) ->
     desugar_bind def.span def.name state |> snd
-  ) state defs
+  ) state state.ast_defs
 
 let desugar_program (program: Ast.program) (types: Abt.type' NameMap.t) primitives =
   let defs = Ast.get_program_exprs program in
   let state = make_state defs types primitives in
-  let state = desugar_defs state defs in
+  let state = desugar_defs state in
   state.abt_defs |> IntMap.bindings |> List.map snd

@@ -32,6 +32,7 @@ let () =
     let code = read_code config.file in
     Main.run code {
       show_ast    = Util.bool_then config.show_ast   print_endline;
+      show_kinds  = Util.bool_then config.show_kinds print_endline;
       show_types  = Util.bool_then config.show_types print_endline;
       show_values = None;
       print_out   = print_endline;

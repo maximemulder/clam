@@ -4,6 +4,7 @@ type config = {
   file: string option;
   help: bool;
   show_ast: bool;
+  show_kinds: bool;
   show_types: bool;
   show_values: bool;
 }
@@ -12,6 +13,7 @@ let empty_config = {
   file = None;
   help = false;
   show_ast = false;
+  show_kinds = false;
   show_types = false;
   show_values = false;
 }
@@ -23,6 +25,9 @@ let configure_help config =
 
 let configure_show_ast config =
   { config with show_ast = true }
+
+  let configure_show_kinds config =
+    { config with show_kinds = true }
 
 let configure_show_types config =
   { config with show_types = true }
@@ -44,6 +49,7 @@ let parse_arg arg =
   match arg with
   | "-h"   | "--help"        -> configure_help
   | "-ast" | "--show-ast"    -> configure_show_ast
+  | "-k"   | "--show-kinds"  -> configure_show_kinds
   | "-t"   | "--show-types"  -> configure_show_types
   | "-v"   | "--show-values" -> configure_show_values
   | _                        -> configure_default arg
