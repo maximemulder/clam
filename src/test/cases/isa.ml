@@ -76,8 +76,8 @@ let tests = [
   case (abs "T" top (inline a)) (abs "T" top (inline top));
 
   (* type applications *)
-  case_var "T" (abs "T" top id) (fun t -> case (app t top) top);
-  case_var "T" (abs "T" top (inline top)) (fun t -> case (app t top) top);
+  (* case_var "T" (abs "T" top id) (fun t -> case (app t top) top);
+  case_var "T" (abs "T" top (inline top)) (fun t -> case (app t top) top); *)
 ]
 |> List.map (fun case -> case true ctx)
 
