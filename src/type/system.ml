@@ -145,13 +145,13 @@ and isa_lam ctx sub_lam sup_lam =
 
 and isa_univ ctx sub_univ sup_univ =
   is_param ctx sub_univ.param sup_univ.param &&
-  let sup_ret = substitute_body ctx sub_univ.param sup_univ.param sup_univ.ret in
+  let sup_ret = Rename.rename sup_univ.ret sup_univ.param.bind sub_univ.param.bind in
   let ctx = Context.add_param ctx sub_univ.param in
   isa ctx sub_univ.ret sup_ret
 
 and isa_abs ctx sub_abs sup_abs =
   is_param ctx sub_abs.param sup_abs.param &&
-  let sup_body = substitute_body ctx sub_abs.param sup_abs.param sup_abs.body in
+  let sup_body = Rename.rename sup_abs.body sup_abs.param.bind sub_abs.param.bind in
   let ctx = Context.add_param ctx sub_abs.param in
   isa ctx sub_abs.body sup_body
 
@@ -173,12 +173,6 @@ and promote_base ctx type' =
     Node.base type'
 
 (* TYPE SUBSTITUTION *)
-
-and substitute_body ctx param param_body body =
-  let ctx = Context.add_param ctx param in
-  let ctx = Context.add_param ctx param in
-  let var = Node.var param.bind in
-  substitute ctx param_body.bind var body
 
 and substitute ctx bind other (type': Node.type') =
   map_type ctx (substitute_base ctx bind other) type'
@@ -350,7 +344,7 @@ and meet_univ ctx left right =
   if not (is_param ctx left.param right.param) then
     Some Bot
   else
-  let right_ret = substitute_body ctx left.param right.param right.ret in
+  let right_ret = Rename.rename right.ret right.param.bind left.param.bind in
   let ctx = Context.add_param ctx left.param in
   let ret = meet ctx left.ret right_ret in
   Some (Univ { param = left.param; ret })
@@ -359,7 +353,7 @@ and meet_abs ctx left right =
   if not (is_param ctx left.param right.param) then
     Some Bot
   else
-  let right_body = substitute_body ctx left.param right.param right.body in
+  let right_body = Rename.rename right.body right.param.bind left.param.bind in
   let ctx = Context.add_param ctx left.param in
   let body = meet ctx left.body right_body in
   Some (Abs { param = left.param; body })
