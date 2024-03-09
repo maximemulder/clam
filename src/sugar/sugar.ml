@@ -8,6 +8,8 @@ module Errors = Errors
   Modelize a program, building an abstract biding tree from an abstract syntax tree.
 *)
 let desugar ast primitives =
-  let types, binds = Types.desugar_program ast in
-  let exprs = Exprs.desugar_program ast binds (Util.NameMap.of_list primitives) in
+  let primitives = Util.NameMap.of_list primitives in
+  let state = State.make_state ast primitives in
+  let types, state = Types.desugar_program state in
+  let exprs, _ = Exprs.desugar_program state in
   { types; exprs }

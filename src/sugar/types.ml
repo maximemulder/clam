@@ -1,45 +1,10 @@
 open Util
 open Abt
+open State
 
-type scope = {
-  parent: scope option;
-  currents: Ast.type' NameMap.t;
-  dones: Abt.type' NameMap.t;
-}
-
-type state = {
-  scope: scope;
-  ast_defs: Ast.def_type list;
-  abt_defs: Abt.def_type IntMap.t;
-}
-
-module State = struct
+open Monad.Monad(Monad.StateMonad(struct
   type s = state
-end
-
-open Monad.Monad(Monad.StateMonad(State))
-
-let fold_done map done' =
-  NameMap.add (fst done') (snd done') map
-
-let make_state ast_defs dones =
-  let dones = List.fold_left fold_done NameMap.empty dones in
-  let scope = { parent = None; currents = NameMap.empty; dones } in
-  { scope; ast_defs; abt_defs = IntMap.empty }
-
-let make_child dones state =
-  let dones = List.fold_left fold_done NameMap.empty dones in
-  let scope = { parent = Some state.scope; currents = NameMap.empty; dones } in
-  ((), { state with scope })
-
-let find_ast_def name state =
-  list_find_entry_opt (fun (def: Ast.def_type) -> def.name = name) state.ast_defs
-
-let find_current name state =
-  NameMap.find_opt name state.scope.currents
-
-let find_done name state =
-  NameMap.find_opt name state.scope.dones
+end))
 
 let make_attrs attrs =
   List.fold_left (fun map (attr: Abt.attr_type) ->
@@ -48,12 +13,6 @@ let make_attrs attrs =
       then Errors.raise_type_duplicate_attribute attr
       else NameMap.add name attr map
   ) NameMap.empty attrs
-
-let with_scope call types state =
-  let (_, state) = make_child types state in
-  let (result, state) = call state in
-  let scope = Option.get state.scope.parent in
-  (result, { state with scope })
 
 let rec desugar_type (type': Ast.type') =
   match type' with
@@ -71,7 +30,7 @@ and desugar_name type' state =
   match find_current name state with
   | Some _ -> Errors.raise_type_recursive type'
   | None   ->
-  match find_done name state with
+  match find_type name state with
   | Some type' -> (type', state)
   | None       ->
   match state.scope.parent with
@@ -80,7 +39,7 @@ and desugar_name type' state =
     let (type', parent) = desugar_name type' parent in
     (type', { parent with scope = { state.scope with parent = Some parent.scope } })
   | None ->
-  match find_ast_def name state with
+  match find_ast_type name state with
   | Some (id, def) -> desugar_def id def state
   | None     ->
     Errors.raise_type_bound type'
@@ -90,10 +49,10 @@ and desugar_def id def state =
   let state = { state with scope = { state.scope with currents} } in
   let (type', state) = desugar_type def.type' state in
   let currents = NameMap.remove def.name state.scope.currents in
-  let dones = NameMap.add def.name type' state.scope.dones in
+  let types = NameMap.add def.name type' state.scope.types in
   let abt_def = { span = def.span; name = def.name; type' } in
-  let abt_defs = IntMap.add id abt_def state.abt_defs in
-  let state = { state with abt_defs; scope = { state.scope with currents; dones} } in
+  let abt_types = IntMap.add id abt_def state.abt_types in
+  let state = { state with abt_types; scope = { state.scope with currents; types } } in
   (type', state)
 
 and desugar_product product =
@@ -131,9 +90,9 @@ and desugar_univ_curry span params ret =
   | [] ->
     desugar_type ret
   | (param :: params) ->
-    let* param = desugar_param_type param in
-    let type' = (param.bind.name, Abt.TypeVar { span = param.interval.span; bind = param.bind }) in
-    let* ret = with_scope (desugar_univ_curry span params ret) [type'] in
+    let* param = desugar_param param in
+    let var = Abt.TypeVar { span = param.interval.span; bind = param.bind } in
+    let* ret = with_scope_type param.bind.name var (desugar_univ_curry span params ret) in
     return (Abt.TypeUniv { span = span; param; ret })
 
 and desugar_abs abs =
@@ -144,9 +103,9 @@ and desugar_abs_curry span params body =
   | [] ->
     desugar_type body
   | (param :: params) ->
-    let* param = desugar_param_type param in
-    let type' = (param.bind.name, Abt.TypeVar { span = param.interval.span; bind = param.bind }) in
-    let* body = with_scope (desugar_abs_curry span params body) [type'] in
+    let* param = desugar_param param in
+    let var = Abt.TypeVar { span = param.interval.span; bind = param.bind } in
+    let* body = with_scope_type param.bind.name var (desugar_abs_curry span params body) in
     return (Abt.TypeAbs { span = span; param; body })
 
 and desugar_app app =
@@ -162,7 +121,7 @@ and desugar_app_curry span abs args =
     let app = (Abt.TypeApp { span = span; abs; arg }) in
     desugar_app_curry span app args
 
-and desugar_param_type param: Abt.param_type t =
+and desugar_param param: Abt.param_type t =
   let* interval = desugar_interval param in
   return { Abt.bind = { name = param.name }; interval }
 
@@ -209,34 +168,8 @@ let desugar_type_expr type' state =
 let desugar_defs state =
   List.fold_left (fun state (def: Ast.def_type) ->
     desugar_name { span = def.span; name = def.name } state |> snd
-  ) state state.ast_defs
+  ) state state.ast_types
 
-let span = {
-  Code.code = {
-    name = "primitives.clam";
-    text = "";
-  };
-  start = 0;
-  end' = 0;
-}
-
-let primitives = [
-  ("Top",    Abt.TypeTop    { span });
-  ("Bot",    Abt.TypeBot    { span });
-  ("Unit",   Abt.TypeUnit   { span });
-  ("Bool",   Abt.TypeBool   { span });
-  ("Int",    Abt.TypeInt    { span });
-  ("String", Abt.TypeString { span });
-]
-
-let desugar_program (program: Ast.program) =
-  let defs = Ast.get_program_types program in
-  let state = make_state defs primitives in
+let desugar_program state =
   let state = desugar_defs state in
-  let types = state.scope.dones in
-  state.abt_defs |> IntMap.bindings |> List.map snd, types
-
-let desugar_abs (param: Abt.param_type) state =
-  let type' = (param.bind.name, Abt.TypeVar { span = param.interval.span; bind = param.bind }) in
-  let (_, state) = make_child [type'] state in
-  state.scope.dones
+  state.abt_types |> IntMap.bindings |> List.map snd, state

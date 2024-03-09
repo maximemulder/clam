@@ -1,23 +1,9 @@
 open Util
+open State
 
-type scope = {
-  parent: scope option;
-  types: Abt.type' NameMap.t;
-  exprs: Abt.bind_expr NameMap.t;
-}
-
-type state = {
-  id: int;
-  scope: scope;
-  ast_defs: Ast.def_expr list;
-  abt_defs: Abt.def_expr IntMap.t;
-}
-
-module State = struct
+open Monad.Monad(Monad.StateMonad(struct
   type s = state
-end
-
-open Monad.Monad(Monad.StateMonad(State))
+end))
 
 let get_preop_name span op =
   match op with
@@ -44,31 +30,12 @@ let get_binop_name span op =
   | "|"  -> "__or__"
   | _ -> Errors.raise_expr_operator span op
 
-let find_ast_def name state =
-  list_find_entry_opt (fun (def: Ast.def_expr) -> def.name = name) state.ast_defs
-
-let find_expr name state =
-  NameMap.find_opt name state.scope.exprs
-
 let new_id state =
   (state.id, { state with id = state.id + 1 })
 
 let new_bind name =
   let* id = new_id in
   return { Abt.id; name }
-
-let make_state ast_defs types exprs =
-  let scope = { parent = None; types; exprs } in
-  { id = 0; scope; ast_defs; abt_defs = IntMap.empty }
-
-let make_child types exprs state =
-  let scope = { parent = Some state.scope; types; exprs } in
-  ((), { state with scope })
-
-let with_scope types exprs f state =
-  let (_, state) = make_child types exprs state in
-  let (result, state) = f state in
-  (result, { state with scope = Option.get state.scope.parent })
 
 let parse_int span value =
   match int_of_string_opt value with
@@ -77,24 +44,6 @@ let parse_int span value =
 
 let parse_string (value: string) =
   value
-
-let rec translate_scope state =
-  {
-    Types.parent = Option.map translate_scope state.parent;
-    Types.currents = NameMap.empty;
-    Types.dones = state.types;
-  }
-
-let translate_state state =
-  {
-    Types.scope = translate_scope state.scope;
-    Types.ast_defs = [];
-    Types.abt_defs = IntMap.empty;
-  }
-
-(* TODO: Can I remove state from the return ? *)
-let desugar_type (type': Ast.type') state =
-  (Types.desugar_type_expr type' (translate_state state), state)
 
 let rec desugar_bind span name state =
   match find_expr name state with
@@ -106,7 +55,7 @@ let rec desugar_bind span name state =
     let (expr, parent) = desugar_bind span name parent in
     (expr, { parent with scope = { state.scope with parent = Some parent.scope } })
   | None ->
-  match find_ast_def name state with
+  match find_ast_expr name state with
   | Some (id, def) -> desugar_def id def state
   | None     ->
     Errors.raise_expr_bound span name
@@ -115,12 +64,12 @@ and desugar_def id def state =
   let bind, state = new_bind def.name state in
   let exprs = NameMap.add def.name bind state.scope.exprs in
   let state = { state with scope = { state.scope with exprs } } in
-  let type' = Option.map (fun type' -> fst (desugar_type type' state)) def.type' in
+  let type' = Option.map (fun type' -> fst (Types.desugar_type type' state)) def.type' in
   let (expr, state) = desugar_expr def.expr state in
   let def = { Abt.span = def.span; bind; type'; expr } in
   let abt_def = { Abt.bind; Abt.type'; Abt.expr; span = def.span } in
-  let abt_defs = IntMap.add id abt_def state.abt_defs in
-  let state = { state with abt_defs } in
+  let abt_exprs = IntMap.add id abt_def state.abt_exprs in
+  let state = { state with abt_exprs } in
   (bind, state)
 
 and desugar_expr (expr: Ast.expr): state -> Abt.expr * state =
@@ -215,17 +164,16 @@ and desugar_binop expr =
 
 and desugar_ascr ascr =
   let* expr  = desugar_expr ascr.expr  in
-  let* type' = desugar_type ascr.type' in
+  let* type' = Types.desugar_type ascr.type' in
   return (Abt.ExprAscr { span = ascr.span; expr; type' })
 
 and desugar_stmt stmt =
   match stmt.stmt with
   | StmtVar { span; name; type'; expr } ->
     let* bind = new_bind name in
-    let* type' = option_map desugar_type type' in
+    let* type' = option_map Types.desugar_type type' in
     let param = { Abt.span = span; bind; type' } in
-    let* body = with_scope NameMap.empty (NameMap.singleton name bind)
-      (desugar_expr stmt.expr) in
+    let* body = with_scope_expr name bind (desugar_expr stmt.expr) in
     let abs = Abt.ExprLamAbs { span = span; param; body } in
     let* arg = desugar_expr expr in
     return (Abt.ExprLamApp { span = span; abs; arg})
@@ -251,9 +199,8 @@ and desugar_lam_abs_curry span params body =
   | [] ->
     desugar_expr body
   | (param :: params) ->
-    let* param = desugar_param_expr param in
-    let* body = with_scope NameMap.empty (NameMap.singleton param.bind.name param.bind)
-      (desugar_lam_abs_curry span params body) in
+    let* param = desugar_param param in
+    let* body = with_scope_expr param.bind.name param.bind (desugar_lam_abs_curry span params body) in
     return (Abt.ExprLamAbs { span = span; param; body })
 
 and desugar_lam_app app =
@@ -272,16 +219,15 @@ and desugar_lam_app_curry span abs args =
 and desugar_univ_abs abs =
   desugar_univ_abs_curry abs.span abs.params abs.body
 
-and desugar_univ_abs_curry span params body state =
+and desugar_univ_abs_curry span params body =
   match params with
   | [] ->
-    desugar_expr body state
+    desugar_expr body
   | (param :: params) ->
-    let (param, state) = desugar_param_type param state in
-    let entries = Types.desugar_abs param (translate_state state) in
-    let (body, state) = with_scope entries NameMap.empty
-      (desugar_univ_abs_curry span params body) state in
-    (Abt.ExprUnivAbs { span = span; param; body }, state)
+    let* param = Types.desugar_param param in
+    let var = Abt.TypeVar { span = param.interval.span; bind = param.bind } in
+    let* body = with_scope_type param.bind.name var (desugar_univ_abs_curry span params body) in
+    return (Abt.ExprUnivAbs { span; param; body })
 
 and desugar_univ_app app =
   let* abs = desugar_expr app.abs in
@@ -292,35 +238,20 @@ and desugar_univ_app_curry span abs args =
   | [] ->
     return abs
   | (arg :: args) ->
-    let* arg = desugar_type arg in
-    let app = (Abt.ExprUnivApp { span = span; abs; arg }) in
+    let* arg = Types.desugar_type arg in
+    let app = (Abt.ExprUnivApp { span; abs; arg }) in
     desugar_univ_app_curry span app args
 
-and desugar_param_expr (param: Ast.param_expr): Abt.param_expr t =
-  let* type' = option_map desugar_type param.type' in
+and desugar_param (param: Ast.param_expr): Abt.param_expr t =
+  let* type' = option_map Types.desugar_type param.type' in
   let* bind = new_bind param.name in
   return { Abt.span = param.span; bind; type' }
-
-and desugar_param_type param =
-  let* interval = desugar_interval param in
-  return { Abt.bind = { name = param.name }; interval }
-
-and desugar_interval param =
-  match param.interval with
-  | Some interval ->
-    let* lower = option_map desugar_type interval.lower in
-    let* upper = option_map desugar_type interval.upper in
-    return { Abt.span = interval.span; lower; upper }
-  | None ->
-    return { Abt.span = param.span; lower = None; upper = None }
 
 let desugar_defs state =
   List.fold_left (fun state (def: Ast.def_expr) ->
     desugar_bind def.span def.name state |> snd
-  ) state state.ast_defs
+  ) state state.ast_exprs
 
-let desugar_program (program: Ast.program) (types: Abt.type' NameMap.t) primitives =
-  let defs = Ast.get_program_exprs program in
-  let state = make_state defs types primitives in
+let desugar_program state =
   let state = desugar_defs state in
-  state.abt_defs |> IntMap.bindings |> List.map snd
+  state.abt_exprs |> IntMap.bindings |> List.map snd, state
