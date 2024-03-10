@@ -57,7 +57,6 @@ let rec solve type' =
       let* upper = get_var_upper bind in
       let type' = (Type.univ { bind; lower; upper } type') in
       let* () = print("= " ^ Type.display type') in
-      let* () = add_type bind lower upper in
       return type'
     | _, _ ->
       let* () = print("inline " ^ bind.name ^ " in " ^ Type.display type') in
@@ -68,6 +67,7 @@ let rec solve type' =
     let* state = get_state in
     let contains = state_contains bind state in
     let* () = if not contains then
+      let* () = print ("remove " ^ bind.name) in
       remove_var bind
     else
       return ()
@@ -75,7 +75,7 @@ let rec solve type' =
     solve type'
 
 let remove_vars state =
-  let vars = List.filter (fun var -> var.level_low != state.level) state.vars in
+  let vars = List.filter (fun var -> if var.level_low != state.level then true else (let _ = print("remove other " ^ var.bind.name) state in false)) state.vars in
   { state with vars }
 
 let with_level f state =

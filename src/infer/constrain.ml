@@ -136,6 +136,7 @@ and constrain_base sub sup =
     constrain_lam sub_lam sup_lam
   | Univ sub_univ, _ ->
     let* var = make_var in
+    let* () =  print("var_univ " ^ Type.display var) in
     let* lower = constrain sub_univ.param.lower var in
     let* upper = constrain var sub_univ.param.upper in
     let* ctx = get_context in
