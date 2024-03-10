@@ -75,7 +75,14 @@ let rec solve type' =
     solve type'
 
 let remove_vars state =
-  let vars = List.filter (fun var -> if var.level_low != state.level then true else (let _ = print("remove other " ^ var.bind.name) state in false)) state.vars in
+  let vars = List.filter (fun var ->
+    let contains = state_contains var.bind state in
+    if var.level_low != state.level || contains then
+      true
+    else
+      let _ = print("remove other " ^ var.bind.name) state in
+      false
+  ) state.vars in
   { state with vars }
 
 let with_level f state =
