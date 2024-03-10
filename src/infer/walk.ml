@@ -1,6 +1,6 @@
 open State
 open Constrain
-open Solve
+open Solve2
 
 (* TYPE INFERENCE *)
 

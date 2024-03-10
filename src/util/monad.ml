@@ -52,7 +52,7 @@ module Monad (M: MONAD) = struct
       return (z :: zs)
     | _ -> invalid_arg "Monad.map_list2"
 
-  let iter_map f xs =
+  let map_iter f xs =
     let f = (fun (_, v) -> f v) in
     let xs = List.of_seq (NameMap.to_seq xs) in
     list_iter f xs
@@ -115,10 +115,9 @@ module StateMonad (S: STATE) = struct
 
   let return a s = (a, s)
 
-  let bind m f =
-    fun s ->
-      let (a, s1) = m s in
-      f a s1
+  let bind m f s =
+    let (a, s1) = m s in
+    f a s1
 end
 
 module type READER = sig

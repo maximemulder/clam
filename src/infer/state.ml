@@ -24,9 +24,12 @@ type entry_type = {
 
 type entry_var = {
   bind: Abt.bind_type;
-  level: int;
   lower: Type.type';
   upper: Type.type';
+  id: int;
+  level_orig: int;
+  level_low: int;
+  level: int;
 }
 
 type var =
@@ -36,6 +39,7 @@ type var =
 (* STATE *)
 
 type state = {
+  id: int;
   level: int;
   defs: entry_def list;
   exprs: entry_expr list;
@@ -58,7 +62,7 @@ let get_var bind state =
 
 let make_state defs exprs =
   let defs = List.map (fun (def: Abt.def_expr) -> { bind = def.bind; def }) defs in
-  { level = 0; defs; exprs; types = []; vars = [] }
+  { id = 0; level = 0; defs; exprs; types = []; vars = [] }
 
 (*
   Adapter functions that allow to use the old type system in the new one. Eventually
@@ -177,15 +181,11 @@ let with_type bind lower upper f state =
     scope so an "add" function may be better than a "with" function. The current leak is not
     critical but it is also not very elegant. *)
 
-(* I use a global counter so that each variable has a distinct name, which is easier for debugging *)
-let counter = ref 0
-
 let make_var state =
-  let bind = { Abt.name = "'" ^ string_of_int counter.contents } in
-  counter := counter.contents + 1;
+  let bind = { Abt.name = "'" ^ string_of_int state.id } in
   let type' = Type.var bind in
-  let var = { bind; level = state.level; lower = Type.bot; upper = Type.top } in
-  let state = { state with vars = var :: state.vars } in
+  let var = { id = state.id; bind; level_orig = state.level; level_low = state.level; level = state.level; lower = Type.bot; upper = Type.top } in
+  let state = { state with id = state.id + 1; vars = var :: state.vars } in
   type', state
 
 let remove_var bind state =
@@ -197,3 +197,18 @@ let get_state state =
 
 let is_infer bind state =
   List.exists (fun (entry: entry_var) -> entry.bind == bind) state.vars
+
+(* DEBUG FUNCTIONS *)
+
+let print string =
+  let* state = get_state in
+  print_endline (Util.string_indent state.level string);
+  return ()
+
+let print_vars state =
+  let vars = Util.list_group (fun (var: entry_var) -> var.level_low) state.vars in
+  List.iter (fun (id, vars) ->
+    let vars = List.sort (fun (a: entry_var) b -> Int.compare a.id b.id) vars in
+    let vars = String.concat ", " (List.map (fun var -> var.bind.name ^ ": " ^ Type.display var.lower ^  " .. " ^ Type.display var.upper) vars) in
+    print_endline (Util.string_indent id vars)
+  ) vars, state

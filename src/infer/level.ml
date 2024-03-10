@@ -24,7 +24,7 @@ and levelize_base type' level direct =
   | Tuple tuple ->
     list_iter (fun elem -> levelize elem level false) tuple.elems
   | Record record ->
-    iter_map (fun (attr: Type.attr) -> levelize attr.type' level false) record.attrs
+    map_iter (fun (attr: Type.attr) -> levelize attr.type' level false) record.attrs
   | Lam lam ->
     let* () = levelize lam.param level false in
     let* () = levelize lam.ret level false in

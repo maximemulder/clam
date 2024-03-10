@@ -153,6 +153,7 @@ and constrain_sub_var sub_var sup =
   let* cond = is_direct_sup sub_var.bind sup in
   if not cond then
     let* entry = get_var_entry sub_var.bind in
+    let* () = Level2.levelize entry.level_low sup in
     let* () = levelize sup entry.level in
     let* () = update_var_upper sub_var.bind sup in
     let* sub_lower = get_var_lower sub_var.bind in
@@ -165,6 +166,7 @@ and constrain_sup_var sup_var sub =
   let* cond = is_direct_sub sup_var.bind sub in
   if not cond then
     let* entry = get_var_entry sup_var.bind in
+    let* () = Level2.levelize entry.level_low sub in
     let* () = levelize sub entry.level in
     let* () = update_var_lower sup_var.bind sub in
     let* sup_upper = get_var_upper sup_var.bind in
@@ -193,6 +195,7 @@ and constrain_lam sub_abs sup_abs =
   return (param && ret)
 
 let constrain pos sub sup =
+  let* () = print("constrain " ^ Type.display sub ^ " < " ^ Type.display sup) in
   let* result = constrain sub sup in
   if result then
     return ()
