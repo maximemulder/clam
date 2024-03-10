@@ -40,7 +40,7 @@ let rec solve type' =
     | Some ((_ :: _) as neg), _ ->
       let neg = List.map Type.var neg in
       let* neg = fold_list join Type.bot neg in
-      let* () = print("co_neg " ^ bind.name ^ " by " ^ Type.display neg ^ " in " ^ " in " ^ Type.display type') in
+      let* () = print("co_neg " ^ bind.name ^ " by " ^ Type.display neg ^ " in " ^ Type.display type') in
       let* type' = substitute bind neg type' in
       let* () = print("= " ^ Type.display type') in
       return type'
@@ -57,7 +57,6 @@ let rec solve type' =
       let* upper = get_var_upper bind in
       let type' = (Type.univ { bind; lower; upper } type') in
       let* () = print("= " ^ Type.display type') in
-      let* () = remove_var bind in
       let* () = add_type bind lower upper in
       return type'
     | _, _ ->
@@ -66,8 +65,13 @@ let rec solve type' =
       let* () = print("= " ^ Type.display type') in
       return type'
     in
-    (* if level_low = state.level, remove variable *)
-    (* let* () = remove_var bind in *)
+    let* state = get_state in
+    let contains = state_contains bind state in
+    let* () = if not contains then
+      remove_var bind
+    else
+      return ()
+    in
     solve type'
 
 let remove_vars state =

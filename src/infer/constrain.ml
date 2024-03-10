@@ -118,9 +118,10 @@ and constrain_base sub sup =
   let* state = get_state in
   match sub, sup with
   | Var sub_var, Var sup_var when is_infer sub_var.bind state && is_infer sup_var.bind state ->
-    let* sub_res = constrain_sub_var sub_var (Type.base sup) in
+    (* let* sub_res = constrain_sub_var sub_var (Type.base sup) in
     let* sup_res = constrain_sup_var sup_var (Type.base sub) in
-    return (sub_res && sup_res)
+    return (sub_res && sup_res) *)
+    constrain_var sub_var sup_var
   | Var sub_var, _ when is_infer sub_var.bind state ->
     let sup = Type.base sup in
     constrain_sub_var sub_var sup
@@ -173,6 +174,24 @@ and constrain_sup_var sup_var sub =
     constrain sub sup_upper
   else
     (* TODO: Handle cycle *)
+    return true
+
+and constrain_var sub_var sup_var =
+  let sub = Type.var sub_var.bind in
+  let sup = Type.var sub_var.bind in
+  let* sub_entry = get_var_entry sub_var.bind in
+  let* sup_entry = get_var_entry sup_var.bind in
+  let sub_level = sub_entry.level_orig in
+  let sup_level = sup_entry.level_orig in
+  if sub_level > sup_level then
+    let* () = update_var_upper sub_var.bind sup in
+    let* sub_lower = get_var_lower sub_var.bind in
+    constrain sub_lower sup
+  else if sup_level > sub_level then
+    let* () = update_var_lower sup_var.bind sub in
+    let* sup_upper = get_var_upper sup_var.bind in
+    constrain sub sup_upper
+  else
     return true
 
 and constrain_tuple sub_tuple sup_tuple =
