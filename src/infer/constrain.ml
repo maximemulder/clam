@@ -185,14 +185,12 @@ and constrain_var sub_var sup_var =
   let sub_level = sub_entry.level_low in
   let sup_level = sup_entry.level_low in
   if sub_level > sup_level then
-    let* () = print ("sub " ^ sub_var.bind.name ^ " < " ^ sup_var.bind.name) in
     let* () = update_var_upper sub_var.bind sup in
     let* () = Level2.levelize sub_entry.level_low sub in
     let* () = levelize sub sub_entry.level in
     let* sub_lower = get_var_lower sub_var.bind in
     constrain sub_lower sup
   else if sup_level > sub_level then
-    let* () = print ("sup " ^ sub_var.bind.name ^ " < " ^ sup_var.bind.name) in
     let* () = update_var_lower sup_var.bind sub in
     let* () = Level2.levelize sup_entry.level_low sub in
     let* () = levelize sub sup_entry.level in

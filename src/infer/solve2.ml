@@ -27,7 +27,7 @@ let state_contains bind state =
   ) state.vars
 
 let rec solve type' =
-  let* vars = Extrude.extrude type' in
+  let* vars = Extrude.extrude type' in (* TODO: Order seems to change the result, investigate why *)
   match vars with
   | [] ->
     return type'
