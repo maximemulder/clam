@@ -9,7 +9,7 @@ open State
 
 (* Returns variables that are equal or higher to the current state level and that do not appear in lower variables *)
 let get_variables state =
-  List.filter (fun (entry: entry_var) -> entry.level >= state.level) state.vars
+  List.filter (fun (entry: entry_var) -> entry.level_low >= state.level) state.vars
   |> List.map (fun entry -> entry.bind), state
 
 open Inline2
@@ -19,6 +19,12 @@ let inline_state bind state =
     entry with type' = fst(inline bind Neg entry.type' state)
   }) state.exprs in
   (), { state with exprs }
+
+let state_contains bind state =
+  List.exists (fun entry ->
+    entry.bind != bind &&
+    (Contain.contains entry.lower bind || Contain.contains entry.upper bind)
+  ) state.vars
 
 let rec solve type' =
   let* vars = Extrude.extrude type' in
@@ -45,7 +51,7 @@ let rec solve type' =
       let* type' = substitute bind pos type' in
       let* () = print("= " ^ Type.display type') in
       return type'
-    | Some [], Some [] when entry.level_low = state.level ->
+    | Some [], Some [] when entry.level_low = state.level && not (state_contains bind state) ->
       let* () = print("quantify " ^ bind.name ^ " in " ^ Type.display type') in
       let* lower = get_var_lower bind in
       let* upper = get_var_upper bind in
@@ -72,7 +78,7 @@ let with_level f state =
   let state = { state with level = state.level + 1 } in
   let x, state = f state in
   let x, state = solve x state in
-  (* let state = remove_vars state in *)
+  let state = remove_vars state in
   let state = { state with level = state.level - 1 } in
   x, state
 
