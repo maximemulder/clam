@@ -20,7 +20,7 @@ and extrude_base type' =
     (match entry with
     | Some entry ->
       let* state = get_state in
-      if entry.level >= state.level then
+      if entry.level_low >= state.level then
         return [var.bind]
       else
         return []
@@ -55,5 +55,5 @@ and extrude_attr attr =
 
 and extrude_param param =
   let* lower = extrude param.lower in
-  let* upper = extrude param.lower in
+  let* upper = extrude param.upper in
   return (List.append lower upper)
