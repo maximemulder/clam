@@ -28,6 +28,8 @@ let state_contains bind state =
 
 let rec solve type' =
   let* vars = Extrude.extrude type' in (* TODO: Order seems to change the result, investigate why *)
+  let vars = List.rev vars in
+  let* () = print("extrude " ^ (String.concat ", " (List.map (fun (bind: Abt.bind_type) -> bind.name) vars))) in
   match vars with
   | [] ->
     return type'
@@ -36,9 +38,12 @@ let rec solve type' =
     let* entry = get_var_entry bind in
     let* state = get_state in
     let pols = get_pols type' bind Neg in
+    let pols = { pols with neg = Option.map (fun neg -> List.filter (fun bind -> List.exists (fun b -> b.bind == bind) state.vars) neg) pols.neg } in
+    let pols = { pols with pos = Option.map (fun pos -> List.filter (fun bind -> List.exists (fun b -> b.bind == bind) state.vars) pos) pols.pos } in
     let* type' = match pols.neg, pols.pos with
     | Some ((_ :: _) as neg), _ ->
       let neg = List.map Type.var neg in
+      let* () = print("co_neg " ^ bind.name ^ " by " ^ (Type.display (List.nth neg 0)) ^ " in " ^ Type.display type') in
       let* neg = fold_list join Type.bot neg in
       let* () = print("co_neg " ^ bind.name ^ " by " ^ Type.display neg ^ " in " ^ Type.display type') in
       let* type' = substitute bind neg type' in
