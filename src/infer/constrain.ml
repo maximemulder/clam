@@ -153,7 +153,6 @@ and constrain_lam sub_abs sup_abs =
   return (param && ret)
 
 let constrain pos sub sup =
-  let* () = print_vars in
   let* () = print("constrain " ^ Type.display sub ^ " < " ^ Type.display sup) in
   let* result = constrain sub sup in
   let* () = print_vars in
