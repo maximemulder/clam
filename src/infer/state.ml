@@ -52,6 +52,27 @@ include Util.Monad.Monad(Util.Monad.StateMonad(struct
   type s = state
 end))
 
+(* DEBUG FUNCTIONS *)
+
+(* TODO: Factorize in the state monad *)
+let get_state state =
+  state, state
+
+let print string =
+  let* state = get_state in
+  print_endline (Util.string_indent state.level string);
+  return ()
+
+let print_vars state =
+  let vars = Util.list_group (fun (var: entry_var) -> var.level_low) state.vars in
+  List.iter (fun (id, vars) ->
+    let vars = List.sort (fun (a: entry_var) b -> Int.compare a.id b.id) vars in
+    let vars = String.concat ", " (List.map (fun var -> var.bind.name ^ ": " ^ Type.display var.lower ^  " .. " ^ Type.display var.upper) vars) in
+    print_endline (Util.string_indent id vars)
+  ) vars, state
+
+(* FUNCTIONS *)
+
 let get_var bind state =
   print_endline (bind: Abt.bind_type).name;
   match List.find_opt (fun (entry: entry_type) -> entry.bind == bind) state.types with
@@ -185,12 +206,14 @@ let with_type bind lower upper f state =
 
 let make_var state =
   let bind = { Abt.name = "'" ^ string_of_int state.id } in
+  let _ = print ("var " ^ bind.name) state in
   let var = { id = state.id; univ = false; bind; level_orig = state.level; level_low = state.level; level = state.level; lower = Type.bot; upper = Type.top } in
   let state = { state with id = state.id + 1; level = state.level + 1; vars = var :: state.vars } in
   bind, state
 
 let make_var_univ state =
-  let bind = { Abt.name = "'" ^ string_of_int state.id } in
+  let bind = { Abt.name = "'" ^ string_of_int state.id ^ "*" } in
+  let _ = print ("var " ^ bind.name) state in
   let var = { id = state.id; univ = true; bind; level_orig = state.level; level_low = state.level; level = state.level; lower = Type.bot; upper = Type.top } in
   let state = { state with id = state.id + 1; level = state.level + 1; vars = var :: state.vars } in
   bind, state
@@ -198,9 +221,6 @@ let make_var_univ state =
 let remove_var bind state =
   let vars = List.filter (fun entry -> entry.bind != bind) state.vars in
   (), { state with level = state.level - 1; vars }
-
-let get_state state =
-  state, state
 
 let is_infer bind state =
   List.exists (fun (entry: entry_var) -> entry.bind == bind) state.vars
@@ -224,20 +244,7 @@ let reorder level bind state =
     (), state
 
 let get_highest_variable state =
-  let var = Util.list_reduce (fun a b -> if a.level_low > b.level_low then a else b) state.vars in
-  var.bind, state
-
-(* DEBUG FUNCTIONS *)
-
-let print string =
-  let* state = get_state in
-  print_endline (Util.string_indent state.level string);
-  return ()
-
-let print_vars state =
-  let vars = Util.list_group (fun (var: entry_var) -> var.level_low) state.vars in
-  List.iter (fun (id, vars) ->
-    let vars = List.sort (fun (a: entry_var) b -> Int.compare a.id b.id) vars in
-    let vars = String.concat ", " (List.map (fun var -> var.bind.name ^ ": " ^ Type.display var.lower ^  " .. " ^ Type.display var.upper) vars) in
-    print_endline (Util.string_indent id vars)
-  ) vars, state
+  let var = List.fold_left (fun a b -> match a with
+  | Some a -> if a.level_low > b.level_low then Some a else Some b
+  | None -> Some b) None state.vars in
+  Option.map (fun var -> var.bind) var, state

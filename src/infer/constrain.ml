@@ -2,73 +2,9 @@ open Level
 open State
 
 (*
-  This file contains the type constraining algorithm, which updates the environment constraints
-  and ensures that they remain coherent, raising an error if it is not possible.
-  There are several major challenges, which are not all solved:
-
-  1. How to fully handle unions and intersections, such as in '1 | '2 <= '3 | '4 ?
-  It does not look fully feasible with bounds, but can such situations even happen at all ?
-  (it can with explicit type annotations, but what about inference variables ?)
-
-  2. How to handle cycles, where a variable appears in its own bounds (like '1 <= '2 <= '1) ?
-
-  3. Reciprocity, updates bounds of both variables whenever '1 <= '2
+  This file contains the type constraining algorithm, which updates the environment
+  constraints and ensures that they remain coherent, raising an error if it is not possible.
 *)
-
-(*
-  These functions are used to know if an inference variable appears directly in the lower or upper
-  bounds of another type, which allows to prevent creating cycles
-*)
-
-let rec is_direct_sup bind (type': Type.type') =
-  is_direct_sup_union bind type'
-
-and is_direct_sup_union bind union =
-  list_any (is_direct_sup_inter bind) union.union
-
-and is_direct_sup_inter bind inter =
-  list_any (is_direct_sup_base bind) inter.inter
-
-and is_direct_sup_base bind type' =
-  match type' with
-  | Var var -> (
-    if var.bind == bind then
-      return true
-    else
-    let* entry = get_var var.bind in
-    match entry with
-    | Param _ ->
-      return false
-    | Infer entry ->
-      is_direct_sup bind entry.upper
-    )
-  | _ ->
-    return false
-
-let rec is_direct_sub bind (type': Type.type') =
-  is_direct_sub_union bind type'
-
-and is_direct_sub_union bind union =
-  list_any (is_direct_sub_inter bind) union.union
-
-and is_direct_sub_inter bind inter =
-  list_any (is_direct_sub_base bind) inter.inter
-
-and is_direct_sub_base bind type' =
-  match type' with
-  | Var var -> (
-    if var.bind == bind then
-      return true
-    else
-    let* entry = get_var var.bind in
-    match entry with
-    | Param _ ->
-      return false
-    | Infer entry ->
-      is_direct_sub bind entry.lower
-    )
-  | _ ->
-    return false
 
 (* These functions are used to check whether a type is a single inference variable *)
 
@@ -137,7 +73,6 @@ and constrain_base sub sup =
   | Univ sub_univ, _ ->
     let* var = make_var_univ in (* TODO: it looks like this variable should be instanciated at a
       veeeery low level, and not on the end of the stack *)
-    let* () =  print("var_univ " ^ var.name) in
     let var = Type.var var in
     let* lower = constrain sub_univ.param.lower var in
     let* upper = constrain var sub_univ.param.upper in
@@ -154,26 +89,16 @@ and constrain_base sub sup =
     return result
 
 and constrain_sub_var sub_var sup =
-  let* cond = is_direct_sup sub_var.bind sup in
-  if not cond then
-    let* () = levelize sub_var.bind sup in
-    let* () = update_var_upper sub_var.bind sup in
-    let* sub_lower = get_var_lower sub_var.bind in
-    constrain sub_lower sup
-  else
-    (* TODO: Handle cycle *)
-    return true
+  let* () = levelize sub_var.bind sup in
+  let* () = update_var_upper sub_var.bind sup in
+  let* sub_lower = get_var_lower sub_var.bind in
+  constrain sub_lower sup
 
 and constrain_sup_var sup_var sub =
-  let* cond = is_direct_sub sup_var.bind sub in
-  if not cond then
-    let* () = levelize sup_var.bind sub in
-    let* () = update_var_lower sup_var.bind sub in
-    let* sup_upper = get_var_upper sup_var.bind in
-    constrain sub sup_upper
-  else
-    (* TODO: Handle cycle *)
-    return true
+  let* () = levelize sup_var.bind sub in
+  let* () = update_var_lower sup_var.bind sub in
+  let* sup_upper = get_var_upper sup_var.bind in
+  constrain sub sup_upper
 
 and constrain_var sub_var sup_var =
   let sub = Type.var sub_var.bind in
@@ -183,7 +108,7 @@ and constrain_var sub_var sup_var =
   let sub_level = sub_entry.level_low in
   let sup_level = sup_entry.level_low in
   if sup_entry.univ then
-    let* () = print ("SKIP " ^ sup_var.bind.name ^ " > " ^ sub_var.bind.name) in
+    let* () = print ("A " ^ sup_var.bind.name ^ " > " ^ sub_var.bind.name) in
     (* let* () = update_var_lower sup_var.bind sub in *)
     (*  *)
     let* () = update_var_upper sub_var.bind sup in
@@ -191,19 +116,17 @@ and constrain_var sub_var sup_var =
     let* sub_lower = get_var_lower sub_var.bind in
     constrain sub_lower sup
   else if sub_level > sup_level then
-    let* () = print ("SKIP " ^ sup_var.bind.name ^ " > " ^ sub_var.bind.name) in
+    let* () = print ("B " ^ sup_var.bind.name ^ " > " ^ sub_var.bind.name) in
     (* let* () = update_var_lower sup_var.bind sub in *)
     (*  *)
     let* () = update_var_upper sub_var.bind sup in
-    let* () = levelize sub_var.bind sup in
     let* sub_lower = get_var_lower sub_var.bind in
     constrain sub_lower sup
   else if sup_level > sub_level then
-    let* () = print ("SKIP " ^ sub_var.bind.name ^ " < " ^ sup_var.bind.name) in
+    let* () = print ("C " ^ sub_var.bind.name ^ " < " ^ sup_var.bind.name) in
     (* let* () = update_var_upper sub_var.bind sup in *)
     (*  *)
     let* () = update_var_lower sup_var.bind sub in
-    let* () = levelize sup_var.bind sub in
     let* sup_upper = get_var_upper sup_var.bind in
     constrain sub sup_upper
   else

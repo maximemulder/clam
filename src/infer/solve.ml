@@ -47,17 +47,18 @@ let  solve_b type' bind =
   return type'
 
 let rec solve_bis type' level =
-  if level = 0 then
-    return type'
-  else
   let* high = get_highest_variable in
-  let* high_entry = get_var_entry high in
-  if high_entry.level_orig >= level then
-    let* type' = solve_b type' high in
-    let* () = remove_var high in
-      solve_bis type' level
-  else
+  match high with
+  | None ->
     return type'
+  | Some high ->
+    let* high_entry = get_var_entry high in
+    if high_entry.level_orig >= level then
+      let* type' = solve_b type' high in
+      let* () = remove_var high in
+        solve_bis type' level
+    else
+      return type'
 
 let with_var f =
   let* var = make_var in
