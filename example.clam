@@ -1,3 +1,7 @@
 def main = unit
 
-def e = (f) -> f(0)
+def iter = (v, f) ->
+    if true then
+        v
+    else
+        iter(f(v), f)

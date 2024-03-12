@@ -13,9 +13,3 @@ def c = (p) -> if true then p else c(p)
 
 def is_even = (n) -> !is_odd(n)
 def is_odd = (n) -> if n == 0 then false else !is_even(n - 1)
-
-def iter = (v, f) ->
-    if true then
-        v
-    else
-        iter(f(v), f)

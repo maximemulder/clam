@@ -135,7 +135,8 @@ and constrain_base sub sup =
   | Lam sub_lam, Lam sup_lam ->
     constrain_lam sub_lam sup_lam
   | Univ sub_univ, _ ->
-    let* var = make_var in
+    let* var = make_var in (* TODO: it looks like this variable should be instanciated at a
+      veeeery low level, and not on the end of the stack *)
     let* () =  print("var_univ " ^ var.name) in
     let var = Type.var var in
     let* lower = constrain sub_univ.param.lower var in
@@ -183,12 +184,14 @@ and constrain_var sub_var sup_var =
   let sup_level = sup_entry.level_low in
   if sub_level > sup_level then
     (* let* () = update_var_lower sup_var.bind sub in *)
+    let* () = print ("SKIP " ^ sup_var.bind.name ^ " > " ^ sub_var.bind.name) in
     (*  *)
     let* () = update_var_upper sub_var.bind sup in
     let* () = levelize sub_var.bind sub in
     let* sub_lower = get_var_lower sub_var.bind in
     constrain sub_lower sup
   else if sup_level > sub_level then
+    let* () = print ("SKIP " ^ sub_var.bind.name ^ " < " ^ sup_var.bind.name) in
     (* let* () = update_var_upper sub_var.bind sup in *)
     (*  *)
     let* () = update_var_lower sup_var.bind sub in
