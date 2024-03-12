@@ -1,5 +1,3 @@
 def main = unit
 
-def max = (a, b) -> if a > b then a else b
-
 def e = (f) -> f(0)

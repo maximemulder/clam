@@ -52,6 +52,7 @@ include Util.Monad.Monad(Util.Monad.StateMonad(struct
 end))
 
 let get_var bind state =
+  print_endline (bind: Abt.bind_type).name;
   match List.find_opt (fun (entry: entry_type) -> entry.bind == bind) state.types with
   | Some entry -> Param entry, state
   | None ->
@@ -183,20 +184,41 @@ let with_type bind lower upper f state =
 
 let make_var state =
   let bind = { Abt.name = "'" ^ string_of_int state.id } in
-  let type' = Type.var bind in
   let var = { id = state.id; bind; level_orig = state.level; level_low = state.level; level = state.level; lower = Type.bot; upper = Type.top } in
-  let state = { state with id = state.id + 1; vars = var :: state.vars } in
-  type', state
+  let state = { state with id = state.id + 1; level = state.level + 1; vars = var :: state.vars } in
+  bind, state
 
 let remove_var bind state =
   let vars = List.filter (fun entry -> entry.bind != bind) state.vars in
-  (), { state with vars }
+  (), { state with level = state.level - 1; vars }
 
 let get_state state =
   state, state
 
 let is_infer bind state =
   List.exists (fun (entry: entry_var) -> entry.bind == bind) state.vars
+
+(**
+  Reorder variables such that the variable is below a given level.
+*)
+let reorder level bind state =
+  let bind_level = (List.find (fun entry -> entry.bind == bind) state.vars).level_low in
+  if level < bind_level then
+    let vars = List.map (fun entry -> { entry with
+      level_low = if entry.level_low >= level && entry.level_low < bind_level then
+        entry.level_low + 1
+      else if entry.level_low = bind_level then
+        level
+      else
+        entry.level_low
+      }) state.vars in
+    (), { state with vars }
+  else
+    (), state
+
+let get_highest_variable state =
+  let var = Util.list_reduce (fun a b -> if a.level_low > b.level_low then a else b) state.vars in
+  var.bind, state
 
 (* DEBUG FUNCTIONS *)
 

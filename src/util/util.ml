@@ -53,6 +53,10 @@ let string_indent n string =
   let string = Str.global_replace (Str.regexp_string "\n") ("\n" ^ tab) string in
   tab ^ string
 
+(**
+  Folds a list with its first element as the accumulator.
+  Raises an error if the list is empty.
+*)
 let rec list_reduce f xs =
   match xs with
   | [x] -> x

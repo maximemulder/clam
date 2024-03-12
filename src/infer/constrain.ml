@@ -136,7 +136,8 @@ and constrain_base sub sup =
     constrain_lam sub_lam sup_lam
   | Univ sub_univ, _ ->
     let* var = make_var in
-    let* () =  print("var_univ " ^ Type.display var) in
+    let* () =  print("var_univ " ^ var.name) in
+    let var = Type.var var in
     let* lower = constrain sub_univ.param.lower var in
     let* upper = constrain var sub_univ.param.upper in
     let* ctx = get_context in
@@ -154,9 +155,7 @@ and constrain_base sub sup =
 and constrain_sub_var sub_var sup =
   let* cond = is_direct_sup sub_var.bind sup in
   if not cond then
-    let* entry = get_var_entry sub_var.bind in
-    let* () = Level2.levelize entry.level_low sup in
-    let* () = levelize sup entry.level in
+    let* () = levelize sub_var.bind sup in
     let* () = update_var_upper sub_var.bind sup in
     let* sub_lower = get_var_lower sub_var.bind in
     constrain sub_lower sup
@@ -167,9 +166,7 @@ and constrain_sub_var sub_var sup =
 and constrain_sup_var sup_var sub =
   let* cond = is_direct_sub sup_var.bind sub in
   if not cond then
-    let* entry = get_var_entry sup_var.bind in
-    let* () = Level2.levelize entry.level_low sub in
-    let* () = levelize sub entry.level in
+    let* () = levelize sup_var.bind sub in
     let* () = update_var_lower sup_var.bind sub in
     let* sup_upper = get_var_upper sup_var.bind in
     constrain sub sup_upper
@@ -188,16 +185,14 @@ and constrain_var sub_var sup_var =
     (* let* () = update_var_lower sup_var.bind sub in *)
     (*  *)
     let* () = update_var_upper sub_var.bind sup in
-    let* () = Level2.levelize sub_entry.level_low sub in
-    let* () = levelize sub sub_entry.level in
+    let* () = levelize sub_var.bind sub in
     let* sub_lower = get_var_lower sub_var.bind in
     constrain sub_lower sup
   else if sup_level > sub_level then
     (* let* () = update_var_upper sub_var.bind sup in *)
     (*  *)
     let* () = update_var_lower sup_var.bind sub in
-    let* () = Level2.levelize sup_entry.level_low sub in
-    let* () = levelize sub sup_entry.level in
+    let* () = levelize sup_var.bind sub in
     let* sup_upper = get_var_upper sup_var.bind in
     constrain sub sup_upper
   else
@@ -224,10 +219,10 @@ and constrain_lam sub_abs sup_abs =
   return (param && ret)
 
 let constrain pos sub sup =
-  (* let* () = print_vars in *)
+  let* () = print_vars in
   let* () = print("constrain " ^ Type.display sub ^ " < " ^ Type.display sup) in
   let* result = constrain sub sup in
-  (* let* () = print_vars in *)
+  let* () = print_vars in
   if result then
     return ()
   else
