@@ -62,7 +62,6 @@ let rec solve_bis type' level =
 
 let with_var f =
   let* var = make_var in
-  let* () = print ("var " ^ var.name) in
   let type' = Type.var var in
   let* type' = f type' in
   let* entry = get_var_entry var in

@@ -44,7 +44,7 @@ let bool_then bool value =
 
 let rec string_repeat n string =
   if n == 0 then
-    string
+    ""
   else
     string ^ string_repeat (n - 1) string
 
