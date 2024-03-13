@@ -1,6 +1,6 @@
 # What is this ?
 
-This is  Clam ! A small statically typed functional programming language with a relatively advanced type system. It implements many features of System $F^ω_{<:}$ and its extensions such as [structrual typing](#structural-typing), [subtyping](#subtyping), [unions and intersections](#union-and-intersection-types), [bounded polymorphism](#universal-types), [higher-kinded types](#higher-kinded-types) and a state-of-the-art [constraint-based type inference algorithm](#type-inference).
+This is  Clam ! A small statically typed functional programming language with a relatively advanced type system. It implements many features of System $F^ω_{<:}$ and its extensions such as [structrual typing](#structural-typing), [subtyping](#subtyping), [unions and intersections](#union-and-intersection-types), [bounded polymorphism](#universal-types), [higher-kinded types](#higher-kinded-types) and [constraint-based type inference](#type-inference).
 
 The formal (but currently incomplete) semantics of the language are described in the `semantics.pdf` document available [here](https://raw.githubusercontent.com/MaximeMulder/Clam/main/semantics/semantics.pdf).
 
@@ -244,8 +244,6 @@ is_odd: (Int) -> Bool
 </table>
 
 More examples of type inference can be found in the `tests/infer` directory. Some of these examples, as well as a few parts of the algorithm, were inspired by TACO Lab's [SuperF](https://hkust-taco.github.io/superf/) and [MLScript](https://hkust-taco.github.io/mlscript/) languages.
-
-Although I have yet to polish the theory of Clam's type inference algorithm, and I cannot guarantee the absence of bugs in the implementation, it is Clam's most advanced feature. To my knowledge, this is the first type inference algorithm supporting both rank-N impredicative polymorphism, subtying, and recursive types.
 
 ## Recursive types
 

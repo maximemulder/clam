@@ -1,1 +1,35 @@
 def main = print("Hello world !")
+
+type List = [T] => {T}
+
+def bot = bot
+
+def auto: ([A] -> (A) -> A) -> ([A] -> (A) -> A) = (p) -> p
+def auto2: [B] -> ([A] -> (A) -> A) -> (B) -> B = (a, b) -> b
+def const: [A, B] -> (A) -> (B) -> A = (a, b) -> a
+def choose: [A] -> (A, A) -> A = (a, b) -> a
+def head: [T] -> (List[T]) -> T = (p) -> p.0
+def nil: [T] -> List[T] = [T] -> {bot}
+def id: [T] -> (T) -> T = (p) -> p
+def poly: ([A] -> (A) -> A) -> {Int, Bool} = (p) -> {1, true}
+
+def a1 = (x, y) -> y
+def a2 = choose(id)
+def a3 = "choose(nil, id)"
+def a4 = (x) -> x(x)
+def a5 = id(auto)
+def a6 = id(auto2)
+def a7 = choose(id, auto)
+def a8 = choose(id, auto2)
+def a9 = ""
+def a10 = poly(id)
+def a11 = poly((p) -> p)
+def a12 = id(poly((p) -> p))
+
+def b1 = (f) -> {f(1), f(true)}
+def b2 = (xs) -> poly(head(xs))
+
+def g9 = (x) -> if true then x else g9(g9(x))
+
+def g10 = "((x) -> x(x))((x) -> x(x))"
+def g14 = "((f) -> var a = ((u: Unit) -> f(id)); (a(unit) : ([B] -> (B) -> B)))(const(const(id)))"
