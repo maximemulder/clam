@@ -80,7 +80,6 @@ let print_vars state =
 (* FUNCTIONS *)
 
 let get_var bind state =
-  print_endline (bind: Abt.bind_type).name;
   match List.find_opt (fun (entry: entry_type) -> entry.bind == bind) state.types with
   | Some entry -> Param entry, state
   | None ->

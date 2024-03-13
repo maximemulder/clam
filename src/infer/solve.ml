@@ -53,6 +53,7 @@ let rec solve_bis span type' level =
     let* high_entry = get_var_entry high in
     if high_entry.level_orig >= level then
       let* type' = solve type' high in
+      let* () = remove_var high in
       let* level_high = Level.get_level type' in
       (match level_high with
       | Some level_high ->
@@ -60,7 +61,6 @@ let rec solve_bis span type' level =
           Error.raise_recursive span high type'
       | None ->
         ());
-      let* () = remove_var high in
         solve_bis span type' level
     else
       return type'
