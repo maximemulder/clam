@@ -1,6 +1,1 @@
-def main = unit
-
-def y = z
-def z = y
-
-def j = (p) -> j
+def main = print("Hello world !")

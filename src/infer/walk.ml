@@ -196,7 +196,7 @@ let check_defs state =
   ) state state.defs
 
 let check_defs defs primitives =
-  let primitives = List.map (fun primitive -> { bind = fst primitive; type' = snd primitive }) primitives in
+  let primitives = List.map (fun primitive -> { bind = fst primitive; level = 0; type' = snd primitive }) primitives in
   let state = make_state defs primitives in
   let state = check_defs state in
   List.map (fun (entry: entry_expr) -> entry.bind, entry.type') state.exprs

@@ -13,6 +13,7 @@ type entry_def = {
 
 type entry_expr = {
   bind: Abt.bind_expr;
+  level: int;
   type': Type.type';
 }
 
@@ -186,7 +187,7 @@ let update_var_upper bind bound =
   update_var_entry bind (fun entry -> { entry with upper = Type.System.meet ctx entry.upper bound })
 
 let add_expr bind type' state =
-  let exprs = { bind; type' } :: state.exprs in
+  let exprs = { bind; level = state.level; type' } :: state.exprs in
   (), { state with exprs }
 
 let remove_expr bind state =
