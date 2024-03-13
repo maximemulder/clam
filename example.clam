@@ -1,7 +1,6 @@
 def main = unit
 
-def iter = (v, f) ->
-    if true then
-        v
-    else
-        iter(f(v), f)
+def tuple = (p) -> {p}
+
+def foo = (f) -> {f(123), f("Hello")}
+def foo_tuple = foo(tuple)

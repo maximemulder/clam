@@ -54,9 +54,6 @@ and constrain_base sub sup =
   let* state = get_state in
   match sub, sup with
   | Var sub_var, Var sup_var when is_infer sub_var.bind state && is_infer sup_var.bind state ->
-    (* let* sub_res = constrain_sub_var sub_var (Type.base sup) in
-    let* sup_res = constrain_sup_var sup_var (Type.base sub) in
-    return (sub_res && sup_res) *)
     constrain_var sub_var sup_var
   | Var sub_var, _ when is_infer sub_var.bind state ->
     let sup = Type.base sup in
@@ -71,13 +68,11 @@ and constrain_base sub sup =
   | Lam sub_lam, Lam sup_lam ->
     constrain_lam sub_lam sup_lam
   | Univ sub_univ, _ ->
-    let* var = make_var_univ in (* TODO: it looks like this variable should be instanciated at a
-      veeeery low level, and not on the end of the stack *)
+    let* var = make_var_univ in
     let var = Type.var var in
     let* lower = constrain sub_univ.param.lower var in
     let* upper = constrain var sub_univ.param.upper in
-    let* ctx = get_context in
-    let ret = Type.System.substitute ctx sub_univ.ret sub_univ.param.bind var in
+    let* ret = substitute sub_univ.param.bind var sub_univ.ret in
     let* ret = constrain ret (Type.base sup) in
     return (lower && upper && ret)
   | _, Univ sup_univ ->
@@ -107,30 +102,20 @@ and constrain_var sub_var sup_var =
   let* sup_entry = get_var_entry sup_var.bind in
   let sub_level = sub_entry.level_low in
   let sup_level = sup_entry.level_low in
-  if sup_entry.univ then
-    let* () = print ("A " ^ sup_var.bind.name ^ " > " ^ sub_var.bind.name) in
-    (* let* () = update_var_lower sup_var.bind sub in *)
-    (*  *)
-    let* () = update_var_upper sub_var.bind sup in
+  if sup_entry.univ && not sub_entry.univ then
     let* () = levelize sub_var.bind sup in
+    let* () = update_var_upper sub_var.bind sup in
     let* sub_lower = get_var_lower sub_var.bind in
     constrain sub_lower sup
   else if sub_level > sup_level then
-    let* () = print ("B " ^ sup_var.bind.name ^ " > " ^ sub_var.bind.name) in
-    (* let* () = update_var_lower sup_var.bind sub in *)
-    (*  *)
     let* () = update_var_upper sub_var.bind sup in
     let* sub_lower = get_var_lower sub_var.bind in
     constrain sub_lower sup
   else if sup_level > sub_level then
-    let* () = print ("C " ^ sub_var.bind.name ^ " < " ^ sup_var.bind.name) in
-    (* let* () = update_var_upper sub_var.bind sup in *)
-    (*  *)
     let* () = update_var_lower sup_var.bind sub in
     let* sup_upper = get_var_upper sup_var.bind in
     constrain sub sup_upper
   else
-    let* () = print ("EQUAL " ^ sub_var.bind.name ^ " " ^ sup_var.bind.name) in
     return true
 
 and constrain_tuple sub_tuple sup_tuple =
