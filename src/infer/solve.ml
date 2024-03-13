@@ -4,31 +4,20 @@
   out in which order the type variables should be treated.
 *)
 
-open Inline
 open Polar
 open State
 
-let inline_state bind state =
-  let exprs =  List.map (fun entry -> {
-    entry with type' = fst(inline bind Neg entry.type' state)
-  }) state.exprs in
-  (), { state with exprs }
-
-let  solve_b type' bind =
+let solve_b type' bind =
   let pols = get_pols type' bind Neg in
   let* type' = match pols.neg, pols.pos with
-  | Some ((_ :: _) as neg), _ ->
-    let neg = List.map Type.var neg in
-    let* neg = fold_list join Type.bot neg in
-    let* () = print("co_neg " ^ bind.name ^ " by " ^ Type.display neg ^ " in " ^ Type.display type') in
-    let* type' = substitute bind neg type' in
+  | Some (neg :: _), _ ->
+    let* () = print("co_neg " ^ bind.name ^ " by " ^ neg.name ^ " in " ^ Type.display type') in
+    let* type' = substitute bind (Type.var neg) type' in
     let* () = print("= " ^ Type.display type') in
     return type'
-  | _, Some ((_ :: _) as pos) ->
-    let pos = List.map Type.var pos in
-    let* pos = fold_list meet Type.top pos in
-    let* () = print("co_pos " ^ bind.name ^ " by " ^ Type.display pos ^ " in " ^ Type.display type') in
-    let* type' = substitute bind pos type' in
+  | _, Some (pos :: _) ->
+    let* () = print("co_pos " ^ bind.name ^ " by " ^ pos.name ^ " in " ^ Type.display type') in
+    let* type' = substitute bind (Type.var pos) type' in
     let* () = print("= " ^ Type.display type') in
     return type'
   | Some [], Some [] ->
@@ -38,10 +27,20 @@ let  solve_b type' bind =
     let type' = (Type.univ { bind; lower; upper } type') in
     let* () = print("= " ^ Type.display type') in
     return type'
-  | _, _ ->
-    let* () = print("inline " ^ bind.name ^ " in " ^ Type.display type') in
-    let* type' = inline bind Neg type' in
+  | Some [], None ->
+    let* () = print("inline_neg " ^ bind.name ^ " in " ^ Type.display type') in
+    let* lower = get_var_lower bind in
+    let* type' = substitute bind lower type' in
     let* () = print("= " ^ Type.display type') in
+    return type'
+  | None, Some [] ->
+    let* () = print("inline_pos " ^ bind.name ^ " in " ^ Type.display type') in
+    let* upper = get_var_upper bind in
+    let* type' = substitute bind upper type' in
+    let* () = print("= " ^ Type.display type') in
+    return type'
+  | None, None ->
+    let* () = print("none " ^ bind.name ^ " in " ^ Type.display type') in
     return type'
   in
   return type'
