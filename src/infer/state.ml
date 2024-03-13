@@ -194,15 +194,12 @@ let with_expr bind type' f =
   let* () = remove_expr bind in
   return x
 
-let add_type bind lower upper state =
-  (), { state with types = { bind; lower; upper } :: state.types }
-
 let with_type bind lower upper f state =
-  let (), state = add_type bind lower upper state in
-  f state
-  (* TODO: Remove type variables when they are no longer needed. Type variables are probably not
-    scope so an "add" function may be better than a "with" function. The current leak is not
-    critical but it is also not very elegant. *)
+  let types = state.types in
+  let state = { state with types = { bind; lower; upper } :: types } in
+  let x, state = f state in
+  let state = { state with types } in
+  x, state
 
 let make_var state =
   let bind = { Abt.name = "'" ^ string_of_int state.id } in
