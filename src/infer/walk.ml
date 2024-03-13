@@ -87,7 +87,7 @@ and infer_elem_base index tuple =
     None
 
 and infer_attr expr =
-  with_var (fun ret ->
+  with_var expr.span (fun ret ->
     let record = Type.record (Util.NameMap.singleton expr.label { Type.label = expr.label; type' = ret }) in
     let* () = infer_parent expr.record record in
     return ret
@@ -101,8 +101,8 @@ and infer_lam_abs expr =
       (infer expr.body) in
     return (Type.lam type' ret)
   | None ->
-    with_var (fun param ->
-      with_var (fun ret ->
+    with_var expr.span (fun param ->
+      with_var expr.span (fun ret ->
         let* () = with_expr expr.param.bind param
           (infer_parent expr.body ret) in
         return (Type.lam param ret)
@@ -110,8 +110,8 @@ and infer_lam_abs expr =
     )
 
 and infer_lam_app expr =
-  with_var (fun param ->
-    with_var (fun ret ->
+  with_var expr.span (fun param ->
+    with_var expr.span (fun ret ->
       let abs = Type.lam param ret in
       let* () = infer_parent expr.abs abs in
       let* () = infer_parent expr.arg param in
@@ -121,7 +121,7 @@ and infer_lam_app expr =
 
 and infer_univ_abs expr =
   let* param = validate_param expr.param in
-  with_var (fun var ->
+  with_var expr.span (fun var ->
     let type' = Type.univ param var in
     let* () = with_type expr.param.bind param.lower param.upper
       (infer_parent expr.body var) in
@@ -175,7 +175,7 @@ and infer_def_type def =
       (infer_parent def.expr def_type) in
     return def_type
   | None ->
-    with_var (fun var ->
+    with_var def.span (fun var ->
       let* () = with_expr def.bind var
         (infer_parent def.expr var) in
       return var

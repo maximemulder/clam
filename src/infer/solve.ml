@@ -7,9 +7,9 @@
 open Polar
 open State
 
-let solve_b type' bind =
+let solve type' bind =
   let pols = get_pols type' bind Neg in
-  let* type' = match pols.neg, pols.pos with
+  match pols.neg, pols.pos with
   | Some (neg :: _), _ ->
     let* () = print("co_neg " ^ bind.name ^ " by " ^ neg.name ^ " in " ^ Type.display type') in
     let* type' = substitute bind (Type.var neg) type' in
@@ -43,10 +43,8 @@ let solve_b type' bind =
     let* () = print("none " ^ bind.name ^ " in " ^ Type.display type') in
     let* () = print("= " ^ Type.display type') in
     return type'
-  in
-  return type'
 
-let rec solve_bis type' level =
+let rec solve_bis span type' level =
   let* high = get_highest_variable in
   match high with
   | None ->
@@ -54,15 +52,22 @@ let rec solve_bis type' level =
   | Some high ->
     let* high_entry = get_var_entry high in
     if high_entry.level_orig >= level then
-      let* type' = solve_b type' high in
+      let* type' = solve type' high in
+      let* level_high = Level.get_level type' in
+      (match level_high with
+      | Some level_high ->
+        if level_high = high_entry.level_low then
+          Error.raise_recursive span high type'
+      | None ->
+        ());
       let* () = remove_var high in
-        solve_bis type' level
+        solve_bis span type' level
     else
       return type'
 
-let with_var f =
+let with_var span f =
   let* var = make_var in
   let type' = Type.var var in
   let* type' = f type' in
   let* entry = get_var_entry var in
-  solve_bis type' entry.level_orig
+  solve_bis span type' entry.level_orig
