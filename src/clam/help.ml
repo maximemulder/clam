@@ -15,6 +15,7 @@ Options:
     -k --show-kinds   Display the kinds of all type definitions.
     -t --show-types   Display the types of all expression definitions.
     -v --show-values  Display the results of evaluated expression definitions.
+       --debug-infer  Display type inference debugging information.
 "
 
 (* CONSIDERED OTHER OPTIONS:

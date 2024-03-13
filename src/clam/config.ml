@@ -1,39 +1,26 @@
 (* RUN CONFIGURATION *)
 
 type config = {
-  file: string option;
-  help: bool;
-  show_ast: bool;
-  show_kinds: bool;
-  show_types: bool;
-  show_values: bool;
+  file        : string option;
+  help        : bool;
+  show_ast    : bool;
+  show_kinds  : bool;
+  show_types  : bool;
+  show_values : bool;
+  debug_infer : bool;
 }
 
 let empty_config = {
-  file = None;
-  help = false;
-  show_ast = false;
-  show_kinds = false;
-  show_types = false;
+  file        = None;
+  help        = false;
+  show_ast    = false;
+  show_kinds  = false;
+  show_types  = false;
   show_values = false;
+  debug_infer = false;
 }
 
 (* SETUP RUN CONFIGURATION *)
-
-let configure_help config =
-  { config with help = true }
-
-let configure_show_ast config =
-  { config with show_ast = true }
-
-  let configure_show_kinds config =
-    { config with show_kinds = true }
-
-let configure_show_types config =
-  { config with show_types = true }
-
-let configure_show_values config =
-  { config with show_values = true }
 
 let configure_default arg config =
   if String.starts_with ~prefix:"-" arg then
@@ -45,14 +32,27 @@ let configure_default arg config =
 
 (* PARSE ARGUMENTS *)
 
-let parse_arg arg =
+let parse_arg arg config =
   match arg with
-  | "-h"   | "--help"        -> configure_help
-  | "-ast" | "--show-ast"    -> configure_show_ast
-  | "-k"   | "--show-kinds"  -> configure_show_kinds
-  | "-t"   | "--show-types"  -> configure_show_types
-  | "-v"   | "--show-values" -> configure_show_values
-  | _                        -> configure_default arg
+  | "-h"   | "--help" ->
+    { config with help = true }
+  | "-ast" | "--show-ast" ->
+    { config with show_ast = true }
+  | "-k"   | "--show-kinds" ->
+    { config with show_kinds = true }
+  | "-t"   | "--show-types" ->
+    { config with show_types = true }
+  | "-v"   | "--show-values" ->
+    { config with show_values = true }
+  | "--debug-infer" ->
+    { config with debug_infer = true }
+  | _ ->
+    if String.starts_with ~prefix:"-" arg then
+      Failure.raise ("Unknown option '" ^ arg ^ "'.")
+    else if Option.is_some config.file then
+      Failure.raise "Duplicate definition of <file>."
+    else
+      { config with file = Some arg }
 
 let parse_args args =
   List.fold_left (Util.flip parse_arg) empty_config args

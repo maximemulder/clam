@@ -58,18 +58,24 @@ end))
 let get_state state =
   state, state
 
+(** Global mutable flag used to enable debugging. *)
+let debug_flag = ref false
+
 let print string =
   let* state = get_state in
-  print_endline (Util.string_indent state.level string);
+  if !debug_flag then
+    print_endline (Util.string_indent state.level string);
   return ()
 
 let print_vars state =
-  let vars = Util.list_group (fun (var: entry_var) -> var.level_low) state.vars in
-  List.iter (fun (id, vars) ->
-    let vars = List.sort (fun (a: entry_var) b -> Int.compare a.id b.id) vars in
-    let vars = String.concat ", " (List.map (fun var -> var.bind.name ^ ": " ^ Type.display var.lower ^  " .. " ^ Type.display var.upper) vars) in
-    print_endline (Util.string_indent id vars)
-  ) vars, state
+  if !debug_flag then
+    Util.list_group (fun (var: entry_var) -> var.level_low) state.vars
+    |> List.iter (fun (id, vars) ->
+      let vars = List.sort (fun (a: entry_var) b -> Int.compare a.id b.id) vars in
+      let vars = String.concat ", " (List.map (fun var -> var.bind.name ^ ": " ^ Type.display var.lower ^  " .. " ^ Type.display var.upper) vars) in
+      print_endline (Util.string_indent id vars)
+    );
+  (), state
 
 (* FUNCTIONS *)
 
