@@ -41,6 +41,7 @@ let solve_b type' bind =
     return type'
   | None, None ->
     let* () = print("none " ^ bind.name ^ " in " ^ Type.display type') in
+    let* () = print("= " ^ Type.display type') in
     return type'
   in
   return type'
