@@ -12,6 +12,7 @@ type entry_def = {
 }
 
 type entry_expr = {
+  span: Code.span;
   bind: Abt.bind_expr;
   level: int;
   type': Type.type';
@@ -158,8 +159,20 @@ let update_var_entry bind f state =
       f entry
     else
       entry
-    ) state.vars in
+  ) state.vars in
   (), { state with vars }
+
+let update_expr f bind state =
+  let exprs = List.map (fun (var_expr: entry_expr) ->
+    if var_expr.bind == bind then f var_expr else var_expr
+  ) state.exprs in
+  (), { state with exprs }
+
+let update_expr_level bind level =
+  update_expr (fun (var_expr: entry_expr) -> { var_expr with level }) bind
+
+let update_expr_type bind type' =
+  update_expr (fun (var_expr: entry_expr) -> { var_expr with type' }) bind
 
 let get_def bind =
   let* entry = get_def_entry bind in
@@ -186,16 +199,16 @@ let update_var_upper bind bound =
   let* ctx = get_context in
   update_var_entry bind (fun entry -> { entry with upper = Type.System.meet ctx entry.upper bound })
 
-let add_expr bind type' state =
-  let exprs = { bind; level = state.level; type' } :: state.exprs in
+let add_expr span bind type' state =
+  let exprs = { span; bind; level = state.level; type' } :: state.exprs in
   (), { state with exprs }
 
 let remove_expr bind state =
   let exprs = List.filter (fun (entry: entry_expr) -> not (cmp_bind entry.bind bind)) state.exprs in
   (), { state with exprs }
 
-let with_expr bind type' f =
-  let* () = add_expr bind type' in
+let with_expr span bind type' f =
+  let* () = add_expr span bind type' in
   let* x = f in
   let* () = remove_expr bind in
   return x
@@ -251,3 +264,6 @@ let get_highest_variable state =
   | Some a -> if a.level_low > b.level_low then Some a else Some b
   | None -> Some b) None state.vars in
   Option.map (fun var -> var.bind) var, state
+
+let get_high_exprs state =
+  List.filter (fun (var_expr: entry_expr) -> var_expr.level = state.level) state.exprs, state

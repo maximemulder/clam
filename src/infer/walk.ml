@@ -97,13 +97,13 @@ and infer_lam_abs expr =
   match expr.param.type' with
   | Some type' ->
     let* type' = validate_proper type' in
-    let* ret = with_expr expr.param.bind type'
+    let* ret = with_expr expr.param.span expr.param.bind type'
       (infer expr.body) in
     return (Type.lam type' ret)
   | None ->
     with_var expr.span (fun param ->
       with_var expr.span (fun ret ->
-        let* () = with_expr expr.param.bind param
+        let* () = with_expr expr.param.span expr.param.bind param
           (infer_parent expr.body ret) in
         return (Type.lam param ret)
       )
@@ -164,19 +164,19 @@ and infer_if expr =
 and infer_def def =
   let* type' = infer_def_type def in
   let type' = Rename.rename type' in
-  let* () = add_expr (def: Abt.def_expr).bind type' in
+  let* () = add_expr (def: Abt.def_expr).span def.bind type' in
   return type'
 
 and infer_def_type def =
   match def.type' with
   | Some def_type ->
     let* def_type = validate_proper def_type in
-    let* () = with_expr def.bind def_type
+    let* () = with_expr def.span def.bind def_type
       (infer_parent def.expr def_type) in
     return def_type
   | None ->
     with_var def.span (fun var ->
-      let* () = with_expr def.bind var
+      let* () = with_expr def.span def.bind var
         (infer_parent def.expr var) in
       return var
     )
@@ -196,7 +196,7 @@ let check_defs state =
   ) state state.defs
 
 let check_defs defs primitives =
-  let primitives = List.map (fun primitive -> { bind = fst primitive; level = 0; type' = snd primitive }) primitives in
+  let primitives = List.map (fun primitive -> { span = Code.span_primitive; level = 0; bind = fst primitive; type' = snd primitive }) primitives in
   let state = make_state defs primitives in
   let state = check_defs state in
   List.map (fun (entry: entry_expr) -> entry.bind, entry.type') state.exprs

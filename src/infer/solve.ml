@@ -12,71 +12,67 @@ let solve type' bind =
   match pols.neg, pols.pos with
   | Some (neg :: _), _ ->
     let* () = print("co_neg " ^ bind.name ^ " by " ^ neg.name ^ " in " ^ Type.display type') in
-    let* type' = substitute bind (Type.var neg) type' in
-    let* () = print("= " ^ Type.display type') in
-    return type'
+    substitute bind (Type.var neg) type'
   | _, Some (pos :: _) ->
     let* () = print("co_pos " ^ bind.name ^ " by " ^ pos.name ^ " in " ^ Type.display type') in
-    let* type' = substitute bind (Type.var pos) type' in
-    let* () = print("= " ^ Type.display type') in
-    return type'
+    substitute bind (Type.var pos) type'
   | Some [], Some [] ->
     let* () = print("quantify " ^ bind.name ^ " in " ^ Type.display type') in
     let* lower = get_var_lower bind in
     let* upper = get_var_upper bind in
-    let param_bind = { Abt.name = bind.name } in
-    let type' = Type.rename type' bind param_bind in
-    let type' = (Type.univ { bind = param_bind; lower; upper } type') in
-    let* () = print("= " ^ Type.display type') in
-    return type'
+    let* cond = is lower upper in
+    if cond then
+      substitute bind lower type'
+    else
+      let param_bind = { Abt.name = bind.name } in
+      let type' = Type.rename type' bind param_bind in
+      return (Type.univ { bind = param_bind; lower; upper } type')
   | Some [], None ->
     let* () = print("inline_neg " ^ bind.name ^ " in " ^ Type.display type') in
     let* lower = get_var_lower bind in
-    let* type' = substitute bind lower type' in
-    let* () = print("= " ^ Type.display type') in
-    return type'
+    substitute bind lower type'
   | None, Some [] ->
     let* () = print("inline_pos " ^ bind.name ^ " in " ^ Type.display type') in
     let* upper = get_var_upper bind in
-    let* type' = substitute bind upper type' in
-    let* () = print("= " ^ Type.display type') in
-    return type'
+    substitute bind upper type'
   | None, None ->
     let* () = print("none " ^ bind.name ^ " in " ^ Type.display type') in
-    let* () = print("= " ^ Type.display type') in
     return type'
 
 let find_recursive span entry type' =
   let* level = Level.get_level type' in
   match level with
+  | Some level when level = entry.level_low ->
+    Error.raise_recursive span entry.bind type'
+  | _ ->
+    return ()
+
+let solve_type span bind type' =
+  let* type' = solve type' bind in
+  let* var_entry = get_var_entry bind in
+  let* () = find_recursive span var_entry type' in
+  let* () = print ("= " ^ Type.display type') in
+  return type'
+
+let solve_expr bind var_expr =
+  let* type' = solve var_expr.type' bind in
+  let* () = update_expr_type var_expr.bind type' in
+  let* var_entry = get_var_entry bind in
+  let* () = find_recursive var_expr.span var_entry type' in
+  let* () = print (var_expr.bind.name ^ ": " ^ Type.display type') in
+  let* level = Level.get_level type' in
+  match level with
   | Some level ->
-    if level = entry.level_low then
-      Error.raise_recursive span entry.bind type'
-    else
-      return ()
+    let* () = update_expr_level var_expr.bind level in
+    return ()
   | None ->
     return ()
 
-let solve_defs bind state =
-  let exprs, state = list_map (fun (entry: entry_expr) ->
-    if entry.level != state.level then
-      return entry
-    else
-    let* type' = solve entry.type' bind in
-    let* level = Level.get_level type' in
-    match level with
-    | Some level ->
-      return { entry with level }
-    | None ->
-      return entry
-  ) state.exprs state in
-  (), { state with exprs }
+let solve_exprs bind =
+  let* exprs = get_high_exprs in
+  list_iter (solve_expr bind) exprs
 
-let remove_defs state =
-  let exprs = List.filter (fun (entry: entry_expr) -> entry.level != state.level) state.exprs in
-  (), { state with exprs }
-
-let rec solve_bis span type' level =
+let rec solve_bis span level type' =
   let* high = get_highest_variable in
   match high with
   | None ->
@@ -84,12 +80,10 @@ let rec solve_bis span type' level =
   | Some high ->
     let* high_entry = get_var_entry high in
     if high_entry.level_orig >= level then
-      let* type' = solve type' high in
-      let* () = find_recursive span high_entry type' in
-      let* () = solve_defs high in
-      let* () = remove_defs in
+      let* type' = solve_type span high type'  in
+      let* () = solve_exprs high in
       let* () = remove_var high in
-      solve_bis span type' level
+      solve_bis span level type'
     else
       return type'
 
@@ -98,4 +92,4 @@ let with_var span f =
   let type' = Type.var var in
   let* type' = f type' in
   let* entry = get_var_entry var in
-  solve_bis span type' entry.level_orig
+  solve_bis span entry.level_orig type'

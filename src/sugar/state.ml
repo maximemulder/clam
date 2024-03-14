@@ -16,22 +16,13 @@ type state = {
   abt_exprs: Abt.def_expr IntMap.t;
 }
 
-let span = {
-  Code.code = {
-    name = "primitives.clam";
-    text = "";
-  };
-  start = 0;
-  end' = 0;
-}
-
 let types = [
-  "Top",    Abt.TypeTop    { span };
-  "Bot",    Abt.TypeBot    { span };
-  "Unit",   Abt.TypeUnit   { span };
-  "Bool",   Abt.TypeBool   { span };
-  "Int",    Abt.TypeInt    { span };
-  "String", Abt.TypeString { span };
+  "Top",    Abt.TypeTop    { span = Code.span_primitive };
+  "Bot",    Abt.TypeBot    { span = Code.span_primitive };
+  "Unit",   Abt.TypeUnit   { span = Code.span_primitive };
+  "Bool",   Abt.TypeBool   { span = Code.span_primitive };
+  "Int",    Abt.TypeInt    { span = Code.span_primitive };
+  "String", Abt.TypeString { span = Code.span_primitive };
 ]
 
 let make_state ast primitives =
