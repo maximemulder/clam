@@ -4,6 +4,9 @@ exception Error = Error.Error
 
 include Rename
 
+(** Global mutable flag used to enable debugging. *)
+let debug_flag = State.debug_flag
+
 (**
   Type check a program.
 *)

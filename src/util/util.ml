@@ -42,11 +42,44 @@ let bool_then bool value =
   | false ->
     None
 
+let rec string_repeat n string =
+  if n == 0 then
+    ""
+  else
+    string ^ string_repeat (n - 1) string
+
+let string_indent n string =
+  let tab = string_repeat n "  " in
+  let string = Str.global_replace (Str.regexp_string "\n") ("\n" ^ tab) string in
+  tab ^ string
+
+(**
+  Folds a list with its first element as the accumulator.
+  Raises an error if the list is empty.
+*)
 let rec list_reduce f xs =
   match xs with
   | [x] -> x
   | x :: xs -> f x (list_reduce f xs)
   | _ -> invalid_arg "Util.list_reduce"
+
+let list_group f xs =
+  List.fold_left (fun ys x ->
+    let k = f x in
+    (k, x) :: ys
+  ) [] xs |>
+  List.sort (fun a b -> Int.compare (fst a) (fst b)) |>
+  List.fold_left (fun zs (k, v) ->
+    match zs with
+    | [] ->
+      [k, [v]]
+    | (k2, v2) :: zs ->
+      if k = k2 then
+        (k, (v :: v2)) :: zs
+      else
+        (k, [v]) :: (k2, v2) :: zs
+  ) [] |>
+  List.rev
 
 let option_join x y f =
   match x, y with

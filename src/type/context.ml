@@ -19,6 +19,8 @@ let add_param ctx param =
   { assumptions = { bind = param.Node.bind; lower = param.lower; upper = param.upper } :: ctx.assumptions }
 
 let get_bounds ctx bind =
+  if not (List.exists (fun entry -> entry.bind == bind) ctx.assumptions) then
+    print_endline (bind.name);
   let entry = List.find (fun entry -> entry.bind == bind) ctx.assumptions in
   entry.lower, entry.upper
 

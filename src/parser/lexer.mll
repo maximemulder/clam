@@ -32,6 +32,7 @@ rule read =
   | ">="     { GE }
   | "<="     { LE }
   | "!="     { NE }
+  | "//"     { read_comment lexbuf }
   | '&'      { AND }
   | '{'      { BRACE_LEFT }
   | '}'      { BRACE_RIGHT }
@@ -80,3 +81,8 @@ and read_string buf =
     }
   | _ { raise (Error ("invalid string character: `" ^ Lexing.lexeme lexbuf ^ "`")) }
   | eof { raise (Error ("string literal is not terminated")) }
+
+and read_comment =
+  parse
+  | '\n' { read lexbuf }
+  | _ { read_comment lexbuf }

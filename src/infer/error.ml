@@ -34,3 +34,9 @@ let raise_univ_type (app: Abt.expr_univ_app) arg bound =
   raise
     ("expected subtype of `" ^ bound ^ "` but found type `" ^ arg ^ "`")
     app.span
+
+let raise_recursive span (bind: Abt.bind_type) type' =
+  let type' = Type.display type' in
+  raise
+    ("found recursive type `" ^ bind.name ^ ". " ^ type' ^ "`")
+    span

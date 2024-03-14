@@ -87,7 +87,7 @@ and infer_elem_base index tuple =
     None
 
 and infer_attr expr =
-  with_var (fun ret ->
+  with_var expr.span (fun ret ->
     let record = Type.record (Util.NameMap.singleton expr.label { Type.label = expr.label; type' = ret }) in
     let* () = infer_parent expr.record record in
     return ret
@@ -97,21 +97,21 @@ and infer_lam_abs expr =
   match expr.param.type' with
   | Some type' ->
     let* type' = validate_proper type' in
-    let* ret = with_expr expr.param.bind type'
+    let* ret = with_expr expr.param.span expr.param.bind type'
       (infer expr.body) in
     return (Type.lam type' ret)
   | None ->
-    with_var (fun param ->
-      with_var (fun ret ->
-        let* () = with_expr expr.param.bind param
+    with_var expr.span (fun param ->
+      with_var expr.span (fun ret ->
+        let* () = with_expr expr.param.span expr.param.bind param
           (infer_parent expr.body ret) in
         return (Type.lam param ret)
       )
     )
 
 and infer_lam_app expr =
-  with_var (fun param ->
-    with_var (fun ret ->
+  with_var expr.span (fun param ->
+    with_var expr.span (fun ret ->
       let abs = Type.lam param ret in
       let* () = infer_parent expr.abs abs in
       let* () = infer_parent expr.arg param in
@@ -121,7 +121,7 @@ and infer_lam_app expr =
 
 and infer_univ_abs expr =
   let* param = validate_param expr.param in
-  with_var (fun var ->
+  with_var expr.span (fun var ->
     let type' = Type.univ param var in
     let* () = with_type expr.param.bind param.lower param.upper
       (infer_parent expr.body var) in
@@ -164,19 +164,19 @@ and infer_if expr =
 and infer_def def =
   let* type' = infer_def_type def in
   let type' = Rename.rename type' in
-  let* () = add_expr (def: Abt.def_expr).bind type' in
+  let* () = add_expr (def: Abt.def_expr).span def.bind type' in
   return type'
 
 and infer_def_type def =
   match def.type' with
   | Some def_type ->
     let* def_type = validate_proper def_type in
-    let* () = with_expr def.bind def_type
+    let* () = with_expr def.span def.bind def_type
       (infer_parent def.expr def_type) in
     return def_type
   | None ->
-    with_var (fun var ->
-      let* () = with_expr def.bind var
+    with_var def.span (fun var ->
+      let* () = with_expr def.span def.bind var
         (infer_parent def.expr var) in
       return var
     )
@@ -196,7 +196,7 @@ let check_defs state =
   ) state state.defs
 
 let check_defs defs primitives =
-  let primitives = List.map (fun primitive -> { bind = fst primitive; type' = snd primitive }) primitives in
+  let primitives = List.map (fun primitive -> { span = Code.span_primitive; level = 0; bind = fst primitive; type' = snd primitive }) primitives in
   let state = make_state defs primitives in
   let state = check_defs state in
   List.map (fun (entry: entry_expr) -> entry.bind, entry.type') state.exprs

@@ -1,58 +1,114 @@
-(*
-  This file contains the tree walker used to lower the level of the inference variables that occur
-  in a given type to a given level. A subtlety is that the algorithm differenciates between direct
-  and indirect occurences. A direct occurence happens when an inference variable appears directly
-  in the type, that is, without an intermediary type such as a tuple, a function... Only indirect
-  occurences are lowered.
-*)
-
 open State
 
-let rec levelize (type': Type.type') level direct =
-  levelize_union type' level direct
+let rec levelize bind (type': Type.type') =
+  levelize_union bind type'
 
-and levelize_union union level direct =
-  list_iter (fun type' -> levelize_inter type' level direct) union.union
+and levelize_union bind union =
+  list_iter (levelize_inter bind) union.union
 
-and levelize_inter inter level direct =
-  list_iter (fun type' -> levelize_base type' level direct) inter.inter
+and levelize_inter bind inter =
+  list_iter (levelize_base bind) inter.inter
 
-and levelize_base type' level direct =
+and levelize_base bind type' =
   match type' with
+  | Top | Bot | Unit | Bool | Int | String ->
+    return ()
   | Var var ->
-    levelize_var var level direct
-  | Tuple tuple ->
-    list_iter (fun elem -> levelize elem level false) tuple.elems
-  | Record record ->
-    iter_map (fun (attr: Type.attr) -> levelize attr.type' level false) record.attrs
-  | Lam lam ->
-    let* () = levelize lam.param level false in
-    let* () = levelize lam.ret level false in
-    return ()
-  | Univ univ ->
-    let* () = levelize univ.param.lower level false in
-    let* () = levelize univ.param.upper level false in
-    let* () = levelize univ.ret level false in
-    return ()
-  | _ ->
-    return ()
-
-and levelize_var var level direct =
-  let* entry = get_var_entry_opt var.bind in
-  match entry with
-  | Some entry ->
-    if entry.level > level then
-      if not direct then
-        let* () = update_var_entry var.bind (fun entry -> { entry with level }) in
-        let* () = levelize entry.lower level direct in
-        let* () = levelize entry.upper level direct in
+    let* entry = get_var_entry_opt var.bind in
+    (match entry with
+    | Some entry ->
+      let* level = get_var_entry bind in
+      let level = level.level_low in
+      if entry.level_low > level then
+        let* () = reorder level entry.bind in
+        let* () = levelize var.bind entry.lower in
+        let* () = levelize var.bind entry.upper in
         return ()
       else
         return ()
-    else
-      return ()
-  | None ->
+    | None ->
+      return ())
+  | Tuple tuple ->
+    list_iter (levelize bind) tuple.elems
+  | Record record ->
+    map_iter (levelize_attr bind) record.attrs
+  | Lam lam ->
+    let* () = levelize bind lam.param in
+    let* () = levelize bind lam.ret in
+    return ()
+  | Univ univ ->
+    let* () = levelize_param bind univ.param in
+    let* () = levelize bind univ.ret in
+    return ()
+  | Abs abs ->
+    let* () = levelize_param bind abs.param in
+    let* () = levelize bind abs.body in
+    return ()
+  | App app ->
+    let* () = levelize bind app.abs in
+    let* () = levelize bind app.arg in
     return ()
 
-let levelize type' level =
-  levelize type' level true
+and levelize_attr bind attr =
+  levelize bind attr.type'
+
+and levelize_param bind param =
+  let* () = levelize bind param.lower in
+  let* () = levelize bind param.upper in
+  return ()
+
+let join_level a b =
+  Util.option_join a b max
+
+let fold_level f a b =
+  let* b = f b in
+  return (join_level a b)
+
+let rec get_level (type': Type.type') =
+  get_level_union type'
+
+and get_level_union union =
+  list_fold (fold_level get_level_inter) None union.union
+
+and get_level_inter inter =
+  list_fold (fold_level get_level_base) None inter.inter
+
+and get_level_base type' =
+  match type' with
+  | Top | Bot | Unit | Bool | Int | String ->
+    return None
+  | Var var ->
+    let* entry = get_var_entry_opt var.bind in
+    (match entry with
+    | Some entry ->
+      return (Some entry.level_low)
+    | None ->
+      return None)
+  | Tuple tuple ->
+    list_fold (fold_level get_level) None tuple.elems
+  | Record record ->
+    map_fold (fold_level get_level_attr) None record.attrs
+  | Lam lam ->
+    let* param = get_level lam.param in
+    let* ret = get_level lam.ret in
+    return (join_level param ret)
+  | Univ univ ->
+    let* param = get_level_param univ.param in
+    let* ret = get_level univ.ret in
+    return (join_level param ret)
+  | Abs abs ->
+    let* param = get_level_param abs.param in
+    let* body = get_level abs.body in
+    return (join_level param body)
+  | App app ->
+    let* abs = get_level app.abs in
+    let* arg = get_level app.arg in
+    return (join_level abs arg)
+
+and get_level_attr attr =
+  get_level attr.type'
+
+and get_level_param param =
+  let* lower = get_level param.lower in
+  let* upper = get_level param.upper in
+  return (join_level lower upper)

@@ -86,6 +86,7 @@ let test file_name =
     show_values = Option.map (fun channel -> write_buffer channel.result) channel_values;
     print_out   = write_buffer channel_out.result;
     print_err   = write_buffer channel_err.result;
+    debug_infer = false;
   };
   compare_channel_opt file_name channel_ast    &&
   compare_channel_opt file_name channel_types  &&

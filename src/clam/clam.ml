@@ -37,6 +37,7 @@ let () =
       show_values = None;
       print_out   = print_endline;
       print_err   = print_endline;
+      debug_infer = config.debug_infer;
     }
   with Failure.Error message ->
     Failure.exit message

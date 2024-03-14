@@ -1,6 +1,6 @@
 # What is this ?
 
-This is  Clam ! A small statically typed functional programming language with a relatively advanced type system. It implements many features of System $F^ω_{<:}$ and its extensions such as [structrual typing](#structural-typing), [subtyping](#subtyping), [unions and intersections](#union-and-intersection-types), [bounded polymorphism](#universal-types), [higher-kinded types](#higher-kinded-types) and [constraint-based type inference](#type-inference).
+This is  Clam ! A small statically typed functional programming language with a relatively advanced type system. It implements many features of System $F^ω_{<:}$ and its extensions such as [structrual typing](#structural-typing), [subtyping](#subtyping), [unions and intersections](#union-and-intersection-types), [bounded polymorphism](#universal-types), [higher-kinded types](#higher-kinded-types) and a state-of-the-art [constraint-based type inference algorithm](#type-inference).
 
 The formal (but currently incomplete) semantics of the language are described in the `semantics.pdf` document available [here](https://raw.githubusercontent.com/MaximeMulder/Clam/main/semantics/semantics.pdf).
 
@@ -218,42 +218,42 @@ Clam features a constraint-based type inference algorithm capable of inferring t
     <tr>
 <td><pre><code>def two = 1 + 1
 def id = (p) -> p
-def inf = (p) -> inf(p)
 def foo = (f) -> {f(123), f("Hello")}
 def bar = foo(id)
-def bounded = (f) -> {f, f(1)}
-def unpred = id(id)
-def not_ml = {id_bis = (p) -> p, z = 0}
 def max = (l, r) -> if l > r then l else r
+def infinite = (p) -> inf(p)
+def impredicative = id(id)
+def recursive = (p) -> recursive
+def not_ml = {id_bis = (p) -> p, z = 0}
 def is_even = (n) -> !is_odd(n)
 def is_odd = (n) -> if n == 0
              then false else !is_even(n - 1)</code></pre></td>
 <td><pre><code>two: Int
 id: ['A] -> ('A) -> 'A
-inf: (Top) -> Bot
 foo: ['A, 'B] -> (((Int) -> 'A) & ((String) -> 'B)) -> {'A, 'B}
 bar: {Int, String}
-bounded: ['A, 'B: .. (Int) -> 'A] -> ('B) -> {'B, 'A}
-unpred: ['A] -> ('A) -> 'A
-not_ml: {id_bis: ['A] -> ('A) -> 'A, z: Int}
 max: ['A: .. Int] -> ('A, 'A) -> 'A
+infinite: (Top) -> Bot
+impredicative: ['A] -> ('A) -> 'A
+recursive: 'A. (Top) -> 'A
+not_ml: {id_bis: ['A] -> ('A) -> 'A, z: Int}
 is_even: (Int) -> Bool
 is_odd: (Int) -> Bool
 ​</code></pre></td>
     </tr>
 </table>
 
-More examples of type inference can be found in the `tests/infer` directory. Some of these examples, as well as several parts of the algorithm, were inspired by TACO Lab's [SuperF](https://hkust-taco.github.io/superf/) and [MLScript](https://hkust-taco.github.io/mlscript/) languages.
+As shown by these examples, Clam's type inference algorithm supports both impredicative polymorphism, subtyping, and recursive types. It is this Clam's most advanced feature, and although it has not been formalized yet and would benefit from a little code polishing, practical tests show that it measures well against the world's most advanced type inference algorithms, and even outperform them in some cases. Comparisons against the [SuperF paper](https://dl.acm.org/doi/10.1145/3632890) can be found in the `tests/infer/all.clam` test.
 
-*\* The type inference algorithm is still a little dirty and probably has a few bugs in it (notably with recursive types). Nevertheless, most programs as well as all the tests and examples provided work, and I am in the process of cleaning the algorithm. It should also be noted that type inference is impossible for some expressions involving tuple projections or type applications.*
+Some of these examples, as well as some parts of the algorithm, were inspired by the forementioned TACO Lab's [SuperF](https://hkust-taco.github.io/superf/) and [MLScript](https://hkust-taco.github.io/mlscript/) languages.
 
 ## Recursive types
 
-Clam does not feature recursive types yet, which is quite limiting.
+Although Clam's type inference algorithm is capable of infering recursive types, Clam does not support this feature yet.
 
 # Correctness
 
-There is currently no mathematical proof of correctness for this language or interpeter. But I hope I will be able to write one one day. While some code (notably for type inference) is still rough at the time of writing these lines, all the examples provided work, as well as all the unit tests and the sample programs found in the `tests` directory.
+There is currently no mathematical proof of correctness for this language or interpeter, but I wish to write one one day. While the code may still be rough in some places, all the examples provided work, as well as all the unit tests and the sample programs found in the `tests` directory.
 
 # Roadmap
 
@@ -267,4 +267,4 @@ I will have less time to work on this project in the short- to medium-term futur
 
 # Notes
 
-Clam is a pet project of mine I created during my master's thesis evaluation to apply the knowledge I gained on programming language theory and practice functional programming. It has since gained in size and functionality but is still not intended to be a used for serious programming, especially since the user experience is currently quite rough.
+Clam is a pet project of mine I created during my master's thesis evaluation to apply the knowledge I gained on programming language theory and practice functional programming. It has since gained in size and functionality but is still not intended to be a used for serious programming.

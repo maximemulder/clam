@@ -1,0 +1,71 @@
+main: Unit
+bot: Bot
+app: [A, B] -> ((A) -> B, A) -> B
+append: [A] -> ({A}, {A}) -> {A}
+arg_st: [S] -> {Int}
+auto: ([A] -> (A) -> A) -> [A] -> (A) -> A
+auto2: [B] -> ([A] -> (A) -> A, B) -> B
+cons: [A] -> (A, {A}) -> {A}
+const: [A, B] -> (A, B) -> A
+choose: [A] -> (A, A) -> A
+head: [T] -> ({T}) -> T
+nil: [T] -> {T}
+id: [T] -> (T) -> T
+ids: {[T] -> (T) -> T}
+inc: (Int) -> Int
+map: [A, B] -> ((A) -> B, {A}) -> {B}
+length: [T] -> ({T}) -> Int
+poly: ([A] -> (A) -> A) -> {Int, Bool}
+revapp: [A, B] -> (A, (A) -> B) -> B
+run_st: [A] -> ([S] -> {A}) -> A
+single: [A] -> (A) -> {A}
+tail: [A] -> ({A}) -> {A}
+f: [A] -> ((A) -> A, {A}) -> A
+a1: (Top) -> ['A] -> ('A) -> 'A
+a2: ['A: [T] -> (T) -> T ..] -> ('A) -> 'A
+a3: ([T] -> {T}) | {[T] -> (T) -> T}
+a4: ['A, 'B] -> ((('A) -> 'B) & 'A) -> 'B
+a5: ([A] -> (A) -> A) -> [A] -> (A) -> A
+a6: [B] -> ([A] -> (A) -> A, B) -> B
+a7: ([T] -> (T) -> T) | (([A] -> (A) -> A) -> [A] -> (A) -> A)
+a8: ([T] -> (T) -> T) | ([B] -> ([A] -> (A) -> A, B) -> B)
+a9: [T] -> (T) -> T
+a10: {Int, Bool}
+a11: {Int, Bool}
+a12: {Int, Bool}
+b1: ['A, 'B] -> (((Int) -> 'A) & ((Bool) -> 'B)) -> {'A, 'B}
+b2: ({[A] -> (A) -> A}) -> {Int, Bool}
+g: [A] -> ({A}, {A}) -> A
+c1: Int
+c2: {[T] -> (T) -> T}
+c3: [T] -> (T) -> T
+c4: {[T] -> (T) -> T}
+c5: {[T] -> (T) -> T}
+c6: {[T] -> (T) -> T}
+c7: {((Int) -> Int) | ([T] -> (T) -> T)}
+c8: [T] -> (T) -> T
+c9: {{Int, Bool}}
+c10: {[T] -> (T) -> T}
+d1: {Int, Bool}
+d2: {Int, Bool}
+d3: Int
+d4: Int
+d5: Int
+k: [A] -> (A, {A}) -> A
+h: (Int) -> [A] -> (A) -> A
+l: {[A] -> (Int, A) -> A}
+r: ([A] -> (A) -> [B] -> (B) -> B) -> Int
+e1: ((Int) -> [A] -> (A) -> A) | ([A] -> (Int, A) -> A)
+e2: ((Int) -> [A] -> (A) -> A) | ([A] -> (Int, A) -> A)
+e3: Int
+f5: [A] -> (A) -> A
+f6: {[T] -> (T) -> T}
+f7: Int
+f8: ['A: [T] -> (T) -> T ..] -> ('A) -> 'A
+f9: {Int, Bool}
+f10: ([T] -> (T) -> T) | (([A] -> (A) -> A) -> ['A] -> ('A) -> 'A)
+z: (Top) -> ['A] -> ('A) -> 'A
+g1a: [A] -> ((A) -> A, A) -> A
+g9: ['A] -> ('A) -> 'A
+g14: (Int) -> [B] -> (B) -> B
+g10: String

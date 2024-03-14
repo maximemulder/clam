@@ -1,4 +1,3 @@
 #!/bin/bash
 
-dune build
-_build/install/default/bin/clam $*
+dune build && _build/install/default/bin/clam $*
