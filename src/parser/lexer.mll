@@ -85,4 +85,5 @@ and read_string buf =
 and read_comment =
   parse
   | '\n' { read lexbuf }
-  | _ { read_comment lexbuf }
+  | _    { read_comment lexbuf }
+  | eof  { EOF }
