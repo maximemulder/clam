@@ -11,6 +11,16 @@ type span = {
   end': int;
 }
 
+(** Dummy span used by primitive definitions *)
+let span_primitive = {
+  code = {
+    name = "primitives.clam";
+    text = "";
+  };
+  start = 0;
+  end' = 0;
+}
+
 let rec fold_until_pos text pos n f acc =
   if n = pos then
     acc

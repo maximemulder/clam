@@ -137,11 +137,11 @@ and constrain_lam sub_abs sup_abs =
   let* ret = constrain sub_abs.ret sup_abs.ret in
   return (param && ret)
 
-let constrain pos sub sup =
-  let* () = print("constrain " ^ Type.display sub ^ " < " ^ Type.display sup) in
+let constrain span sub sup =
+  let* () = print ("constrain " ^ Type.display sub ^ " < " ^ Type.display sup) in
   let* result = constrain sub sup in
   let* () = print_vars in
   if result then
     return ()
   else
-    Error.raise_constrain pos sub sup
+    Error.raise_constrain span sub sup
