@@ -1,0 +1,90 @@
+def main = unit
+
+type List = [T] => {T}
+type ST = [S, A] => {A}
+
+def bot = bot
+
+def app: [A, B] -> ((A) -> B, A) -> B = (p, a) -> p(a)
+def append: [A] -> (List[A], List[A]) -> List[A] = (p, p) -> p
+def arg_st: [S] -> ST[S, Int] = {0}
+def auto: ([A] -> (A) -> A) -> ([A] -> (A) -> A) = (p) -> p
+def auto2: [B] -> ([A] -> (A) -> A) -> (B) -> B = (a, b) -> b
+def cons: [A] -> (A, List[A]) -> List[A] = (p, p) -> p
+def const: [A, B] -> (A) -> (B) -> A = (a, b) -> a
+def choose: [A] -> (A, A) -> A = (a, b) -> a
+def head: [T] -> (List[T]) -> T = (p) -> p.0
+def nil: [T] -> List[T] = [T] -> {bot}
+def id: [T] -> (T) -> T = (p) -> p
+def ids: List[[T] -> (T) -> T] = {id}
+def inc: (Int) -> Int = (p) -> p
+def map: [A, B] -> ((A) -> B, List[A]) -> List[B] = (f, p) -> {f(p.0)}
+def length: [T] -> (List[T]) -> Int = (p) -> 0
+def poly: ([A] -> (A) -> A) -> {Int, Bool} = (p) -> {0, true}
+def revapp: [A, B] -> (A, (A) -> B) -> B = (a, p) -> p(a)
+def run_st: [A] -> ([S] -> ST[S, A]) -> A = (p) -> p.0
+def single: [A] -> (A) -> List[A] = (p) -> {p}
+def tail: [A] -> (List[A]) -> List[A] = (p) -> p
+
+def f: [A] -> ((A) -> A, List[A]) -> A = (f, l) -> l.0
+
+def a1 = (x, y) -> y         // Ok
+def a2 = choose(id)          // Ok
+def a3 = choose(nil, ids)    // Ok with better type system
+def a4 = (x) -> x(x)         // Ok
+def a5 = id(auto)            // Ok
+def a6 = id(auto2)           // Ok with FreezeML, cannot find with SuperF
+def a7 = choose(id, auto)    // Unsure
+def a8 = choose(id, auto2)   // Unsure
+def a9 = f(choose(id), ids)  // Ok
+def a10 = poly(id)           // Ok
+def a11 = poly((p) -> p)     // Ok
+def a12 = id(poly((p) -> p)) // Ok
+
+def b1 = (f) -> {f(1), f(true)} // Ok
+def b2 = (xs) -> poly(head(xs)) // Ok
+
+def g: [A] -> (List[A], List[A]) -> A = (l, l) -> l.0
+
+def c1 = length(ids)                     // Ok
+def c2 = tail(ids)                       // Ok
+def c3 = head(ids)                       // Ok
+def c4 = single(id)                      // Ok
+def c5 = cons(id, ids)                   // Ok
+def c6 = cons((x) -> x, ids)             // Ok
+def c7 = append(single(inc), single(id)) // Ok with better type system
+def c8 = g(single(id), ids)              // Ok
+def c9 = map(poly, single(id))           // Ok
+def c10 = map(head, single(ids))         // Ok
+
+def d1 = app(poly, id)          // Ok
+def d2 = revapp(id, poly)       // Ok
+def d3 = run_st(arg_st)         // Ok
+def d4 = app(run_st, arg_st)    // Ok
+def d5 = revapp(arg_st, run_st) // Ok
+
+def k: [A] -> (A,  List[A]) -> A = (a, l) -> a
+def h: (Int) -> [A] -> (A) -> A = (i, a) -> a
+def l: List[[A] -> (Int, A) -> A] = {(i, a) -> a}
+def r: ([A] -> (A) -> [B] -> (B) -> B) -> Int = (p) -> 0
+
+def e1 = k(h, l)             // Ok with better type system
+def e2 = (k((x) -> h(x)))(l) // Ok with better type system
+def e3 = r((x, y) -> y)      // Ok
+
+def f5 = auto(id)                     // Ok
+def f6 = cons(head(ids), ids)         // Ok
+def f7 = head(ids, 3)                 // Ok
+def f8 = choose(head(ids))            // Ok (SuperF paper wrong on FreezeML ?)
+def f9 = var f = revapp(id); f(poly)  // Ok
+def f10 = choose(id, (x) -> auto2(x)) // Unsure
+
+type ChurchInt = [A] -> ((A) -> A) -> ((A) -> A)
+
+def z = (f, x) -> x
+
+def g1a = z : ChurchInt                                                                                    // Ok
+def g9 = (x) -> if true then x else g9(g9(x))                                                              // Ok (nice !!!)
+def g14 = ((f) -> var a = ((u: Unit) -> f(id)); a(unit) : ((Int) -> ([B] -> (B) -> B))) (const(const(id))) // Ok
+
+def g10 = "((x) -> x(x))((x) -> x(x))" // Not ok

@@ -1,6 +1,6 @@
 # What is this ?
 
-This is  Clam ! A small statically typed functional programming language with a relatively advanced type system. It implements many features of System $F^ω_{<:}$ and its extensions such as [structrual typing](#structural-typing), [subtyping](#subtyping), [unions and intersections](#union-and-intersection-types), [bounded polymorphism](#universal-types), [higher-kinded types](#higher-kinded-types) and [constraint-based type inference](#type-inference).
+This is  Clam ! A small statically typed functional programming language with a relatively advanced type system. It implements many features of System $F^ω_{<:}$ and its extensions such as [structrual typing](#structural-typing), [subtyping](#subtyping), [unions and intersections](#union-and-intersection-types), [bounded polymorphism](#universal-types), [higher-kinded types](#higher-kinded-types) and a state-of-the-art [constraint-based type inference algorithm](#type-inference).
 
 The formal (but currently incomplete) semantics of the language are described in the `semantics.pdf` document available [here](https://raw.githubusercontent.com/MaximeMulder/Clam/main/semantics/semantics.pdf).
 
@@ -243,7 +243,9 @@ is_odd: (Int) -> Bool
     </tr>
 </table>
 
-More examples of type inference can be found in the `tests/infer` directory. Some of these examples, as well as a few parts of the algorithm, were inspired by TACO Lab's [SuperF](https://hkust-taco.github.io/superf/) and [MLScript](https://hkust-taco.github.io/mlscript/) languages.
+As shown by these examples, Clam's type inference algorithm supports both impredicative polymorphism, subtyping, and recursive types. It is this Clam's most advanced feature, and although it has not been formalized yet and would benefit from a little code polishing, practical tests show that it measures well against the world's most advanced type inference algorithms, and even outperform them in some cases. Comparisons against the [SuperF paper](https://dl.acm.org/doi/10.1145/3632890) can be found in the `tests/infer/all.clam` test.
+
+Some of these examples, as well as some parts of the algorithm, were inspired by the forementioned TACO Lab's [SuperF](https://hkust-taco.github.io/superf/) and [MLScript](https://hkust-taco.github.io/mlscript/) languages.
 
 ## Recursive types
 
