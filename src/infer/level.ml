@@ -58,7 +58,7 @@ and levelize_param bind param =
   return ()
 
 let join_level a b =
-  Util.option_join a b max
+  Util.option_join a b min
 
 let fold_level f a b =
   let* b = f b in

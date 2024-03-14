@@ -53,6 +53,12 @@ and constrain_inter_2 sub sup =
 and constrain_base sub sup =
   let* state = get_state in
   match sub, sup with
+  | _, Top | Bot, _ | Unit, Unit | Bool, Bool | Int, Int | String, String ->
+    (*
+      We can assume the type is a proper type here
+      (although still checking it may not be a bad idea)
+    *)
+    return true
   | Var sub_var, Var sup_var when is_infer sub_var.bind state && is_infer sup_var.bind state ->
     constrain_var sub_var sup_var
   | Var sub_var, _ when is_infer sub_var.bind state ->
@@ -68,7 +74,14 @@ and constrain_base sub sup =
   | Lam sub_lam, Lam sup_lam ->
     constrain_lam sub_lam sup_lam
   | Univ sub_univ, _ ->
-    let* var = make_var_univ in
+    let* var = make_var in
+    let* level = Level.get_level (Type.base sup) in
+    let* () = match level with
+    | Some level ->
+      reorder level var
+    | None ->
+      return ()
+    in
     let var = Type.var var in
     let* lower = constrain sub_univ.param.lower var in
     let* upper = constrain var sub_univ.param.upper in
@@ -79,6 +92,7 @@ and constrain_base sub sup =
     with_type sup_univ.param.bind sup_univ.param.lower sup_univ.param.upper
       (constrain (Type.base sub) sup_univ.ret)
   | _, _ ->
+    (* TODO: Constrain type applications without using simple subtyping *)
     let* ctx = get_context in
     let result = Type.System.isa ctx (Type.base sub) (Type.base sup) in
     return result
@@ -102,12 +116,7 @@ and constrain_var sub_var sup_var =
   let* sup_entry = get_var_entry sup_var.bind in
   let sub_level = sub_entry.level_low in
   let sup_level = sup_entry.level_low in
-  if sup_entry.univ && not sub_entry.univ then
-    let* () = levelize sub_var.bind sup in
-    let* () = update_var_upper sub_var.bind sup in
-    let* sub_lower = get_var_lower sub_var.bind in
-    constrain sub_lower sup
-  else if sub_level > sup_level then
+  if sub_level > sup_level then
     let* () = update_var_upper sub_var.bind sup in
     let* sub_lower = get_var_lower sub_var.bind in
     constrain sub_lower sup

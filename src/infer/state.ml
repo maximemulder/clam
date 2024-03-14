@@ -29,7 +29,6 @@ type entry_var = {
   lower: Type.type';
   upper: Type.type';
   id: int;
-  univ: bool;
   level_orig: int;
   level_low: int;
   level: int;
@@ -223,14 +222,7 @@ let with_type bind lower upper f state =
 let make_var state =
   let bind = { Abt.name = "'" ^ string_of_int state.id } in
   let _ = print ("var " ^ bind.name) state in
-  let var = { id = state.id; univ = false; bind; level_orig = state.level; level_low = state.level; level = state.level; lower = Type.bot; upper = Type.top } in
-  let state = { state with id = state.id + 1; level = state.level + 1; vars = var :: state.vars } in
-  bind, state
-
-let make_var_univ state =
-  let bind = { Abt.name = "'" ^ string_of_int state.id ^ "*" } in
-  let _ = print ("var " ^ bind.name) state in
-  let var = { id = state.id; univ = true; bind; level_orig = state.level; level_low = state.level; level = state.level; lower = Type.bot; upper = Type.top } in
+  let var = { id = state.id; bind; level_orig = state.level; level_low = state.level; level = state.level; lower = Type.bot; upper = Type.top } in
   let state = { state with id = state.id + 1; level = state.level + 1; vars = var :: state.vars } in
   bind, state
 
