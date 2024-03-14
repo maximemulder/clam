@@ -75,16 +75,34 @@ def e3 = r((x, y) -> y)      // Ok
 def f5 = auto(id)                     // Ok
 def f6 = cons(head(ids), ids)         // Ok
 def f7 = head(ids, 3)                 // Ok
-def f8 = choose(head(ids))            // Ok (SuperF paper wrong on FreezeML ?)
+def f8 = choose(head(ids))            // Ok
 def f9 = var f = revapp(id); f(poly)  // Ok
 def f10 = choose(id, (x) -> auto2(x)) // Unsure
 
 type ChurchInt = [A] -> ((A) -> A) -> ((A) -> A)
 
+def s = (n, f, x) -> f(n(f, x))
 def z = (f, x) -> x
+def n3 = s(s(s(z)))
 
-def g1a = z : ChurchInt                                                                                    // Ok
-def g9 = (x) -> if true then x else g9(g9(x))                                                              // Ok (nice !!!)
-def g14 = ((f) -> var a = ((u: Unit) -> f(id)); a(unit) : ((Int) -> ([B] -> (B) -> B))) (const(const(id))) // Ok
+def to_church = (n) -> if n == 0 then z else s(to_church(n - 1))
 
-def g10 = "((x) -> x(x))((x) -> x(x))" // Not ok
+def g1a = z : ChurchInt                       // Ok
+def g2 = s                                    // Ok
+def g2a = s : ((ChurchInt) -> ChurchInt)      // Ok
+def g3a = n3 : ChurchInt                      // Ok
+def g4a = ((u: Unit) -> n3(n3)) : ((Unit) -> ChurchInt)
+                                              // Ok
+def g5 = n3((x) -> {x, 0}, 1).0.0.0           // Ok
+def g7 = (s(s(z)))(s(s(z)))                   // Looks different ('a -> ('a & 'b & 'c) & 'c -> ('a & 'c)) -> 'c -> 'b
+def g8 = to_church                            // Ok
+def g8a = to_church : ((Int) -> ChurchInt)    // Ok
+def g9 = (x) -> if true then x else g9(g9(x)) // Ok (nice !!!)
+// def g10 = ((x) -> x(x))((x) -> x(x))       // Not ok (infinite recursion)
+def g11 = auto(auto2(id))                     // Ok
+def g12 = ((y) -> var tmp = y(id); y(const)) ((x) -> x(x))
+                                              // Looks different (anything -> (forall 'a. 'a -> anything -> 'a))
+def g13 = ((k) -> {k((x) -> x), k ((x) -> single(x))}) ((f) -> {f(1), f(true)})
+                                              // Ok
+def g14 = ((f) -> var a = ((u: Unit) -> f(id)); a(unit) : ((Int) -> ([B] -> (B) -> B))) (const(const(id)))
+                                              // Ok
