@@ -1,13 +1,29 @@
 def main = unit
 
 def id = (p) -> p
-def tuple = (p) -> {p}
+def some = (p) -> {p}
 
 def foo = (f) -> {f(123), f("Hello")}
 def foo_id = foo(id)
-def foo_tuple = foo(tuple)
+def foo_some = foo(some)
 
-def bar = (f) -> {f((x) -> x), f((x) -> tuple(x))}
+def bar = (f) -> {f((x) -> x), f((x) -> some(x))}
 def bar_foo = bar(foo)
 
-def baz = (p) -> {a = p.i(123), b = p.s("Hello")}
+def baz = (x) -> if true then x else id
+
+def foo1 = (f) -> {f(123), f("Hello")}
+def foo2 = (f) -> {f((x) -> x), f((x) -> x)}
+def foo2_bool = foo2((f) -> f(1 > 0))
+// def foo3 = (f) -> {f((p) -> {p.1, p.0}), f((p) -> {p.0, p.1})}
+// Our support for tuples is not good, so this term does not work
+
+def foo_let = (f) ->
+    var g = ((x) -> f(x));
+    {g(123), g("Hello")}
+
+// def foo_add = (add : ((Int) -> Int) & ((String) -> String)) ->
+//    {add(1, 1), add("Hello", "World")}
+// This also does not work.
+
+def ab_bool = (x) -> foo((y) -> x(y, y))

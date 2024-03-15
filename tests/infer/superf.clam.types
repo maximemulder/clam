@@ -1,9 +1,14 @@
 main: Unit
 id: ['A] -> ('A) -> 'A
-tuple: ['A] -> ('A) -> {'A}
+some: ['A] -> ('A) -> {'A}
 foo: ['A, 'B] -> (((Int) -> 'A) & ((String) -> 'B)) -> {'A, 'B}
 foo_id: {Int, String}
-foo_tuple: {{Int}, {String}}
+foo_some: {{Int}, {String}}
 bar: ['A, 'B] -> (((['C] -> ('C) -> 'C) -> 'A) & ((['D] -> ('D) -> {'D}) -> 'B)) -> {'A, 'B}
 bar_foo: {{Int, String}, {{Int}, {String}}}
-baz: ['A, 'B] -> ({i: (Int) -> 'A, s: (String) -> 'B}) -> {a: 'A, b: 'B}
+baz: ['A] -> ('A) -> ('A | (['A] -> ('A) -> 'A))
+foo1: ['A, 'B] -> (((Int) -> 'A) & ((String) -> 'B)) -> {'A, 'B}
+foo2: ['A, 'B] -> ((['C] -> ('C) -> 'C) -> ('A & 'B)) -> {'A, 'B}
+foo2_bool: {Bool, Bool}
+foo_let: ['A] -> ((Int | String) -> 'A) -> {'A, 'A}
+ab_bool: ['A] -> ((Int | String, Int | String) -> 'A) -> {'A, 'A}
