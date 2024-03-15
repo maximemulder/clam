@@ -101,7 +101,7 @@ def g9 = (x) -> if true then x else g9(g9(x)) // Ok (nice !!!)
 // def g10 = ((x) -> x(x))((x) -> x(x))       // Not ok (infinite recursion)
 def g11 = auto(auto2(id))                     // Ok
 def g12 = ((y) -> var tmp = y(id); y(const)) ((x) -> x(x))
-                                              // Looks different (anything -> (forall 'a. 'a -> anything -> 'a))
+                                              // Ok, different than SuperF but we respect more type annotations
 def g13 = ((k) -> {k((x) -> x), k ((x) -> single(x))}) ((f) -> {f(1), f(true)})
                                               // Ok
 def g14 = ((f) -> var a = ((u: Unit) -> f(id)); a(unit) : ((Int) -> ([B] -> (B) -> B))) (const(const(id)))
