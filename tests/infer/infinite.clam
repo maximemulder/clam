@@ -1,0 +1,7 @@
+// Clam suffers from infinite recursion when type checking these expressions
+
+def main = unit
+
+// def omega = ((x) -> x(x))((x) -> x(x))
+
+// def fix = (f) -> ((x) -> f(x(x)))((x) -> (f(x(x))))
