@@ -101,15 +101,10 @@ def g3a = n3 : ChurchInt                      // Ok
 def g4a = ((u: Unit) -> n3(n3)) : ((Unit) -> ChurchInt)
                                               // Ok
 def g5 = n3((x) -> {x, 0}, 1).0.0.0           // Ok
-def g7 = (s(s(z)))(s(s(z)))
-    // The type is different (SuperF infers `forall 'a 'b 'c. ('a -> ('a & 'b & 'c) & 'c -> ('a & 'c)) -> 'c -> 'b`)
-    // However, in SuperF, this expression fails to type check against its own inferred type when using type ascription.
-    // Also, doing `def b = s(s z) def g7 = b b` leads to a different inferred type in SuperF
-    // This expression also fails to type check against its own inferred type in Clam, so there is probably a bug
-
+def g7 = (s(s(z)))(s(s(z)))                   // Ok
 def g8 = to_church                            // Ok
 def g8a = to_church : ((Int) -> ChurchInt)    // Ok
-def g9 = (x) -> if true then x else g9(g9(x)) // Ok (nice !!!)
+// def g9 = (x) -> if true then x else g9(g9, x) // Not ok (infinite recursion)
 // def g10 = ((x) -> x(x))((x) -> x(x))       // Not ok (infinite recursion)
 def g11 = auto(auto2(id))                     // Ok
 def g12 = ((y) -> var tmp = y(id); y(const)) ((x) -> x(x))
