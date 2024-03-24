@@ -1,5 +1,5 @@
 #import "template.typ": *
-#import "@preview/curryst:0.1.0"
+#import "@preview/curryst:0.2.0"
 
 #show: project.with(
   title: "Clam semantics",
@@ -14,13 +14,15 @@
 
 #let logic(body) = par(justify: false, align(center, body))
 
-#let rule(name, ..args) = curryst.rule(name: smallcaps(name), ..args)
+#let defrule(name, conclusion, ..args) = curryst.rule(name: smallcaps(name), conclusion, ..args)
 
 #let tree(rule) = curryst.proof-tree(rule)
 
 #let axiom(name, ..args) = box(pad(rest: 8pt, tree(
-  rule(name, ..args))
+  defrule(name, ..args))
 ))
+
+#let rule(name) = smallcaps(name)
 
 #let grammar(content) = box(pad(rest: 8pt, content))
 
@@ -28,6 +30,12 @@
 #let Bool   = raw("Bool")
 #let Int    = raw("Int")
 #let String = raw("String")
+
+#let interval(lower, upper) = $lower space .. space upper$
+
+#let tuniv(bind, lower, upper, ret) = $forall bind : interval(lower, upper). space ret$
+
+#let tabs(bind, lower, upper, body) = $Lambda bind : interval(lower, upper). space body$
 
 = Introduction
 
@@ -61,10 +69,10 @@ The abstract syntax of Clam is given by the following grammar:
         | & angle.l e_1, ..., e_n angle.r && space.quad "tuple" \
         | & e.n && space.quad "tuple projection" \
         | & angle.l l_1 = e_1, ..., l_n = e_n angle.r && space.quad "record" \
-        | & e.l && space.quad "record projection" \
+        | & e.l_n && space.quad "record projection" \
         | & lambda x : tau. space e && space.quad "lambda abstraction" \
         | & e(e) && space.quad "lambda application" \
-        | & lambda T <: tau. space e && space.quad "universal abstraction" \
+        | & lambda t : interval(tau, tau). space e && space.quad "universal abstraction" \
         | & e[tau] && space.quad "universal application" \
         | & e : tau && space.quad "type ascription" \
   \ \
@@ -81,8 +89,8 @@ The abstract syntax of Clam is given by the following grammar:
           | & angle.l tau_1, ..., tau_n angle.r && space.quad "tuple" \
           | & angle.l l_1: tau_1, ..., l_n: tau_n angle.r && space.quad "record" \
           | & tau -> tau && space.quad "lambda abstraction" \
-          | & forall t <: tau. space tau && space.quad "universal abstraction" \
-          | & Lambda t <: tau. space tau && space.quad "type abstraction" \
+          | & tuniv(t, tau, tau, tau) && space.quad "universal abstraction" \
+          | & tabs(t, tau, tau, tau) && space.quad "type abstraction" \
           | & tau[tau] && space.quad "type application" $)
 ]
 
@@ -95,11 +103,11 @@ The syntax of kinds is given by the following grammar:
 #logic[
   #grammar($
     "Kind"
-    k ::= & * && space.quad "type" \
-        | & k -> k && space.quad "arrow" $)
+    k ::= & *                       && space.quad "type" \
+        | & interval(tau, tau) -> k && space.quad "arrow" $)
 ]
 
-The kinding judgement is of the form $Delta tack.r tau :: k$. The hypotheses of $Delta$ are of the form $t <: tau$.
+The kinding judgement is of the form $Delta tack.r tau :: k$. The hypotheses of $Delta$ are of the form $t: interval(tau_1, tau_2)$, where $tau_1$ and $tau_2$ represent respectively the lower and the upper bounds of a type variable.
 
 #logic[
   #axiom("K-Unit",
@@ -117,8 +125,8 @@ The kinding judgement is of the form $Delta tack.r tau :: k$. The hypotheses of 
     $bot :: *$)
   #axiom("K-Var",
     $Delta tack.r t :: k$,
-    $t <: tau in Delta$,
-    $Delta tack.r tau :: k$)
+    $t : interval(tau_1, tau_2) in Delta$,
+    $Delta tack.r tau_1 :: k$)
   \
   #axiom("K-Tuple",
     $Delta tack.r angle.l tau_1, ..., tau_n angle.r :: *$,
@@ -127,24 +135,25 @@ The kinding judgement is of the form $Delta tack.r tau :: k$. The hypotheses of 
     $Delta tack.r angle.l l_1 : tau_1, ..., l_n : tau_n angle.r :: *$,
     $Delta tack.r tau_1 :: * space.quad ... space.quad Delta tack.r tau_n :: *$)
   \
-  #axiom("K-Abs",
+  #axiom("K-Lam",
     $Delta tack.r tau_1 -> tau_2 :: *$,
     $Delta tack.r tau_1 :: *$,
     $Delta tack.r tau_2 :: *$)
   #axiom("K-Univ",
-    $Delta tack.r forall t <: tau_1. space tau_2 :: *$,
-    $Delta, t <: tau_1 tack.r tau_2 :: *$)
+    $Delta tack.r tuniv(t, tau_1, tau_2, tau_3) :: *$,
+    $Delta tack.r tau_1 <= tau_2$,
+    $Delta, t : interval(tau_1, tau_2) tack.r tau_3 :: *$)
   \
-  #axiom("K-TAbs",
-    $Delta tack.r Lambda t <: tau_1. space tau_2 :: k_1 -> k_2$,
-    $Delta tack.r tau_1 :: k_1$,
-    $Delta, t <: tau_1 tack.r tau_2 :: k_2$)
+  #axiom("K-Abs",
+    $Delta tack.r tabs(t, tau_1, tau_2, tau_3) :: interval(tau_1, tau_2) -> k$,
+    $Delta tack.r tau_1 <= tau_2$,
+    $Delta, t : interval(tau_1, tau_2) tack.r tau_3 :: k$)
   \
-  #axiom("K-TAbsApp",
+  #axiom("K-App",
     $Delta tack.r tau_1[tau_4] :: k$,
-    $Delta tack.r tau_1 <: Lambda t <: tau_2. -> tau_3$,
-    $Delta tack.r tau_3 :: k$,
-    $Delta tack.r tau_4 <: tau_2$)
+    $Delta tack.r tau_1 :: interval(tau_2, tau_3) -> k$,
+    $Delta tack.r tau_2 <= tau_4$,
+    $Delta tack.r tau_4 <= tau_3$)
   \
   #axiom("K-Union",
     $Delta tack.r tau_1 union tau_2 :: k$,
@@ -156,11 +165,13 @@ The kinding judgement is of the form $Delta tack.r tau :: k$. The hypotheses of 
     $Delta tack.r tau_2 :: k$)
 ]
 
+Rules #rule("K-Univ") and #rule("K-Abs") prohibit inconsistent bounds in universal types and type abstractions.
+
 #pagebreak()
 
 = Type equivalence
 
-The type equivalence judgement is of the form $Delta tack.r tau equiv tau'$. The following rules describe the reflexivity, symmetry and transitivity properties of the type equivalence relation.
+The type equivalence judgement is of the form $Delta tack.r tau equiv tau'$.  The following rules describe the reflexivity, symmetry and transitivity properties of the type equivalence relation.
 
 #logic[
   #axiom("E-Refl",
@@ -190,20 +201,22 @@ The following rules describe type equivalence for composite data types.
     $Delta tack.r tau_1 equiv tau'_1$,
     $Delta tack.r tau_2 equiv tau'_2$)
   #axiom("E-Univ",
-    $Delta tack.r forall t <: tau_1. space tau_2 equiv forall t <: tau'_1. space tau'_2$,
+    $Delta tack.r tuniv(t, tau_1, tau_2, tau_3) equiv tuniv(t, tau'_1, tau'_2, tau'_3)$,
     $Delta tack.r tau_1 equiv tau'_1$,
-    $Delta tack.r tau_2 equiv tau'_2$)
+    $Delta tack.r tau_2 equiv tau'_2$,
+    $Delta tack.r tau_3 equiv tau'_3$)
   \
   #axiom("E-TAbs",
-    $Delta tack.r Lambda T <: tau_1. space tau_2 equiv Lambda t <: tau'_1. space tau'_2$,
+    $Delta tack.r tabs(t, tau_1, tau_2, tau_3) equiv tabs(t, tau'_1, tau'_2, tau'_3)$,
     $Delta tack.r tau_1 equiv tau'_1$,
-    $Delta tack.r tau_2 equiv tau'_2$)
+    $Delta tack.r tau_2 equiv tau'_2$,
+    $Delta tack.r tau_3 equiv tau'_3$)
   #axiom("E-TApp",
     $Delta tack.r tau_1[tau_2] equiv tau'_1[tau'_2]$,
     $Delta tack.r tau_1 equiv tau'_1$,
     $Delta tack.r tau_2 equiv tau'_2$)
   #axiom("E-TAbsApp",
-    $(Lambda t <: tau_1. space tau_2)[tau_3] equiv [t slash tau_3]tau_2$)
+    $(tabs(t, tau_1, tau_2, tau_3))[tau_4] equiv [t slash tau_3]tau_2$)
 ]
 
 #let note = [#"" What about the absorbtion law ?]
@@ -228,10 +241,10 @@ The following rules describe the commutativity, associativity, distribution and 
   \
   #axiom("E-UnionIncl",
     $Delta tack.r tau_1 union tau_2 equiv tau_2$,
-    $Delta tack.r tau_1 <: tau_2$)
+    $Delta tack.r tau_1 <= tau_2$)
   #axiom("E-InterIncl",
     $Delta tack.r tau_1 equiv tau_1 sect tau_2$,
-    $Delta tack.r tau_1 <: tau_2$)
+    $Delta tack.r tau_1 <= tau_2$)
 ]
 
 #pagebreak()
@@ -245,83 +258,100 @@ The following rules describe the distributivity of intersection types over compo
   #axiom("E-MeetRecord",
     $ angle.l l_1 : tau_1, ..., l_n : tau_n, l''_1 : tau''_1, ..., l''_n : tau''_n angle.r sect angle.l l_1 : tau'_1, ..., l_n : tau'_n, l'''_1 : tau'''_1, ..., l'''_n : tau'''_n angle.r \ equiv \ angle.l l_1 : tau_1 sect tau'_1, ..., l_n : tau_n sect tau'_n, l''_1 : tau''_1, ..., l''_n : tau''_n, l'''_1 : tau'''_1, ..., l'''_n : tau'''_n angle.r $)
   #axiom("E-MeetAbs",
-    $(tau_1 -> tau_2) sect (tau'_1 -> tau'_2) equiv tau_1 union tau'_1 -> tau_2 sect tau'_2$)
+    $ (tau_1 -> tau_2) sect (tau'_1 -> tau'_2) equiv tau_1 union tau'_1 -> tau_2 sect tau'_2 $)
   \
   #axiom("E-MeetUniv",
-    $ Delta tack.r (forall t <: tau_1. space tau_2) sect (forall t <: tau_1. space tau'_2) equiv forall t <: tau_1. space tau_2 sect tau'_2 $,
-    $Delta tack.r tau_1 equiv tau'_1$)
+    $Delta tack.r (tuniv(t, tau_1, tau_2, tau_3)) sect (tuniv(t, tau'_1, tau'_2, tau'_3)) equiv tuniv(t, tau_1, tau_2, tau_3) sect tau'_3$,
+    $ Delta tack.r tau_1 equiv tau'_1 $,
+    $ Delta tack.r tau_2 equiv tau'_2 $,
+    $ Delta tack.r tau_3 equiv tau'_3 $)
   #axiom("E-MeetTAbs",
-    $Delta tack.r (Lambda t <: tau_1. space tau_2) sect (Lambda t <: tau_1. space tau'_2) equiv Lambda t <: tau_1. space tau_2 sect tau'_2$,
-    $ Delta tack.r tau_1 equiv tau'_1$)
+    $Delta tack.r (tabs(t, tau_1, tau_2, tau_3)) sect (tabs(t, tau'_1, tau'_2, tau'_3)) equiv tabs(t, tau_1, tau_2, tau_3 sect tau'_3)$,
+    $ Delta tack.r tau_1 equiv tau'_1 $,
+    $ Delta tack.r tau_2 equiv tau'_2 $,
+    $ Delta tack.r tau_3 equiv tau'_3 $)
 ]
+
+TODO: Check meet rules.
 
 #pagebreak()
 
 = Subtyping
 
-The subtyping judgement is of the form $Delta tack.r tau <: tau'$.
+The subtyping judgement is of the form $Delta tack.r tau <= tau'$.
 
 #logic[
   #axiom("S-Eq",
-    $Delta tack.r tau_1 <: tau_2$,
+    $Delta tack.r tau_1 <= tau_2$,
     $Delta tack.r tau_1 equiv tau_2$)
   #axiom("S-Trans",
-    $Delta tack.r tau_1 <: tau_3$,
-    $Delta tack.r tau_1 <: tau_2$,
-    $Delta tack.r tau_2 <: tau_3$)
-  #axiom("S-Var",
-    $Delta tack.r t <: tau$,
-    $t <: tau in Delta$)
+    $Delta tack.r tau_1 <= tau_3$,
+    $Delta tack.r tau_1 <= tau_2$,
+    $Delta tack.r tau_2 <= tau_3$)
+  \
+  #axiom("S-VarSub",
+    $Delta tack.r tau_1 <= t $,
+    $t: interval(tau_1, tau_2) in Delta$)
+  #axiom("S-VarSup",
+    $Delta tack.r t <= tau_2$,
+    $t: interval(tau_1, tau_2) in Delta$)
   \
   #axiom("S-Top",
-    $Delta tack.r tau <: top$,
+    $Delta tack.r tau <= top$,
     $Delta tack.r tau :: *$)
   #axiom("S-Bot",
-    $Delta tack.r bot <: tau$,
+    $Delta tack.r bot <= tau$,
     $Delta tack.r tau :: *$)
   \
   #axiom("S-Tuple",
-    $Delta tack.r angle.l tau_1, ..., tau_n angle.r <: angle.l tau'_1, ..., tau'_n angle.r$,
-    $Delta tack.r tau_1 <: tau'_1 space.quad ... space.quad Delta tack.r tau_n <: tau'_n$)
+    $Delta tack.r angle.l tau_1, ..., tau_n angle.r <= angle.l tau'_1, ..., tau'_n angle.r$,
+    $Delta tack.r tau_1 <= tau'_1 space.quad ... space.quad Delta tack.r tau_n <= tau'_n$)
   \
   #axiom("S-Record",
-    $Delta tack.r angle.l l_1 : tau_1, ..., l_m : tau_m angle.r <: angle.l l_1 : tau'_1, ..., l_n : tau'_n angle.r$,
-    $Delta tack.r tau_1 <: tau'_1 space.quad ... space.quad Delta tack.r tau_n <: tau'_n$,
+    $Delta tack.r angle.l l_1 : tau_1, ..., l_m : tau_m angle.r <= angle.l l_1 : tau'_1, ..., l_n : tau'_n angle.r$,
+    $Delta tack.r tau_1 <= tau'_1 space.quad ... space.quad Delta tack.r tau_n <= tau'_n$,
     $n lt.eq.slant m$)
   \
   #axiom("S-Abs",
     $Delta tack.r tau_1 -> tau_2 <: tau'_1 -> tau'_2$,
-    $Delta tack.r tau'_1 <: tau_1$,
-    $Delta tack.r tau_2 <: tau'_2$)
-  #axiom("S-Univ",
-    $Delta tack.r forall t <: tau_1. space tau_2 <: forall t <: tau'_1. space tau'_2$,
-    $Delta tack.r tau_1 equiv tau'_1$,
-    $Delta, t <: tau_1 tack.r tau_2 <: tau'_2$)
+    $Delta tack.r tau'_1 <= tau_1$,
+    $Delta tack.r tau_2 <= tau'_2$)
+  \
+  #axiom("S-UnivL",
+    $Delta tack.r tuniv(t, tau_1, tau_2, tau_3) <= tau_4$,
+    $Delta tack.r tau_1 <= tau$,
+    $Delta tack.r tau <= tau_2$,
+    $Delta tack.r [t slash tau]tau_3 <= tau_4$)
+  #axiom("S-UnivR",
+    $Delta tack.r tau <= tuniv(t,tau_1, tau_2, tau_3)$,
+    $Delta, t: interval(tau_1, tau_2) tack.r tau <=  tau_3$)
   \
   #axiom("S-TAbs",
-    $Delta tack.r Lambda t <: tau_1. space tau_2 <: Lambda t <: tau'_1. space tau'_2$,
-    $Delta tack.r tau_1 equiv tau'_1$,
-    $Delta tack.r tau_2 <: tau'_2$)
+    $Delta tack.r tabs(t, tau_1, tau_2, tau_3) <= tabs(t, tau'_1, tau'_2, tau'_3)$,
+    $Delta tack.r interval(tau_1, tau_2) equiv interval(tau'_1, tau'_2)$,
+    $Delta tack.r tau_3 <= tau'_3$)
   #axiom("S-TApp",
-    $Delta tack.r tau_1[tau_2] <: tau'_1[tau'_2]$,
-    $Delta tack.r tau_1 <: tau'_1$,
+    $Delta tack.r tau_1[tau_2] <= tau'_1[tau'_2]$,
+    $Delta tack.r tau_1 <= tau'_1$,
     $Delta tack.r tau_2 equiv tau'_2$)
   \
   #axiom("S-Union1",
-    $Delta tack.r tau <: tau_1 union tau_2$,
-    $Delta tack.r tau <: tau_1$)
+    $Delta tack.r tau <= tau_1 union tau_2$,
+    $Delta tack.r tau <= tau_1$)
   #axiom("S-Inter2",
-    $Delta tack.r tau_1 sect tau_2 <: tau$,
-    $Delta tack.r tau_1 <: tau$)
+    $Delta tack.r tau_1 sect tau_2 <= tau$,
+    $Delta tack.r tau_1 <= tau$)
   \
   #axiom("S-Union1",
-    $Delta tack.r tau_1 union tau_2 <: tau$,
-    $Delta tack.r tau_1 <: tau$, $Delta tack.r tau_2 <: tau$)
+    $Delta tack.r tau_1 union tau_2 <= tau$,
+    $Delta tack.r tau_1 <= tau$, $Delta tack.r tau_2 <= tau$)
   #axiom("S-Inter2",
-    $Delta tack.r tau <: tau_1 sect tau_2$,
-    $Delta tack.r tau <: tau_1$,
-    $Delta tack.r tau <: tau_2$)
+    $Delta tack.r tau <= tau_1 sect tau_2$,
+    $Delta tack.r tau <= tau_1$,
+    $Delta tack.r tau <= tau_2$)
 ]
+
+Rules #rule("S-UnivL") and #rule("S-UnivR") correspond to the higher-rank polymrohism subtyping relation by Odersky and Läufer @OderskyLaufer1996.
 
 #pagebreak()
 
@@ -336,7 +366,7 @@ The typing judgement is of the form $Delta space Gamma tack.r e : tau$. The hypo
   #axiom("T-Sub",
     $Delta space Gamma tack.r e : tau'$,
     $Delta space Gamma tack.r e : tau$,
-    $Delta tack.r tau <: tau'$)
+    $Delta tack.r tau <= tau'$)
   \
   #axiom("T-Unit",
     $u : #Unit$)
@@ -372,18 +402,22 @@ The typing judgement is of the form $Delta space Gamma tack.r e : tau$. The hypo
     $Delta space Gamma tack.r e_2 : tau_1$)
   \
   #axiom("T-Univ",
-    $Delta space Gamma tack.r lambda t <: tau_1. space e : forall t <: tau_1. space tau_2$,
-    $Delta, t <: tau_1 space Gamma tack.r e : tau_2$)
+    $Delta space Gamma tack.r lambda t : interval(tau_1, tau_2). space e : tuniv(t, tau_1, tau_2, tau_3)$,
+    $Delta tack.r tau_1 <= tau_2$,
+    $Delta, t : interval(tau_1, tau_2) space Gamma tack.r e : tau_3$)
   #axiom("T-UnivApp",
-    $Delta space Gamma tack.r e[tau_3] : [t slash tau_3]tau_2$,
-    $Delta space Gamma tack.r e : forall t <: tau_1. space tau_2$,
-    $Delta tack.r tau_3 <: tau_1$)
+    $Delta space Gamma tack.r e[tau_3] : [t slash tau]tau_3$,
+    $Delta space Gamma tack.r e : tuniv(t, tau_1, tau_2, tau_3)$,
+    $Delta tack.r tau_1 <= tau$,
+    $Delta tack.r tau <= tau_2$)
   \
   #axiom("T-Ascr",
     $Delta space Gamma tack.r e : tau : tau$,
     $Delta tack.r tau :: *$,
     $Delta space Gamma tack.r e : tau$)
 ]
+
+TODO: Fix #rule("T-UnivApp").
 
 #pagebreak()
 
@@ -439,7 +473,7 @@ The evaluation judgement is of the form $e arrow.b.double v$.
     $[e_2 slash x]e_3 arrow.b.double v$)
   \
   #axiom("V-Univ",
-    $lambda t <: tau. space e arrow.b.double v$,
+    $lambda t : interval(tau_1, tau_2). space e arrow.b.double v$,
     $e arrow.b.double v$)
   #axiom("V-UnivApp",
     $e[tau] arrow.b.double v$,
@@ -482,6 +516,8 @@ The types of the primitive values of Clam are given by the following table:
     `>=`, $#Int -> #Int -> #Bool$,
     `|`, $#Bool -> #Bool -> #Bool$,
     `&`, $#Bool -> #Bool -> #Bool$,
-    [`if`#footnote(note)], $forall t_1. space forall t_2. space #Bool -> t_1 -> t_2 -> t_1 union t_2$,
+    [`if`#footnote(note)], $forall t. space #Bool -> t -> t -> t$,
   )
 ])
+
+#bibliography("bibliography.bib")
