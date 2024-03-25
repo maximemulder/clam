@@ -156,7 +156,7 @@ type ApplyTwice = [T] -> ((T) -> T, T) -> T
 def apply_twice: ApplyTwice = [T] -> (f, v) ->
     f(f(v))
 
-def eight = apply_twice[Int]((i) -> i * 2, 4)
+def eight = apply_twice[Int]((i) -> i * 2, 2)
 ```
 
 Type parameters have a lower and an upper bound, which are declared as an interval using `..` and are respectively `Bot` and `Top` by default. The bounds of a type parameter must be consistent, that is, the lower bound must be a subtype of the upper bound, and universal types are currently invariant with regards to these bounds.
@@ -221,7 +221,7 @@ def id = (p) -> p
 def foo = (f) -> {f(123), f("Hello")}
 def bar = foo(id)
 def max = (l, r) -> if l > r then l else r
-def infinite = (p) -> inf(p)
+def infinite = (p) -> infinite(p)
 def impredicative = id(id)
 def recursive = (p) -> recursive
 def not_ml = {id_bis = (p) -> p, z = 0}
