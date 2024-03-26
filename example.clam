@@ -1,1 +1,7 @@
-def main = print("Hello world !")
+def main = unit
+
+def iter = (f, v) ->
+    if true then
+        v
+    else
+        f(v)
