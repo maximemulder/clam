@@ -1,18 +1,1 @@
-def main = unit
-
-def bar1 = (v, f) -> if true then f(v) else v
-
-def foo2 = (f, v) ->
-    if true then
-        v
-    else
-        foo2(f, f(v))
-
-
-def foo1 = (v, f) ->
-    if true then
-        v
-    else
-        foo1(f(v), f)
-
-def bar2 = (f, v) -> if true then f(v) else v
+def main = print("Hello world !")
