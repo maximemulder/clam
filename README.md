@@ -243,7 +243,7 @@ is_odd: (Int) -> Bool
     </tr>
 </table>
 
-As shown by these examples, Clam's type inference algorithm supports both impredicative polymorphism, subtyping, and recursive types. It is Clam's most advanced feature, and although it has not been formalized yet and would benefit from a little code polishing, practical tests show that it peforms similarly to the world's most advanced algorithms. Comparisons against the [SuperF paper](https://dl.acm.org/doi/10.1145/3632890) (from which this algorithm took some inspiration from) can be found in the `tests/infer/all.clam` test.
+As shown by these examples, Clam's type inference algorithm supports both impredicative polymorphism, subtyping, and recursive types. Although it has not been formalized yet and would benefit from a little code polishing, practical tests show that it peforms similarly to the world's most advanced algorithms, although its type simplification could be improved. Comparisons against the [SuperF paper](https://dl.acm.org/doi/10.1145/3632890) (from which this algorithm took some inspiration from) can be found in the `tests/infer/all.clam` test.
 
 ## Recursive types
 

@@ -1,3 +1,7 @@
 (library
   (name infer)
   (libraries abt str type))
+
+(env
+  (dev
+    (flags (:standard -warn-error -A))))
