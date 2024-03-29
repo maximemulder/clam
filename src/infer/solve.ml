@@ -6,31 +6,35 @@
 
 open Polar
 open State
+open Inline
+open Constrain
 
 let solve type' bind =
   let* state = get_state in
-  let pols = get_pols state bind Neg type' in
+  let pols = get_pols state bind Pos type' in
   let* () = if Option.is_some pols.neg then
     print ("NEG" ^ bind.name ^ " IN " ^ Type.display type')
-else
-    return () in
-  let* () = if Option.is_some pols.pos then
-  print ("POS" ^ bind.name ^ " IN " ^ Type.display type')
-else
-    return () in
-
-
+  else
+      return () in
+    let* () = if Option.is_some pols.pos then
+    print ("POS" ^ bind.name ^ " IN " ^ Type.display type')
+  else
+      return () in
   match pols.neg, pols.pos with
-  | Some neg, _ when neg <> Type.bot ->
+  | Some neg, _ when neg <> Type.top ->
     let* () = print("co_neg " ^ bind.name ^ " by " ^ Type.display neg ^ " in " ^ Type.display type') in
     let* lower = get_var_lower bind in
-    let* neg = join neg lower in
-    substitute bind neg type'
-  | _, Some pos when pos <> Type.top ->
     let* upper = get_var_upper bind in
-    let* pos = meet pos upper in
+    let* () = constrain (Code.span_primitive) lower neg in
+    let* () = constrain (Code.span_primitive) neg upper in
+    inline bind (Type.top) neg Pos type'
+  | _, Some pos when pos <> Type.bot ->
     let* () = print("co_pos " ^ bind.name ^ " by " ^ Type.display pos ^ " in " ^ Type.display type') in
-    substitute bind pos type'
+    let* lower = get_var_lower bind in
+    let* upper = get_var_upper bind in
+    let* () = constrain (Code.span_primitive) lower pos in
+    let* () = constrain (Code.span_primitive) pos upper in
+    inline bind pos (Type.bot) Pos type'
   | Some _, Some _ ->
     let* () = print("quantify " ^ bind.name ^ " in " ^ Type.display type') in
     let* lower = get_var_lower bind in
@@ -44,12 +48,12 @@ else
       return (Type.univ { bind = param_bind; lower; upper } type')
   | Some _, None ->
     let* () = print("inline_neg " ^ bind.name ^ " in " ^ Type.display type') in
-    let* lower = get_var_lower bind in
-    substitute bind lower type'
-  | None, Some _ ->
-    let* () = print("inline_pos " ^ bind.name ^ " in " ^ Type.display type') in
     let* upper = get_var_upper bind in
     substitute bind upper type'
+  | None, Some _ ->
+    let* () = print("inline_pos " ^ bind.name ^ " in " ^ Type.display type') in
+    let* lower = get_var_lower bind in
+    substitute bind lower type'
   | None, None ->
     let* () = print("none " ^ bind.name ^ " in " ^ Type.display type') in
     return type'
