@@ -6,36 +6,9 @@
 
 open Node
 
-(* BOTTOM TYPE EQUIVALENCE *)
-
-(**
-  These functions check if a type is equivalent to the bottom type. This requires
-  to recursively check the bounds of type variables as variables whose bounds are
-  equivalent to `Bot` are themselves equivalent to `Bot`.
-*)
-
-let rec type_is_bot ctx (type': Node.type') =
-  union_is_bot ctx type'
-
-and union_is_bot ctx (union: Node.union) =
-  List.for_all (inter_is_bot ctx) union.union
-
-and inter_is_bot ctx (inter: Node.inter) =
-  List.exists (base_is_bot ctx) inter.inter
-
-and base_is_bot ctx (type': Node.base) =
-  match type' with
-  | Bot     -> true
-  | Var var -> var_is_bot ctx var
-  | _       -> false
-
-and var_is_bot ctx (var: Node.var) =
-  let _, upper = Context.get_bounds ctx var.bind in
-  type_is_bot ctx upper
-
 (* TYPE EQUIVALENCE *)
 
-(**
+(*
   This function uses mutual subtyping to check for type equivalence so that it
   can handle cases such as the following:
   `A <: B |- A | B = A`
@@ -53,19 +26,23 @@ and is_param ctx (left: Node.param) (right: Node.param) =
 (* SUBTYPING *)
 
 and isa ctx (sub: Node.type') (sup: Node.type') =
-  isa_union_1 ctx sub sup
+  match sub, sup with
+  | Dnf sub, Dnf sup ->
+    isa_union_1 ctx sub sup
+  | _, _ ->
+    raise (invalid_arg "TODO")
 
-and isa_union_1 ctx (sub: Node.union) (sup: Node.union) =
-  List.for_all (Util.flip (isa_union_2 ctx) sup) sub.union
+and isa_union_1 ctx subs sups =
+  List.for_all (Util.flip (isa_union_2 ctx) sups) subs
 
-and isa_union_2 ctx (sub: Node.inter) (sup: Node.union) =
-  List.exists (isa_inter_1 ctx sub) sup.union
+and isa_union_2 ctx subs sups =
+  List.exists (isa_inter_1 ctx subs) sups
 
-and isa_inter_1 ctx (sub: Node.inter) (sup: Node.inter) =
-  List.for_all (isa_inter_2 ctx sub) sup.inter
+and isa_inter_1 ctx subs sups =
+  List.for_all (isa_inter_2 ctx subs) sups
 
-and isa_inter_2 ctx (sub: Node.inter) (sup: Node.base) =
-  List.exists (Util.flip (isa_base ctx) sup) sub.inter
+and isa_inter_2 ctx subs sups =
+  List.exists (Util.flip (isa_base ctx) sups) subs
 
 and isa_base ctx (sub: Node.base) (sup: Node.base) =
   match sub, sup with
@@ -73,13 +50,7 @@ and isa_base ctx (sub: Node.base) (sup: Node.base) =
     isa_top ctx sub
   | Bot, _ ->
     isa_bot ctx sup
-  | Unit, Unit ->
-    true
-  | Bool, Bool ->
-    true
-  | Int, Int ->
-    true
-  | String, String ->
+  | Unit, Unit | Bool, Bool | Int, Int | String, String ->
     true
   | Var sub_var, _ ->
     isa_var_sub ctx sub_var sup
@@ -145,13 +116,13 @@ and isa_lam ctx sub_lam sup_lam =
 
 and isa_univ ctx sub_univ sup_univ =
   is_param ctx sub_univ.param sup_univ.param &&
-  let sup_ret = Rename.rename sup_univ.ret sup_univ.param.bind sub_univ.param.bind in
+  let sup_ret = Rename.rename sup_univ.param.bind sub_univ.param.bind sup_univ.ret in
   let ctx = Context.add_param ctx sub_univ.param in
   isa ctx sub_univ.ret sup_ret
 
 and isa_abs ctx sub_abs sup_abs =
   is_param ctx sub_abs.param sup_abs.param &&
-  let sup_body = Rename.rename sup_abs.body sup_abs.param.bind sub_abs.param.bind in
+  let sup_body = Rename.rename sup_abs.param.bind sub_abs.param.bind sup_abs.body in
   let ctx = Context.add_param ctx sub_abs.param in
   isa ctx sub_abs.body sup_body
 
@@ -238,23 +209,33 @@ and compute_base ctx (abs: Node.base) (arg: Node.type') =
 (* TYPE MAP *)
 
 and map_type ctx f type' =
-  map_union ctx (map_inter ctx f) type'
+  match type' with
+  | Dnf dnf ->
+    map_dnf_union ctx (map_dnf_inter ctx f) dnf
+  | Cnf _ ->
+    raise (invalid_arg "TODO")
 
-and map_union ctx f union =
-  let types = List.map f union.union in
+and map_dnf_union ctx f types =
+  let types = List.map f types in
   Util.list_reduce (join ctx) types
 
-and map_inter ctx f inter =
-  let types = List.map f inter.inter in
+and map_dnf_inter ctx f types =
+  let types = List.map f types in
   Util.list_reduce (meet ctx) types
 
 (* TYPE JOIN *)
 
-and join ctx (left: Node.type') (right: Node.type') =
-  let types = Util.list_collapse (join_inter ctx) (left.union @ right.union) in
-  { Node.union = types }
+and join ctx left right =
+  match left, right with
+  | Dnf left, Dnf right ->
+    Dnf (join_dnf_union ctx left right)
+  | _, _ ->
+    raise (invalid_arg "TODO")
 
-and join_inter ctx left right =
+and join_dnf_union ctx lefts rights =
+  Util.list_collapse (join_dnf_inter ctx) (lefts @ rights)
+
+and join_dnf_inter ctx left right =
   if isa_inter_1 ctx left right then
     Some right
   else
@@ -266,15 +247,20 @@ and join_inter ctx left right =
 (* TYPE MEET *)
 
 and meet ctx left right =
-  let types = Util.list_product (meet_inter ctx) left.union right.union in
-  let types = Util.list_collapse (join_inter ctx) types in
-  { Node.union = types }
+  match left, right with
+  | Dnf left, Dnf right ->
+    Dnf (meet_dnf_union ctx left right)
+  | _, _ ->
+    raise (invalid_arg "TODO")
 
-and meet_inter ctx (left: Node.inter) (right: Node.inter) =
-  let types = Util.list_collapse (meet_base ctx) (left.inter @ right.inter) in
-  { Node.inter = types }
+and meet_dnf_union ctx lefts rights =
+  let types = Util.list_product (meet_dnf_inter ctx) lefts rights in
+  Util.list_collapse (join_dnf_inter ctx) types
 
-and meet_base ctx (left: Node.base) (right: Node.base) =
+and meet_dnf_inter ctx lefts rights =
+  Util.list_collapse (meet_base ctx) (lefts @ rights)
+
+and meet_base ctx left right =
   match left, right with
   | Top    , right  -> Some right
   | left   , Top    -> Some left
@@ -344,7 +330,7 @@ and meet_univ ctx left right =
   if not (is_param ctx left.param right.param) then
     Some Bot
   else
-  let right_ret = Rename.rename right.ret right.param.bind left.param.bind in
+  let right_ret = Rename.rename right.param.bind left.param.bind right.ret in
   let ctx = Context.add_param ctx left.param in
   let ret = meet ctx left.ret right_ret in
   Some (Univ { param = left.param; ret })
@@ -353,7 +339,7 @@ and meet_abs ctx left right =
   if not (is_param ctx left.param right.param) then
     Some Bot
   else
-  let right_body = Rename.rename right.body right.param.bind left.param.bind in
+  let right_body = Rename.rename right.param.bind left.param.bind right.body in
   let ctx = Context.add_param ctx left.param in
   let body = meet ctx left.body right_body in
   Some (Abs { param = left.param; body })

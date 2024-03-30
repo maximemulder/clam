@@ -21,15 +21,13 @@ include Util.Monad.Monad(Util.Monad.StateMonad(struct
 end))
 
 let rec rename type' =
-  rename_union type'
-
-and rename_union union =
-  let* union = list_map rename_inter union.union in
-  return { union }
-
-and rename_inter inter =
-  let* inter = list_map rename_base inter.inter in
-  return { inter }
+  match type' with
+  | Dnf dnf ->
+    let* types = list_map (list_map rename_base) dnf in
+    return (Dnf types)
+  | Cnf cnf ->
+    let* types = list_map (list_map rename_base) cnf in
+    return (Cnf types)
 
 and rename_base type' =
   match type' with
@@ -72,7 +70,7 @@ and rename_infer univ i =
   if Str.string_match pattern univ.param.bind.name 0 then
     let bind = { Abt.name = index_to_name i } in
     let param = { univ.param with bind } in
-    let ret = Type.rename univ.ret univ.param.bind bind in
+    let ret = Type.rename univ.param.bind bind univ.ret in
     { param; ret }, i + 1
   else
     univ, i

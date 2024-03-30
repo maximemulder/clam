@@ -8,14 +8,18 @@ type entry = {
 }
 
 let rec inline entry pol (type': Type.type') =
-  inline_union entry pol type'
+  match type' with
+  | Dnf dnf ->
+    inline_union entry pol dnf
+  | Cnf _ ->
+    raise (invalid_arg "TODO")
 
 and inline_union entry pol union =
-  let* types = list_map (inline_inter entry pol) union.union in
+  let* types = list_map (inline_inter entry pol) union in
   list_fold join (Type.bot) types
 
 and inline_inter entry pol inter =
-  let* types = list_map (inline_base entry pol) inter.inter in
+  let* types = list_map (inline_base entry pol) inter in
   list_fold meet (Type.top) types
 
 and inline_base entry pol type' =

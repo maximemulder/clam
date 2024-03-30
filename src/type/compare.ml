@@ -1,13 +1,13 @@
 open Node
 
 let rec compare (left: type') (right: type') =
-  compare_union left right
-
-and compare_union left right =
-  List.equal compare_inter left.union right.union
-
-and compare_inter left right =
-  List.equal compare_base left.inter right.inter
+  match left, right with
+  | Dnf left, Dnf right ->
+    List.equal (List.equal compare_base) left right
+  | Cnf left, Cnf right ->
+    List.equal (List.equal compare_base) left right
+  | _, _ ->
+    false
 
 and compare_base left right =
   match left, right with
@@ -27,12 +27,12 @@ and compare_base left right =
     compare left_lam.param right_lam.param
     && compare left_lam.ret right_lam.ret
   | Univ left_univ, Univ right_univ ->
-    compare_param left_univ.param right_univ.param
-    && let right_ret = Rename.rename right_univ.ret right_univ.param.bind left_univ.param.bind in
+    compare_param left_univ.param right_univ.param &&
+    let right_ret = Rename.rename right_univ.param.bind left_univ.param.bind right_univ.ret in
     compare left_univ.ret right_ret
   | Abs left_abs, Abs right_abs ->
-    compare_param left_abs.param right_abs.param
-    && let right_body = Rename.rename right_abs.body right_abs.param.bind left_abs.param.bind in
+    compare_param left_abs.param right_abs.param &&
+    let right_body = Rename.rename right_abs.param.bind left_abs.param.bind right_abs.body in
     compare left_abs.body right_body
   | App left_app, App right_app ->
     compare left_app.abs right_app.abs

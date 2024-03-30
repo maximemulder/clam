@@ -23,14 +23,18 @@ end
 
 module Searcher(S: SEARCHER) = struct
   let rec search state f (type': Type.type') =
-    search_union state f type'
+    match type' with
+    | Dnf dnf ->
+      search_union state f dnf
+    | Cnf _ ->
+      raise (invalid_arg "TODO")
 
   and search_union state f union =
-    let types = List.map (search_inter state f) union.union in
+    let types = List.map (search_inter state f) union in
     Util.list_option_meet types (S.join state)
 
   and search_inter state f inter =
-    let types = List.map (search_base state f) inter.inter in
+    let types = List.map (search_base state f) inter in
     Util.list_option_join types (S.meet state)
 
   and search_base state f type' =
@@ -78,8 +82,8 @@ module SearcherAppType = struct
 
   let with_merge_param ctx bound left right f =
     let param = make_param bound in
-    let left_ret  = Type.rename left.ret  left.param.bind  param.bind in
-    let right_ret = Type.rename right.ret right.param.bind param.bind in
+    let left_ret  = Type.rename left.param.bind  param.bind left.ret  in
+    let right_ret = Type.rename right.param.bind param.bind right.ret in
     let ctx = Type.Context.add_param ctx param in
     let ret = f ctx left_ret right_ret in
     { param; ret }

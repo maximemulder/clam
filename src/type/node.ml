@@ -1,12 +1,8 @@
-type type' = union
-
-and union = {
-  union: inter list;
-}
-
-and inter = {
-  inter: base list;
-}
+type type' =
+  (* Disjunctive normal form *)
+  | Dnf of base list list
+  (* Conjunctive normal form *)
+  | Cnf of base list list
 
 and base =
   | Top
@@ -66,7 +62,7 @@ and param = {
   upper: type';
 }
 
-let base base = { union = [{ inter = [base] }] }
+let base base = Dnf [[base]]
 
 let top               = base Top
 let bot               = base Bot

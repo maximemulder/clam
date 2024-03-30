@@ -11,7 +11,7 @@ type recursion =
 
 let single (type': type') =
   match type' with
-  | { union = [{ inter = [base] }] } ->
+  | Dnf [[base]] | Cnf [[base]] ->
     Some base
   | _ ->
     None
@@ -73,18 +73,34 @@ let curry_app (app: app) =
   curry_app app.abs [app.arg]
 
 let rec display (type': type') =
-  display_union type'
+  match type' with
+  | Dnf dnf ->
+    display_dnf_union dnf
+  | Cnf cnf ->
+    display_cnf_inter cnf
 
-and display_union union parent =
-  let self, elem = group_types union.union parent in
-  let types = List.map (Util.flip display_inter elem) union.union in
+and display_dnf_union types parent =
+  let self, elem = group_types types parent in
+  let types = List.map (Util.flip display_dnf_inter elem) types in
   let types = String.concat " | " types in
   return self types parent
 
-and display_inter inter parent =
-  let self, elem = group_types inter.inter parent in
-  let types = List.map (Util.flip display_base elem) inter.inter in
+and display_dnf_inter types parent =
+  let self, elem = group_types types parent in
+  let types = List.map (Util.flip display_base elem) types in
   let types = String.concat " & " types in
+  return self types parent
+
+and display_cnf_inter types parent =
+  let self, elem = group_types types parent in
+  let types = List.map (Util.flip display_cnf_union elem) types in
+  let types = String.concat " & " types in
+  return self types parent
+
+and display_cnf_union types parent =
+  let self, elem = group_types types parent in
+  let types = List.map (Util.flip display_base elem) types in
+  let types = String.concat " | " types in
   return self types parent
 
 and display_base type' =

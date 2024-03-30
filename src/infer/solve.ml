@@ -44,7 +44,7 @@ let solve type' bind =
       substitute bind lower type'
     else
       let param_bind = { Abt.name = bind.name } in
-      let type' = Type.rename type' bind param_bind in
+      let type' = Type.rename bind param_bind type' in
       return (Type.univ { bind = param_bind; lower; upper } type')
   | Some _, None ->
     let* () = print("inline_neg " ^ bind.name ^ " in " ^ Type.display type') in
