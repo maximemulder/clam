@@ -1,5 +1,0 @@
-def main = unit
-
-// def foo = (a, b, c) -> if true then if true then a else foo(a, b, c) else foo(a, b, c)
-// Co-occurence simplification will make this type generate a union at the wrong polarity,
-// which the type constraining algorithm cannot handle yet.

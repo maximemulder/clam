@@ -112,7 +112,6 @@ and constrain_sup_var sup_var sub =
 and constrain_var sub_var sup_var =
   let sub = Type.var sub_var.bind in
   let sup = Type.var sup_var.bind in
-  let* () = print("CONSTRAINT VARIABLE " ^ sub_var.bind.name ^ " < " ^ sup_var.bind.name) in
   let* sub_entry = get_var_entry sub_var.bind in
   let* sup_entry = get_var_entry sup_var.bind in
   let sub_level = sub_entry.level_low in

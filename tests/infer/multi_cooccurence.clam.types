@@ -1,0 +1,10 @@
+main: Unit
+foo1: ['A] -> ('A, Top, Top) -> 'A
+foo2: ['A] -> ('A, Top, Top) -> 'A
+foo3: ['A] -> ('A, Top, Top) -> 'A
+bar1: ['A] -> (Top, 'A, Top) -> 'A
+bar2: ['A] -> (Top, 'A, Top) -> 'A
+bar3: ['A] -> (Top, 'A, Top) -> 'A
+baz1: ['A] -> (Top, Top, 'A) -> 'A
+baz2: ['A] -> (Top, Top, 'A) -> 'A
+baz3: ['A] -> (Top, Top, 'A) -> 'A
