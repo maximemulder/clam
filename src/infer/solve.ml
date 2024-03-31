@@ -21,14 +21,14 @@ let solve type' bind =
   else
       return () in
   match pols.neg, pols.pos with
-  | Some neg, _ when neg <> Type.top ->
+  | Some neg, _ when neg <> Type.bot ->
     let* () = print("co_neg " ^ bind.name ^ " by " ^ Type.display neg ^ " in " ^ Type.display type') in
     let* lower = get_var_lower bind in
     let* upper = get_var_upper bind in
     let* () = constrain (Code.span_primitive) lower neg in
     let* () = constrain (Code.span_primitive) neg upper in
     inline bind (Type.top) neg Pos type'
-  | _, Some pos when pos <> Type.bot ->
+  | _, Some pos when pos <> Type.top ->
     let* () = print("co_pos " ^ bind.name ^ " by " ^ Type.display pos ^ " in " ^ Type.display type') in
     let* lower = get_var_lower bind in
     let* upper = get_var_upper bind in

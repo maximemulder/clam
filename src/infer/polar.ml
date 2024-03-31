@@ -15,8 +15,8 @@ type pols = {
 let none = { neg = None; pos = None }
 
 let merge_pols state a b =
-  let neg = Util.option_join a.neg b.neg (fun a b -> join a b state |> fst) in
-  let pos = Util.option_join a.pos b.pos (fun a b -> meet a b state |> fst) in
+  let neg = Util.option_join a.neg b.neg (fun a b -> meet a b state |> fst) in
+  let pos = Util.option_join a.pos b.pos (fun a b -> join a b state |> fst) in
   { neg; pos }
 
 (* EXTRACT *)
@@ -40,7 +40,7 @@ let get_vars state bind types =
 let extract_pos state bind types =
   if has_var bind types then
     let vars = get_vars state bind types in
-    let var = List.fold_left (fun type' var -> join type' var state |> fst) Type.bot vars in
+    let var = List.fold_left (fun type' var -> meet type' var state |> fst) Type.top vars in
     { neg = None; pos = Some var }
   else
     none
@@ -59,7 +59,7 @@ let get_vars state bind types =
 let extract_neg state bind types =
   if has_var bind types then
     let vars = get_vars state bind types in
-    let var = List.fold_left (fun type' var -> meet type' var state |> fst) Type.top vars in
+    let var = List.fold_left (fun type' var -> join type' var state |> fst) Type.bot vars in
     { neg = Some var; pos = None }
   else
     none
