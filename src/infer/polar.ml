@@ -29,9 +29,9 @@ let merge_pols state a b =
 let has_var bind types =
   List.exists ((=) [Type.Var { bind }]) types
 
-let get_vars state bind types =
+let get_vars bind types =
   List.filter (fun types -> match types with
-    | [Type.Var var] when is_infer var.bind state && var.bind != bind ->
+    | [Type.Var var] when var.bind != bind ->
       true
     | _ ->
       false
@@ -39,7 +39,7 @@ let get_vars state bind types =
 
 let extract_pos state bind types =
   if has_var bind types then
-    let vars = get_vars state bind types in
+    let vars = get_vars bind types in
     let var = List.fold_left (fun type' var -> meet type' var state |> fst) Type.top vars in
     { neg = None; pos = Some var }
   else
@@ -48,9 +48,9 @@ let extract_pos state bind types =
 let has_var bind types =
   List.exists (fun type' -> type' = Type.Var { bind }) types
 
-let get_vars state bind types =
+let get_vars bind types =
   List.filter (fun type' -> match type' with
-    | Type.Var var when is_infer var.bind state && var.bind != bind ->
+    | Type.Var var when var.bind != bind ->
       true
     | _ ->
       false
@@ -58,7 +58,7 @@ let get_vars state bind types =
 
 let extract_neg state bind types =
   if has_var bind types then
-    let vars = get_vars state bind types in
+    let vars = get_vars bind types in
     let var = List.fold_left (fun type' var -> join type' var state |> fst) Type.bot vars in
     { neg = Some var; pos = None }
   else
@@ -98,9 +98,10 @@ and get_pols_base state bind pol type' =
       (get_pols state bind (inv pol) lam.param)
       (get_pols state bind pol lam.ret)
   | Univ univ ->
-    merge_pols state
-      (get_pols_param state bind pol univ.param)
-      (get_pols state bind pol univ.ret)
+    let param = get_pols_param state bind pol univ.param in
+    let ret, state = with_type univ.param.bind univ.param.lower univ.param.upper
+      (fun state -> get_pols state bind pol univ.ret, state) state in
+    merge_pols state param ret
   | _ ->
     none
 
