@@ -1,13 +1,7 @@
 open Node
 
 let rec compare (left: type') (right: type') =
-  compare_union left right
-
-and compare_union left right =
-  List.equal compare_inter left.union right.union
-
-and compare_inter left right =
-  List.equal compare_base left.inter right.inter
+  List.equal (List.equal compare_base) left.dnf right.dnf
 
 and compare_base left right =
   match left, right with

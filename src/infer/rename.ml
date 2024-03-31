@@ -21,15 +21,8 @@ include Util.Monad.Monad(Util.Monad.StateMonad(struct
 end))
 
 let rec rename type' =
-  rename_union type'
-
-and rename_union union =
-  let* union = list_map rename_inter union.union in
-  return { union }
-
-and rename_inter inter =
-  let* inter = list_map rename_base inter.inter in
-  return { inter }
+  let* types = (list_map (list_map rename_base)) type'.dnf in
+  return { dnf = types }
 
 and rename_base type' =
   match type' with

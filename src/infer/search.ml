@@ -23,14 +23,14 @@ end
 
 module Searcher(S: SEARCHER) = struct
   let rec search state f (type': Type.type') =
-    search_union state f type'
+    search_union state f type'.dnf
 
-  and search_union state f union =
-    let types = List.map (search_inter state f) union.union in
+  and search_union state f types =
+    let types = List.map (search_inter state f) types in
     Util.list_option_meet types (S.join state)
 
-  and search_inter state f inter =
-    let types = List.map (search_base state f) inter.inter in
+  and search_inter state f types =
+    let types = List.map (search_base state f) types in
     Util.list_option_join types (S.meet state)
 
   and search_base state f type' =

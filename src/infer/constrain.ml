@@ -11,7 +11,7 @@ open State
 let get_infer_var_sub sub_inter =
   let* env = get_state in
   match sub_inter with
-  | { Type.inter = [Var sub_var] } when is_infer sub_var.bind env ->
+  | [Type.Var sub_var] when is_infer sub_var.bind env ->
     return (Some sub_var)
   | _ ->
     return None
@@ -25,30 +25,30 @@ let get_infer_var_sup sup =
     return None
 
 let rec constrain (sub: Type.type') (sup: Type.type') =
-  constrain_union_1 sub sup
+  constrain_union_1 sub.dnf sup.dnf
 
 and constrain_union_1 sub sup =
-  list_all (fun sub -> constrain_union_2 sub sup) sub.union
+  list_all (fun sub -> constrain_union_2 sub sup) sub
 
 and constrain_union_2 sub sup =
   let* sub_var = get_infer_var_sub sub in
   match sub_var with
-  | Some sub_var when List.length sup.union > 1 ->
-    constrain_sub_var sub_var sup
+  | Some sub_var when List.length sup > 1 ->
+    constrain_sub_var sub_var {Type.dnf = sup}
   | _ ->
-    list_any (constrain_inter_1 sub) sup.union
+    list_any (constrain_inter_1 sub) sup
 
 and constrain_inter_1 sub sup =
-  list_all (constrain_inter_2 sub) sup.inter
+  list_all (constrain_inter_2 sub) sup
 
 and constrain_inter_2 sub sup =
   let* sup_var = get_infer_var_sup sup in
   match sup_var with
-  | Some sup_var when List.length sub.inter > 1 ->
-    let sub = { Type.union = [sub] } in
+  | Some sup_var when List.length sub > 1 ->
+    let sub = { Type.dnf = [sub] } in
     constrain_sup_var sup_var sub
   | _ ->
-    list_any (fun sub -> constrain_base sub sup) sub.inter
+    list_any (fun sub -> constrain_base sub sup) sub
 
 and constrain_base sub sup =
   let* state = get_state in

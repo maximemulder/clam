@@ -11,13 +11,7 @@ and abs = {
 }
 
 let rec get_kind ctx type' =
-  get_kind_union ctx type'
-
-and get_kind_union ctx union =
-  get_kind_inter ctx (List.nth union.union 0)
-
-and get_kind_inter ctx inter =
-  get_kind_base ctx (List.nth inter.inter 0)
+  get_kind_base ctx (List.nth (List.nth type'.dnf 0) 0)
 
 and get_kind_base ctx type' =
   match type' with

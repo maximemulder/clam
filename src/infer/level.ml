@@ -1,13 +1,7 @@
 open State
 
 let rec levelize bind (type': Type.type') =
-  levelize_union bind type'
-
-and levelize_union bind union =
-  list_iter (levelize_inter bind) union.union
-
-and levelize_inter bind inter =
-  list_iter (levelize_base bind) inter.inter
+  list_iter (list_iter (levelize_base bind)) type'.dnf
 
 and levelize_base bind type' =
   match type' with
@@ -65,13 +59,7 @@ let fold_level f a b =
   return (join_level a b)
 
 let rec get_level (type': Type.type') =
-  get_level_union type'
-
-and get_level_union union =
-  list_fold (fold_level get_level_inter) None union.union
-
-and get_level_inter inter =
-  list_fold (fold_level get_level_base) None inter.inter
+  list_fold (fold_level (list_fold (fold_level get_level_base) None)) None type'.dnf
 
 and get_level_base type' =
   match type' with

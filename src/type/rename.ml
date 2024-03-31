@@ -1,13 +1,7 @@
 open Node
 
 let rec rename bind other type' =
-  rename_union bind other type'
-
-and rename_union bind other union =
-  { union = List.map (rename_inter bind other) union.union }
-
-and rename_inter bind other inter =
-  { inter = List.map (rename_base bind other) inter.inter }
+  { dnf = List.map (List.map (rename_base bind other)) type'.dnf }
 
 and rename_base bind other type' =
   match type' with

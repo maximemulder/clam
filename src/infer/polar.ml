@@ -27,15 +27,15 @@ let merge_pols state a b =
 *)
 
 let has_var bind types =
-  List.exists (fun type' -> type'.Type.inter = [Type.Var { bind }]) types
+  List.exists ((=) [Type.Var { bind }]) types
 
 let get_vars state bind types =
-  List.filter (fun type' -> match type'.Type.inter with
+  List.filter (fun types -> match types with
     | [Type.Var var] when is_infer var.bind state && var.bind != bind ->
       true
     | _ ->
       false
-  ) types |> List.map (fun type' -> { Type.union = [type'] })
+  ) types |> List.map (fun type' -> { Type.dnf = [type'] })
 
 let extract_pos state bind types =
   if has_var bind types then
@@ -71,16 +71,16 @@ let extract_neg state bind types =
   as the types it co-occurs with.
 *)
 let rec get_pols state bind pol (type': Type.type') =
-  get_pols_union state bind pol type'
+  get_pols_union state bind pol type'.dnf
 
-and get_pols_union state bind pol union =
-  let pols = if pol = Pos then extract_pos state bind union.union else none in
-  let types = List.map (get_pols_inter state bind pol) union.union in
+and get_pols_union state bind pol types =
+  let pols = if pol = Pos then extract_pos state bind types else none in
+  let types = List.map (get_pols_inter state bind pol) types in
   List.fold_left (merge_pols state) pols types
 
-and get_pols_inter state bind pol inter =
-  let pols = if pol = Neg then extract_neg state bind inter.inter else none in
-  let types = List.map (get_pols_base state bind pol) inter.inter in
+and get_pols_inter state bind pol types =
+  let pols = if pol = Neg then extract_neg state bind types else none in
+  let types = List.map (get_pols_base state bind pol) types in
   List.fold_left (merge_pols state) pols types
 
 and get_pols_base state bind pol type' =

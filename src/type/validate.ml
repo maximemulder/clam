@@ -88,14 +88,14 @@ and validate_inter ctx inter =
   System.meet ctx left right
 
 and validate_app_param ctx abs =
-  validate_app_param_union ctx abs
+  validate_app_param_union ctx abs.dnf
 
-and validate_app_param_union ctx union =
-  let types = List.map (validate_app_param_inter ctx) union.union in
+and validate_app_param_union ctx types =
+  let types = List.map (validate_app_param_inter ctx) types in
   Util.list_reduce (System.meet ctx) types
 
-and validate_app_param_inter ctx inter =
-  let types = List.map (validate_app_param_base ctx) inter.inter in
+and validate_app_param_inter ctx types =
+  let types = List.map (validate_app_param_base ctx) types in
   Util.list_reduce (System.join ctx) types
 
 and validate_app_param_base ctx type' =
