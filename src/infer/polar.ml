@@ -19,69 +19,56 @@ let merge_pols state a b =
   let pos = Util.option_join a.pos b.pos (fun a b -> join a b state |> fst) in
   { neg; pos }
 
-(* EXTRACT *)
+(* POLARITY *)
 
-(*
-  Extracts co-occurences. This algorithm is an ugly proof-of-concept for now but
-  is should easily be simplificable in the future.
-*)
+let occurs_neg bind type' =
+  List.for_all (List.exists ((=) (Type.Var { bind }))) type'.Type.dnf
 
-let has_var bind types =
-  List.exists ((=) [Type.Var { bind }]) types
+let occurs_pos bind type' =
+  List.exists ((=) [Type.Var { bind }]) type'.Type.dnf
 
-let get_vars bind types =
+let get_pos_coocurrences bind type' state =
   List.filter (fun types -> match types with
     | [Type.Var var] when var.bind != bind ->
       true
     | _ ->
       false
-  ) types |> List.map (fun type' -> { Type.dnf = [type'] })
+  ) type'.Type.dnf
+  |> List.map (fun types -> { Type.dnf = [types] })
+  |> List.fold_left (fun type' var -> meet type' var state |> fst) Type.top
 
-let extract_pos state bind types =
-  if has_var bind types then
-    let vars = get_vars bind types in
-    let var = List.fold_left (fun type' var -> meet type' var state |> fst) Type.top vars in
-    { neg = None; pos = Some var }
-  else
-    none
-
-let has_var bind types =
-  List.exists (fun type' -> type' = Type.Var { bind }) types
-
-let get_vars bind types =
-  List.filter (fun type' -> match type' with
+let get_neg_coocurrences bind type' state =
+  List.map (List.filter (fun type' -> match type' with
     | Type.Var var when var.bind != bind ->
       true
     | _ ->
       false
-  ) types |> List.map Type.base
-
-let extract_neg state bind types =
-  if has_var bind types then
-    let vars = get_vars bind types in
-    let var = List.fold_left (fun type' var -> join type' var state |> fst) Type.bot vars in
-    { neg = Some var; pos = None }
-  else
-    none
-
-(* POLARITY *)
+  )) type'.Type.dnf
+  |> List.flatten
+  |> List.map Type.base
+  |> List.fold_left (fun type' var -> join type' var state |> fst) Type.bot
 
 (**
   Get the polarities at which an inference variable occurs in a type, as well
-  as the types it co-occurs with.
+  as the other variables it co-occurs with.
 *)
 let rec get_pols state bind pol (type': Type.type') =
-  get_pols_union state bind pol type'.dnf
-
-and get_pols_union state bind pol types =
-  let pols = if pol = Pos then extract_pos state bind types else none in
-  let types = List.map (get_pols_inter state bind pol) types in
-  List.fold_left (merge_pols state) pols types
-
-and get_pols_inter state bind pol types =
-  let pols = if pol = Neg then extract_neg state bind types else none in
-  let types = List.map (get_pols_base state bind pol) types in
-  List.fold_left (merge_pols state) pols types
+  let pols_1 = match pol with
+  | Pos ->
+    if occurs_pos bind type' then
+      { neg = None; pos = Some (get_pos_coocurrences bind type' state) }
+    else
+      none
+  | Neg ->
+    if occurs_neg bind type' then
+      { neg = Some (get_neg_coocurrences bind type' state); pos = None }
+    else
+      none
+  in
+  let pols_2 = List.fold_left (merge_pols state) none (List.map (fun types ->
+    List.fold_left (merge_pols state) none (List.map (get_pols_base state bind pol) types)
+  ) type'.dnf) in
+  merge_pols state pols_1 pols_2
 
 and get_pols_base state bind pol type' =
   match type' with
