@@ -93,6 +93,15 @@ let option_meet x y f =
   | Some x, Some y -> Some (f x y)
   | _ -> None
 
+let rec list_filter_option xs =
+  match xs with
+  | [] ->
+    []
+  | Some x :: xs ->
+    x :: list_filter_option xs
+  | None :: xs ->
+    list_filter_option xs
+
 let rec list_option_meet xs f =
   match xs with
   | [x] ->

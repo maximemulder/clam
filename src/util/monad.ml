@@ -18,6 +18,18 @@ module Monad (M: MONAD) = struct
       let* x = f x in
       return (Some x)
 
+  let option_join f x y =
+    match x, y with
+    | Some x, Some y ->
+      let* z = f x y in
+      return (Some z)
+    | Some x, None ->
+      return (Some x)
+    | None, Some y ->
+      return (Some y)
+    | _ ->
+      return None
+
   let rec list_iter f xs =
     match xs with
     | [] ->
@@ -35,6 +47,15 @@ module Monad (M: MONAD) = struct
       let* xs = list_map f xs in
       return (x :: xs)
 
+  let rec list_map2 f xs ys =
+    match xs, ys with
+    | [], [] -> return []
+    | x :: xs, y :: ys ->
+      let* z = f x y in
+      let* zs = list_map2 f xs ys in
+      return (z :: zs)
+    | _ -> invalid_arg "Monad.list_map2"
+
   let rec iter_list2 f xs ys =
     match (xs, ys) with
     | ([], []) -> return ()
@@ -42,15 +63,6 @@ module Monad (M: MONAD) = struct
       let* () = f x y in
       iter_list2 f xs ys
     | _ -> invalid_arg "Monad.iter_list2"
-
-  let rec map_list2 f xs ys =
-    match (xs, ys) with
-    | ([], []) -> return []
-    | (x :: xs, y :: ys) ->
-      let* z = f x y in
-      let* zs = map_list2 f xs ys in
-      return (z :: zs)
-    | _ -> invalid_arg "Monad.map_list2"
 
   let map_iter f xs =
     let f = (fun (_, v) -> f v) in
@@ -115,6 +127,15 @@ module Monad (M: MONAD) = struct
     let f = (fun a (_, v) -> f a v) in
     let xs = List.of_seq (NameMap.to_seq xs) in
     list_fold f a xs
+
+  let map_join f xs ys =
+    let zs = NameMap.merge (fun _ x y -> Some (x, y)) xs ys in
+    let zs = List.of_seq (NameMap.to_seq zs) in
+    let* zs = list_map (fun (k, (v1, v2)) ->
+      let* z = option_join f v1 v2 in
+      return (k, Option.get z)
+    ) zs in
+    return (NameMap.of_seq (List.to_seq zs))
 end
 
 module type STATE = sig

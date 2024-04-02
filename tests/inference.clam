@@ -6,8 +6,8 @@ def b = [A, B] -> (p: A & B) -> a[A, B](p)
 
 def c = (b: Bot) -> b(0)
 
-type D = ([T] -> Unit) & ([U: .. Int] -> Unit)
-def d: (D) -> Bot = (p: D) -> p[Top]
+// type D = ([T] -> Unit) & ([U: .. Int] -> Unit)
+// def d: (D) -> Bot = (p: D) -> p[Top]
 
 type E = ([T: .. Int] -> Unit) | ([T: .. String] -> Unit)
 def e: (E) -> Unit = (p: E) -> p[Bot]

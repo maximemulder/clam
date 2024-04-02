@@ -161,3 +161,6 @@ let display type' =
 
 let display_base type' =
   display_base type' N
+
+let display_inter type' =
+  display_inter type' N
