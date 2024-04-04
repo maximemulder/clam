@@ -22,16 +22,16 @@ let solve type' bind =
   match pols.neg, pols.pos with
   | Some neg, _ when neg <> Type.bot ->
     let* () = print("co_neg " ^ bind.name ^ " by " ^ Type.display neg ^ " in " ^ Type.display type') in
-    let* lower = get_var_lower bind in
+    (* let* lower = get_var_lower bind in
     let* upper = get_var_upper bind in
-    let* neg = join neg lower in
-    inline bind upper neg Pos type'
+    let* neg = join neg lower in *)
+    inline bind (Type.top) neg Pos type'
   | _, Some pos when pos <> Type.top ->
     let* () = print("co_pos " ^ bind.name ^ " by " ^ Type.display pos ^ " in " ^ Type.display type') in
-    let* lower = get_var_lower bind in
+    (* let* lower = get_var_lower bind in
     let* upper = get_var_upper bind in
-    let* pos = meet pos upper in
-    inline bind pos lower Pos type'
+    let* pos = meet pos upper in *)
+    inline bind pos (Type.bot) Pos type'
   | Some _, Some _ ->
     let* () = print("quantify " ^ bind.name ^ " in " ^ Type.display type') in
     let* lower = get_var_lower bind in

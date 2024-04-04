@@ -4,6 +4,7 @@ open Node
 open Rename
 
 let rec is left right =
+  print_endline("is " ^ Display.display left ^ " = " ^ Display.display right);
   let* sub = isa left right in
   let* sup = isa right left in
   return (sub && sup)
@@ -14,6 +15,9 @@ and is_param left right =
   return (sub && sup)
 
 and isa left right =
+  let* ctx = get_context in
+  print_endline(display ctx |> snd);
+  print_endline("isa " ^ Display.display left ^ " < " ^ Display.display right);
   isa_union left.dnf right.dnf
 
 and isa_union left right =
@@ -23,6 +27,7 @@ and isa_inter left right =
   list_all (fun right -> list_any (fun left -> isa_base left right) left) right
 
 and isa_base sub sup =
+  print_endline("isa_base " ^ Display.display_base sub ^ " < " ^ Display.display_base sup);
   match sub, sup with
   (* TODO: Top and Bot kind *)
   | _, Top ->
@@ -35,8 +40,8 @@ and isa_base sub sup =
     with_param_fresh univ.param (isa univ.ret (base sup))
   | sub, Univ univ ->
     with_param_rigid univ.param (isa (base sub) univ.ret)
-  | Var sub, Var sup when sub.bind == sup.bind ->
-    return true
+  | Var sub, Var sup ->
+    isa_var sub sup
   | Var sub, sup ->
     isa_var_sub sub (Node.base sup)
   | sub, Var sup ->
@@ -52,34 +57,59 @@ and isa_base sub sup =
   | _, _ ->
     return false
 
+and isa_var sub sup =
+  if sub.bind == sup.bind then
+    return true
+  else
+  let* sub = get_var sub.bind in
+  let* sup = get_var sup.bind in
+  match sub, sup with
+  | Fresh sub, Fresh sup ->
+    let* level = cmp_level sub.bind sup.bind in
+    if level then
+      isa_var_sub { bind = sub.bind } (Node.var sup.bind)
+    else
+      isa_var_sup (Node.var sub.bind) { bind = sup.bind }
+  | Fresh sub, Rigid sup ->
+    (* TODO: Be better. ? *)
+    return true
+  | Rigid sub, Fresh sup ->
+    (* TODO: Be better. ? *)
+    return true
+  | Rigid sub, Rigid sup ->
+    let* lower = isa sub.upper (Node.var sup.bind) in
+    let* upper = isa (Node.var sub.bind) sub.lower in
+    return (lower && upper)
+
 and isa_var_sub var sup =
   let* var = get_var var.bind in
-  match var.flex with
-  | Fresh ->
+  match var with
+  | Fresh var ->
+    print_endline("isa_var " ^ var.bind.name ^ " < " ^ Display.display sup);
     let* cond = isa var.lower sup in
     if not cond then
       return false
     else
     let* upper = meet var.upper sup in
     let var = { var with upper } in
-    let* () = update_var var in
+    let* () = update_fresh var in
     return true
-  | Rigid ->
+  | Rigid var ->
     isa var.upper sup
 
 and isa_var_sup sub var =
   let* var = get_var var.bind in
-  match var.flex with
-  | Fresh ->
+  match var with
+  | Fresh var ->
     let* cond = isa sub var.upper in
     if not cond then
       return false
     else
     let* lower = join var.lower sub in
     let var = { var with lower } in
-    let* () = update_var var in
+    let* () = update_fresh var in
     return true
-  | Rigid ->
+  | Rigid var ->
     isa sub var.lower
 
 and isa_tuple sub sup =
@@ -106,6 +136,7 @@ and isa_app sub sup =
   return (abs && arg)
 
 and join (left: Node.type') (right: Node.type') =
+  print_endline("join " ^ Display.display left ^ " ! " ^ Display.display right);
   let* sub = isa left right in
   let* sup = isa right left in
   match sub, sup with
@@ -132,6 +163,7 @@ and join_inter ctx left right =
     None
 
 and meet left right =
+  print_endline("meet " ^ Display.display left ^ " ! " ^ Display.display right);
   let* sub = isa left right in
   let* sup = isa right left in
   match sub, sup with
@@ -165,7 +197,7 @@ and meet_base left right =
   | Abs left, Abs right ->
     meet_abs left right
   | _, _ ->
-    return None
+    return (Some Bot)
 
 and meet_tuple left right =
   if List.compare_lengths left.elems right.elems != 0 then

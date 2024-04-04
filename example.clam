@@ -1,1 +1,9 @@
 def main = print("Hello world !")
+
+def bot = bot
+
+def auto: ([A] -> (A) -> A) -> ([B] -> (B) -> B) = (p) -> p
+def choose: [C] -> (C, C) -> C = (a, b) -> a
+def id: [D] -> (D) -> D = (p) -> p
+
+def a7 = choose(id, auto)    // Ok (looks different but correct)

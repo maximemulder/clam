@@ -25,9 +25,11 @@ and inline_base entry pol type' =
   | Var var when var.bind == entry.bind -> (
     match pol with
     | Neg ->
-      return entry.neg
+      let* upper = get_var_upper var.bind in
+      meet entry.neg upper
     | Pos ->
-      return entry.pos)
+      let* lower = get_var_lower var.bind in
+      join entry.pos lower)
   | Var var ->
     return (Type.var var.bind)
   | Tuple tuple ->

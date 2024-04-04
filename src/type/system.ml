@@ -350,39 +350,3 @@ let rec is_kind ctx left right =
     is_kind ctx left_abs.ret right_abs.ret
   | _, _ ->
     false
-
-let translate_context ctx =
-  let vars = List.map (fun (var: Context.entry) -> { Context2.bind = var.bind; flex = Rigid; lower = var.lower; upper = var.upper }) ctx.Context.assumptions in
-  { Context2.vars }
-
-let isa ctx sub sup =
-  let ctx = translate_context ctx in
-  let rel, _ = System2.isa sub sup ctx in
-  rel
-
-let is ctx sub sup =
-  let ctx = translate_context ctx in
-  let rel, _ = System2.is sub sup ctx in
-  rel
-
-let meet ctx sub sup =
-  let ctx = translate_context ctx in
-  let rel, _ = System2.isa sub sup ctx in
-  print_endline ("isa " ^ Display.display sub ^ " " ^ Display.display sup ^ " " ^ string_of_bool rel);
-  let rel, _ = System2.isa sup sub ctx in
-  print_endline ("isa " ^ Display.display sup ^ " " ^ Display.display sub ^ " " ^ string_of_bool rel);
-  print_endline ("meet " ^ Display.display sub ^ " " ^ Display.display sup);
-  let rel, _ = System2.meet sub sup ctx in
-  print_endline ("= " ^ Display.display rel);
-  rel
-
-let join ctx sub sup =
-  let ctx = translate_context ctx in
-  let rel, _ = System2.isa sub sup ctx in
-  print_endline ("isa " ^ Display.display sub ^ " " ^ Display.display sup ^ " " ^ string_of_bool rel);
-  let rel, _ = System2.isa sup sub ctx in
-  print_endline ("isa " ^ Display.display sup ^ " " ^ Display.display sub ^ " " ^ string_of_bool rel);
-  print_endline ("join " ^ Display.display sub ^ " " ^ Display.display sup);
-  let rel, _ = System2.join sub sup ctx in
-  print_endline ("= " ^ Display.display rel);
-  rel

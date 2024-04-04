@@ -93,8 +93,8 @@ and constrain_base sub sup =
       (constrain (Type.base sub) sup_univ.ret)
   | _, _ ->
     (* TODO: Constrain type applications without using simple subtyping *)
-    let* ctx = get_context in
-    let result = Type.System.isa ctx (Type.base sub) (Type.base sup) in
+    let* ctx = get_context2 in
+    let result = Type.System2.isa (Type.base sub) (Type.base sup) ctx |> fst in
     return result
 
 and constrain_sub_var sub_var sup =
