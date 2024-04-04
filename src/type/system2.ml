@@ -92,6 +92,9 @@ and isa_var_sub var sup =
     else
     let* upper = meet var.upper sup in
     let var = { var with upper } in
+    let* () = Level.levelize var.bind sup in
+    let* () = Level.levelize var.bind var.lower in
+    let* () = Level.levelize var.bind var.upper in
     let* () = update_fresh var in
     return true
   | Rigid var ->
@@ -107,6 +110,9 @@ and isa_var_sup sub var =
     else
     let* lower = join var.lower sub in
     let var = { var with lower } in
+    let* () = Level.levelize var.bind sub in
+    let* () = Level.levelize var.bind var.lower in
+    let* () = Level.levelize var.bind var.upper in
     let* () = update_fresh var in
     return true
   | Rigid var ->
