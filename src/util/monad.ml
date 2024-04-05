@@ -118,6 +118,38 @@ module Monad (M: MONAD) = struct
       let* r = list_fold f a xs in
       f r x
 
+  let rec list_product f acc l1 l2 =
+    match l1, l2 with
+    | [], _ | _, [] ->
+      return acc
+    | h1 :: t1, h2 :: t2 ->
+      let* h = f h1 h2 in
+      let* acc = list_product f (h :: acc) t1 l2 in
+      list_product f acc [h1] t2
+
+  let list_product f l1 l2 =
+    let* l = list_product f [] l1 l2 in
+    return (List.rev l)
+
+  let rec list_collapse n xs ys zs f =
+    match xs with
+    | [] -> (
+      match ys with
+      | [] ->
+        return (zs @ [n])
+      | y :: ys ->
+        list_collapse y ys [] (zs @ [n]) f)
+    | x :: xs ->
+      let* o = f n x in
+      match o with
+      | Some n -> list_collapse n (xs @ ys @ zs) [] [] f
+      | None -> list_collapse n xs (ys @ [x]) zs f
+
+  let list_collapse f xs =
+    match xs with
+    | x :: xs -> list_collapse x xs [] [] f
+    | _ -> invalid_arg "list_collapse"
+
   let map_all f xs =
     let f = (fun (_, v) -> f v) in
     let xs = List.of_seq (NameMap.to_seq xs) in

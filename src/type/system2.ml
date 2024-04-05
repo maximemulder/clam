@@ -132,7 +132,9 @@ and isa_app sub sup =
   let* arg = is sub.arg sup.arg in
   return (abs && arg)
 
-and join (left: Node.type') (right: Node.type') =
+(* TYPE JOIN *)
+
+and join left right =
   let* sub = isa left right in
   let* sup = isa right left in
   match sub, sup with
@@ -143,20 +145,26 @@ and join (left: Node.type') (right: Node.type') =
   | false, true ->
     return left
   | false, false ->
-    return { dnf = left.dnf @ right.dnf }
+    join_disjoint left right
 
-and join_inter ctx left right =
-  let sub, ctx = isa_inter left right ctx in
-  let sup, ctx = isa_inter left right ctx in
+and join_disjoint left right =
+    let* types = list_collapse join_inter (left.dnf @ right.dnf) in
+    return { dnf = types }
+
+and join_inter left right =
+  let* sub = isa_inter left right in
+  let* sup = isa_inter left right in
   match sub, sup with
   | true, true ->
-    Some left
+    return (Some left)
   | true, false ->
-    Some right
+    return (Some right)
   | false, true ->
-    Some left
+    return (Some left)
   | false, false ->
-    None
+    return None
+
+(* TYPE MEET *)
 
 and meet left right =
   let* sub = isa left right in
@@ -169,19 +177,18 @@ and meet left right =
   | false, true ->
     return right
   | false, false ->
-    meet_2 left right
+    meet_disjoint left right
 
-(* TODO: This is old stuff *)
-and meet_2 left right ctx =
-  let types = Util.list_product (meet_inter ctx) left.dnf right.dnf in
-  { dnf = types }, ctx
+and meet_disjoint left right =
+  let* types = list_product meet_inter left.dnf right.dnf in
+  let* types = list_collapse join_inter types in
+  return { dnf = types }
 
-and meet_inter ctx left right =
-  Util.list_collapse (fun l r -> meet_base l r ctx |> fst) (left @ right)
+and meet_inter left right =
+  list_collapse meet_base (left @ right)
 
 and meet_base left right =
   match left, right with
-  (* TODO: Handle variable subtyping *)
   | Var _, _ ->
     return None
   | _, Var _ ->
@@ -216,7 +223,7 @@ and meet_record_attr left right =
 
 and meet_lam left right =
   let* param = is left.param right.param in
-  let* ret = is left.ret right.ret in
+  let* ret   = is left.ret   right.ret   in
   match param, ret with
   | false, false ->
     return None
