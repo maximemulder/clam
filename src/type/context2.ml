@@ -128,7 +128,7 @@ let display_rigid (var: rigid) =
 let display ctx =
   let rigids = List.map display_rigid (List.rev ctx.rigids) |> String.concat ", " in
   let freshs = List.map display_fresh (List.rev ctx.freshs) |> String.concat ", " in
-  (), rigids ^ "\n" ^ freshs
+  rigids ^ "\n" ^ freshs, ctx
 
 (* MONAD *)
 

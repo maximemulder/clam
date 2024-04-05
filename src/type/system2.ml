@@ -1,10 +1,10 @@
 open Context2
 open Context2.Monad
+open Level
 open Node
 open Rename
 
 let rec is left right =
-  print_endline("is " ^ Display.display left ^ " = " ^ Display.display right);
   let* sub = isa left right in
   let* sup = isa right left in
   return (sub && sup)
@@ -15,9 +15,6 @@ and is_param left right =
   return (sub && sup)
 
 and isa left right =
-  let* ctx = get_context in
-  print_endline(display ctx |> snd);
-  print_endline("isa " ^ Display.display left ^ " < " ^ Display.display right);
   isa_union left.dnf right.dnf
 
 and isa_union left right =
@@ -27,7 +24,6 @@ and isa_inter left right =
   list_all (fun right -> list_any (fun left -> isa_base left right) left) right
 
 and isa_base sub sup =
-  print_endline("isa_base " ^ Display.display_base sub ^ " < " ^ Display.display_base sup);
   match sub, sup with
   (* TODO: Top and Bot kind *)
   | _, Top ->
@@ -71,30 +67,27 @@ and isa_var sub sup =
     else
       isa_var_sup (Node.var sub.bind) { bind = sup.bind }
   | Fresh sub, Rigid sup ->
-    (* TODO: Be better. ? *)
-    return true
+    isa_var_sub { bind = sub.bind } (Node.var sup.bind)
   | Rigid sub, Fresh sup ->
-    (* TODO: Be better. ? *)
-    return true
+    isa_var_sup (Node.var sub.bind) { bind = sup.bind }
   | Rigid sub, Rigid sup ->
+    (* TODO: Checking both lower and upper bounds result in infintie recursion,
+    check what is the right approach *)
     let* lower = isa sub.upper (Node.var sup.bind) in
-    let* upper = isa (Node.var sub.bind) sub.lower in
-    return (lower && upper)
+    (* let* upper = isa (Node.var sub.bind) sub.lower in *)
+    return lower
 
 and isa_var_sub var sup =
   let* var = get_var var.bind in
   match var with
   | Fresh var ->
-    print_endline("isa_var " ^ var.bind.name ^ " < " ^ Display.display sup);
     let* cond = isa var.lower sup in
     if not cond then
       return false
     else
     let* upper = meet var.upper sup in
     let var = { var with upper } in
-    let* () = Level.levelize var.bind sup in
-    let* () = Level.levelize var.bind var.lower in
-    let* () = Level.levelize var.bind var.upper in
+    let* () = levelize var sup in
     let* () = update_fresh var in
     return true
   | Rigid var ->
@@ -110,9 +103,7 @@ and isa_var_sup sub var =
     else
     let* lower = join var.lower sub in
     let var = { var with lower } in
-    let* () = Level.levelize var.bind sub in
-    let* () = Level.levelize var.bind var.lower in
-    let* () = Level.levelize var.bind var.upper in
+    let* () = levelize var sub in
     let* () = update_fresh var in
     return true
   | Rigid var ->
@@ -142,7 +133,6 @@ and isa_app sub sup =
   return (abs && arg)
 
 and join (left: Node.type') (right: Node.type') =
-  print_endline("join " ^ Display.display left ^ " ! " ^ Display.display right);
   let* sub = isa left right in
   let* sup = isa right left in
   match sub, sup with
@@ -169,7 +159,6 @@ and join_inter ctx left right =
     None
 
 and meet left right =
-  print_endline("meet " ^ Display.display left ^ " ! " ^ Display.display right);
   let* sub = isa left right in
   let* sup = isa right left in
   match sub, sup with
@@ -192,6 +181,11 @@ and meet_inter ctx left right =
 
 and meet_base left right =
   match left, right with
+  (* TODO: Handle variable subtyping *)
+  | Var _, _ ->
+    return None
+  | _, Var _ ->
+    return None
   | Tuple left, Tuple right ->
     meet_tuple left right
   | Record left, Record right ->

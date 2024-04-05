@@ -11,11 +11,11 @@ and levelize_base bind type' =
   | Var var ->
     let* var = get_var var.bind in
     (match var with
-    | Fresh var ->
+    | Fresh fresh ->
       (* TODO: Check if this results in an infinite loop *)
-      let* () = reorder bind var.bind in
-      let* () = levelize var.bind var.lower in
-      let* () = levelize var.bind var.upper in
+      let* () = reorder bind fresh.bind in
+      let* () = levelize fresh.bind fresh.lower in
+      let* () = levelize fresh.bind fresh.upper in
       return ()
     | Rigid _ ->
       return ())
@@ -46,4 +46,10 @@ and levelize_attr bind attr =
 and levelize_param bind param =
   let* () = levelize bind param.lower in
   let* () = levelize bind param.upper in
+  return ()
+
+let levelize (fresh: fresh) type' =
+  let* () = levelize fresh.bind type' in
+  let* () = levelize fresh.bind fresh.lower in
+  let* () = levelize fresh.bind fresh.upper in
   return ()
