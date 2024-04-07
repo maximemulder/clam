@@ -42,15 +42,25 @@ let with_freeze f ctx =
 
 (* ACCESS TYPE VARIABLES *)
 
+let rec collect_freshs ctx =
+  let fresh = List.nth_opt ctx.freshs 0 in
+  match fresh with
+  | Some fresh when fresh.level >= ctx.level ->
+    let ctx = { ctx with freshs = List.tl ctx.freshs } in
+    collect_freshs ctx
+  | _ ->
+    ctx
+
 let update_fresh (var: fresh) ctx =
   let freshs = List.map (fun (old: fresh) -> if old.bind == var.bind then var else old) ctx.freshs in
   (), { ctx with freshs }
 
 let with_param_fresh (param: Node.param) f ctx =
   let var = { bind = param.bind; level = ctx.level; lower = param.lower; upper = param.upper } in
-  let ctx = { ctx with freshs = var :: ctx.freshs } in
+  let ctx = { ctx with level = ctx.level + 1; freshs = var :: ctx.freshs } in
   let x, ctx = f ctx in
-  let ctx = { ctx with freshs = List.tl ctx.freshs } in
+  let ctx = { ctx with level = ctx.level - 1 } in
+  let ctx = collect_freshs ctx in
   x, ctx
 
 let with_param_rigid (param: Node.param) f ctx =
