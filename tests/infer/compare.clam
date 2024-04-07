@@ -37,12 +37,12 @@ def f: [A] -> ((A) -> A, List[A]) -> A = (f, l) -> l.0
 
 def a1 = (x, y) -> y         // Ok
 def a2 = choose(id)          // Ok
-def a3 = choose(nil, ids)    // Ok (could be simplified with better type system)
+def a3 = choose(nil, ids)    // Ok
 def a4 = (x) -> x(x)         // Ok
 def a5 = id(auto)            // Ok
 def a6 = id(auto2)           // Ok
-def a7 = choose(id, auto)    // Ok (looks different but correct)
-def a8 = choose(id, auto2)   // Ok (looks different but correct)
+def a7 = choose(id, auto)    // Ok
+def a8 = choose(id, auto2)   // Ok
 def a9 = f(choose(id), ids)  // Ok
 def a10 = poly(id)           // Ok
 def a11 = poly((p) -> p)     // Ok
@@ -59,7 +59,7 @@ def c3 = head(ids)                       // Ok
 def c4 = single(id)                      // Ok
 def c5 = cons(id, ids)                   // Ok
 def c6 = cons((x) -> x, ids)             // Ok
-def c7 = append(single(inc), single(id)) // Ok (could be simplified with better type system)
+def c7 = append(single(inc), single(id)) // Ok
 def c8 = g(single(id), ids)              // Ok
 def c9 = map(poly, single(id))           // Ok
 def c10 = map(head, single(ids))         // Ok
@@ -75,8 +75,8 @@ def h: (Int) -> [A] -> (A) -> A = (i, a) -> a
 def l: List[[A] -> (Int, A) -> A] = {(i, a) -> a}
 def r: ([A] -> (A) -> [B] -> (B) -> B) -> Int = (p) -> 0
 
-def e1 = k(h, l)             // Ok (could be simplified with better type system)
-def e2 = (k((x) -> h(x)))(l) // Ok (could be simplified with better type system)
+def e1 = k(h, l)             // Ok
+def e2 = (k((x) -> h(x)))(l) // Ok
 def e3 = r((x, y) -> y)      // Ok
 
 def f5 = auto(id)                     // Ok
@@ -84,7 +84,7 @@ def f6 = cons(head(ids), ids)         // Ok
 def f7 = head(ids, 3)                 // Ok
 def f8 = choose(head(ids))            // Ok
 def f9 = var f = revapp(id); f(poly)  // Ok
-def f10 = choose(id, (x) -> auto2(x)) // Ok (looks different because no distributivity)
+def f10 = choose(id, (x) -> auto2(x)) // Ok
 
 type ChurchInt = [A] -> ((A) -> A) -> ((A) -> A)
 
@@ -108,7 +108,7 @@ def g8a = to_church : ((Int) -> ChurchInt)    // Ok
 // def g10 = ((x) -> x(x))((x) -> x(x))       // Not ok (infinite recursion)
 def g11 = auto(auto2(id))                     // Ok
 def g12 = ((y) -> var tmp = y(id); y(const)) ((x) -> x(x))
-                                              // Ok (different than SuperF since we respect more type annotations)
+                                              // Ok
 def g13 = ((k) -> {k((x) -> x), k ((x) -> single(x))}) ((f) -> {f(1), f(true)})
                                               // Ok
 def g14 = ((f) -> var a = ((u: Unit) -> f(id)); a(unit) : ((Int) -> ([B] -> (B) -> B))) (const(const(id)))
