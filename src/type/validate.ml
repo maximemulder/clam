@@ -1,137 +1,160 @@
+open Context2
+open Context2.Monad
 open Node
 
-let rec validate_proper ctx type' =
-  let type'' = validate ctx type' in
-  if Kind.get_kind ctx type'' <> Type then
+let return_base type' = return (base type')
+
+let rec validate_proper type' =
+  let* type'' = validate type' in
+  let* kind = Kind.get_kind type'' in
+  if kind <> Type then
     Error.validate_proper type'
   else
-    type''
+    return type''
 
-and validate ctx (type': Abt.type') =
+and validate (type': Abt.type') =
   match type' with
-  | TypeTop    _ -> base Top
-  | TypeBot    _ -> base Bot
-  | TypeUnit   _ -> base Unit
-  | TypeBool   _ -> base Bool
-  | TypeInt    _ -> base Int
-  | TypeString _ -> base String
+  | TypeTop    _ ->
+    return_base Top
+  | TypeBot    _ ->
+    return_base Bot
+  | TypeUnit   _ ->
+    return_base Unit
+  | TypeBool   _ ->
+    return_base Bool
+  | TypeInt    _ ->
+    return_base Int
+  | TypeString _ ->
+    return_base String
   | TypeVar var ->
-    base (Var { bind = var.bind })
+    return_base (Var { bind = var.bind })
   | TypeTuple tuple ->
-    validate_tuple ctx tuple
+    validate_tuple tuple
   | TypeRecord record ->
-    validate_record ctx record
+    validate_record record
   | TypeLam lam ->
-    validate_lam ctx lam
+    validate_lam lam
   | TypeUniv univ ->
-    validate_univ ctx univ
+    validate_univ univ
   | TypeAbs abs ->
-    validate_abs ctx abs
+    validate_abs abs
   | TypeApp app ->
-    validate_app ctx app
+    validate_app app
   | TypeUnion union ->
-    validate_union ctx union
+    validate_union union
   | TypeInter inter ->
-    validate_inter ctx inter
+    validate_inter inter
 
-and validate_tuple ctx tuple =
-  let elems = List.map (validate_proper ctx) tuple.elems in
-  base (Tuple { elems })
+and validate_tuple tuple =
+  let* elems = list_map validate_proper tuple.elems in
+  return_base (Tuple { elems })
 
-and validate_record ctx record =
-  let attrs = Util.NameMap.map (validate_record_attr ctx) record.attrs in
-  base (Record { attrs })
+and validate_record record =
+  let* attrs = map_map validate_record_attr record.attrs in
+  return_base (Record { attrs })
 
-and validate_record_attr ctx attr =
-  let type' = validate_proper ctx attr.type' in
-  { label = attr.label; type' }
+and validate_record_attr attr =
+  let* type' = validate_proper attr.type' in
+  return { label = attr.label; type' }
 
-and validate_lam ctx lam =
-  let param = validate_proper ctx lam.param in
-  let ret = validate_proper ctx lam.ret in
-  base (Lam { param; ret })
+and validate_lam lam =
+  let* param = validate_proper lam.param in
+  let* ret   = validate_proper lam.ret   in
+  return_base (Lam { param; ret })
 
-and validate_univ ctx univ =
-  let param, ret = validate_param_with ctx univ.param
-    (fun ctx -> validate_proper ctx univ.ret) in
-  base (Univ { param; ret })
+and validate_univ univ =
+  let* param, ret = validate_param_with univ.param (validate_proper univ.ret) in
+  return_base (Univ { param; ret })
 
-and validate_abs ctx abs =
-  let param, body = validate_param_with ctx abs.param
-    (fun ctx -> validate ctx abs.body) in
-  base (Abs { param; body })
+and validate_abs abs =
+  let* param, body = validate_param_with abs.param (validate abs.body) in
+  return_base (Abs { param; body })
 
 (* TODO: Handle lower bounds *)
-and validate_app ctx app =
-  let abs = validate ctx app.abs in
-  let arg = validate ctx app.arg in
-  let param = validate_app_param ctx abs in
-  if not (System.isa ctx arg param) then
+and validate_app app =
+  let* abs = validate app.abs in
+  let* arg = validate app.arg in
+  let* param = validate_app_param abs in
+  let* cond = System2.isa arg param in
+  if not cond then
     Error.validate_app_arg app param arg
   else
-  System.compute ctx abs arg
+  System2.compute abs arg
 
-and validate_union ctx union =
-  let left  = validate ctx union.left  in
-  let right = validate ctx union.right in
-  if not (System.is_kind ctx (Kind.get_kind ctx left) (Kind.get_kind ctx right)) then
+and validate_union union =
+  let* left  = validate union.left  in
+  let* right = validate union.right in
+  let* kind_left  = Kind.get_kind left in
+  let* kind_right = Kind.get_kind right in
+  let* cond = System2.is_kind kind_left kind_right in
+  if not cond then
     Error.validate_union_kind union
   else
-  System.join ctx left right
+  System2.join left right
 
-and validate_inter ctx inter =
-  let left  = validate ctx inter.left  in
-  let right = validate ctx inter.right in
-  if not (System.is_kind ctx (Kind.get_kind ctx left) (Kind.get_kind ctx right)) then
+and validate_inter inter =
+  let* left  = validate inter.left  in
+  let* right = validate inter.right in
+  let* kind_left  = Kind.get_kind left in
+  let* kind_right = Kind.get_kind right in
+  let* cond = System2.is_kind kind_left kind_right in
+  if not cond then
     Error.validate_inter_kind inter
   else
-  System.meet ctx left right
+  System2.meet left right
 
-and validate_app_param ctx abs =
-  validate_app_param_union ctx abs.dnf
+(* TODO: Handle both lower and upper bounds in parameter validation *)
+and validate_app_param abs =
+  validate_app_param_union abs.dnf
 
-and validate_app_param_union ctx types =
-  let types = List.map (validate_app_param_inter ctx) types in
-  Util.list_reduce (System.meet ctx) types
+and validate_app_param_union types =
+  let* types = list_map validate_app_param_inter types in
+  list_reduce System2.meet types
 
-and validate_app_param_inter ctx types =
-  let types = List.map (validate_app_param_base ctx) types in
-  Util.list_reduce (System.join ctx) types
+and validate_app_param_inter types =
+  let* types = list_map validate_app_param_base types in
+  list_reduce System2.join types
 
-and validate_app_param_base ctx type' =
+and validate_app_param_base type' =
   match type' with
   | Var var ->
-    let _, upper = Context.get_bounds ctx var.bind in
-    validate_app_param ctx upper
+    let* var = get_var var.bind in
+    (match var with
+    | Fresh fresh ->
+      validate_app_param fresh.upper
+    | Rigid rigid ->
+      validate_app_param rigid.upper)
   | Abs abs ->
-    abs.param.upper
+    return abs.param.upper
   | _ ->
     invalid_arg "validate_app_param_base"
 
-and validate_param ctx (param: Abt.param_type) =
-  let lower, upper = match param.interval.lower, param.interval.upper with
+and validate_param (param: Abt.param_type) =
+  let* lower, upper = match param.interval.lower, param.interval.upper with
   | Some lower, Some upper ->
-    validate ctx lower, validate ctx upper
+    let* lower = validate lower in
+    let* upper = validate upper in
+    return (lower, upper)
   | Some lower, None ->
-    let lower = validate ctx lower in
-    let kind = Kind.get_kind ctx lower in
-    let upper = Kind.get_kind_max ctx kind in
-    lower, upper
+    let* lower = validate lower in
+    let* kind = Kind.get_kind lower in
+    let upper = Kind.get_kind_max kind in
+    return (lower, upper)
   | None, Some upper ->
-    let upper = validate ctx upper in
-    let kind = Kind.get_kind ctx upper in
-    let lower = Kind.get_kind_min ctx kind in
-    lower, upper
+    let* upper = validate upper in
+    let* kind = Kind.get_kind upper in
+    let lower = Kind.get_kind_min kind in
+    return (lower, upper)
   | None, None ->
-    Node.bot, Node.top
+    return (Node.bot, Node.top)
   in
-  if not(System.isa ctx lower upper) then
+  let* cond = System2.isa lower upper in
+  if not cond then
     Error.validate_interval param.interval lower upper
   else
-  { bind = param.bind; lower; upper }
+  return { bind = param.bind; lower; upper }
 
-and validate_param_with ctx param f =
-  let param = validate_param ctx param in
-  let ctx = Context.add_param ctx param in
-  let other = f ctx in
-  param, other
+and validate_param_with param f =
+  let* param = validate_param param in
+  let* type' = with_param_rigid param f in
+  return (param, type')

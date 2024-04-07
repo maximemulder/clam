@@ -13,59 +13,59 @@
 *)
 
 open State
+open Type.System2
+open Type.Context2
+open Type.Context2.Monad
+
+type 'a s = 'a t
 
 module type SEARCHER = sig
   type t
   val bot: t
-  val meet: state -> t -> t -> t
-  val join: state -> t -> t -> t
+  val meet: t -> t -> t s
+  val join: t -> t -> t s
 end
 
 module Searcher(S: SEARCHER) = struct
-  let rec search state f (type': Type.type') =
-    search_union state f type'.dnf
+  let rec search f (type': Type.type') =
+    search_union f type'.dnf
 
-  and search_union state f types =
-    let types = List.map (search_inter state f) types in
-    Util.list_option_meet types (S.join state)
+  and search_union f types =
+    let* types = list_map (search_inter f) types in
+    list_option_meet types (S.join)
 
-  and search_inter state f types =
-    let types = List.map (search_base state f) types in
-    Util.list_option_join types (S.meet state)
+  and search_inter f types =
+    let* types = list_map (search_base f) types in
+    list_option_join types (S.meet)
 
-  and search_base state f type' =
+  and search_base f type' =
     match type' with
     | Bot ->
-      Some S.bot
+      return (Some S.bot)
     | Var var -> (
-      let entry, _ = get_var var.bind state in
-      match entry with
-      | Param entry ->
-        search state f entry.upper (* TODO check this *)
-      | Infer entry ->
-        search state f entry.lower
+      let* var = get_var var.bind in
+      match var with
+      | Rigid rigid ->
+        search f rigid.lower
+      | Fresh fresh ->
+        search f fresh.lower
       )
     | App app ->
-      let ctx, _ = get_context state in
-      let abs = Type.System.promote ctx app.abs in
-      let type' = Type.System.compute ctx abs app.arg in
-      search state f type'
+      let* abs = Type.System2.promote app.abs     in
+      let* arg = Type.System2.compute abs app.arg in
+      search f arg
     | _ ->
       f type'
 
-    let search_m f type' state =
-      search state f type', state
+    let search_m f type' ctx =
+      search (fun x ctx -> f x, ctx) type' ctx |> fst
 end
 
 module SearcherProj = struct
   type t = Type.type'
   let bot = Type.bot
-  let join state =
-    let ctx, _ = get_context state in
-    Type.System.join ctx
-  let meet state =
-    let ctx, _ = get_context state in
-    Type.System.meet ctx
+  let join = Type.System2.join
+  let meet = Type.System2.meet
 end
 
 let make_param bound =
@@ -76,25 +76,20 @@ module SearcherAppType = struct
 
   let bot = { param = make_param Type.top; ret = Type.bot }
 
-  let with_merge_param ctx bound left right f =
+  let with_merge_param bound left right f =
     let param = make_param bound in
     let left_ret  = Type.rename left.ret  left.param.bind  param.bind in
     let right_ret = Type.rename right.ret right.param.bind param.bind in
-    let ctx = Type.Context.add_param ctx param in
-    let ret = f ctx left_ret right_ret in
-    { param; ret }
+    let* ret = f left_ret right_ret in
+    return { param; ret }
 
-  let join state left right =
-    let ctx, _ = get_context state in
-    let bound = Type.System.meet ctx left.param.upper right.param.upper in
-    with_merge_param ctx bound left right Type.System.join
+  let join left right =
+    let* upper = Type.System2.meet left.param.upper right.param.upper in
+    with_merge_param upper left right Type.System2.join
 
-  let meet state left right =
-    let ctx, _ = get_context state in
-    if not (Type.System.is_param ctx left.param right.param) then
-      bot
-    else
-    with_merge_param ctx left.param.upper left right Type.System.meet
+  let meet left right =
+    let* upper = Type.System2.join left.param.upper right.param.upper in
+    with_merge_param upper left right Type.System2.meet
 end
 
 module SearchProj    = Searcher(SearcherProj)

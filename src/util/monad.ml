@@ -18,6 +18,14 @@ module Monad (M: MONAD) = struct
       let* x = f x in
       return (Some x)
 
+  let option_meet f x y =
+    match x, y with
+    | Some x, Some y ->
+      let* z = f x y in
+      return (Some z)
+    | _ ->
+      return None
+
   let option_join f x y =
     match x, y with
     | Some x, Some y ->
@@ -127,9 +135,38 @@ module Monad (M: MONAD) = struct
       let* acc = list_product f (h :: acc) t1 l2 in
       list_product f acc [h1] t2
 
+  let rec list_option_meet xs f =
+    match xs with
+    | [x] ->
+      return x
+    | x :: xs ->
+      let* y = list_option_meet xs f in
+      option_meet f x y
+    | _ ->
+      invalid_arg "list_option_meet"
+
+  let rec list_option_join xs f =
+    match xs with
+    | [x] ->
+      return x
+    | x :: xs ->
+      let* y = list_option_join xs f in
+      option_join f x y
+    | _ ->
+      invalid_arg "list_option_join"
+
   let list_product f l1 l2 =
     let* l = list_product f [] l1 l2 in
     return (List.rev l)
+
+  let rec list_reduce f xs =
+    match xs with
+    | [x] ->
+      return x
+    | x :: xs ->
+      let* y = list_reduce f xs in
+      f x y
+    | _ -> invalid_arg "Util.list_reduce"
 
   let rec list_collapse n xs ys zs f =
     match xs with

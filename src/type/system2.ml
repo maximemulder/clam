@@ -4,6 +4,8 @@ open Level
 open Node
 open Rename
 
+(* CONSTRAIN EQUIVALENCE *)
+
 let rec is left right =
   let* sub = isa left right in
   let* sup = isa right left in
@@ -13,6 +15,8 @@ and is_param left right =
   let* sub = is left.lower right.lower in
   let* sup = is left.upper right.upper in
   return (sub && sup)
+
+(* CONSTRAIN SUBTYPE *)
 
 and isa left right =
   isa_union left.dnf right.dnf
@@ -25,11 +29,12 @@ and isa_inter left right =
 
 and isa_base sub sup =
   match sub, sup with
-  (* TODO: Top and Bot kind *)
   | _, Top ->
-    return true
+    let* kind = Kind.get_kind_base sub in
+    return (kind = Type)
   | Bot, _ ->
-    return true
+    let* kind = Kind.get_kind_base sup in
+    return (kind = Type)
   | Unit, Unit | Bool, Bool | Int, Int | String, String ->
     return true
   | Univ univ, sup ->
@@ -42,14 +47,16 @@ and isa_base sub sup =
     isa_var_sub sub (Node.base sup)
   | sub, Var sup ->
     isa_var_sup (Node.base sub) sup
-  | Tuple left, Tuple right ->
-    isa_tuple left right
-  | Lam left, Lam right ->
-    isa_lam left right
-  | Abs sub_abs, Abs sup_abs ->
-    isa_abs sub_abs sup_abs
-  | App sub_app, App sup_app ->
-    isa_app sub_app sup_app
+  | Tuple sub, Tuple sup ->
+    isa_tuple sub sup
+  | Record sub, Record sup ->
+    isa_record sub sup
+  | Lam sub, Lam sup ->
+    isa_lam sub sup
+  | Abs sub, Abs sup ->
+    isa_abs sub sup
+  | App sub, App sup ->
+    isa_app sub sup
   | _, _ ->
     return false
 
@@ -116,6 +123,16 @@ and isa_tuple sub sup =
     let elems = List.combine sub.elems sup.elems in
     list_all (fun (left, right) -> isa left right) elems
 
+and isa_record sub sup =
+  map_all (fun sup_attr -> isa_record_attr sub sup_attr) sup.attrs
+
+and isa_record_attr sub_record sup_attr =
+  match Util.NameMap.find_opt sup_attr.label sub_record.attrs with
+  | Some sub_attr ->
+    isa sub_attr.type' sup_attr.type'
+  | None ->
+    return false
+
 and isa_lam sub sup =
   let* param = isa sup.param sub.param in
   let* ret = isa sub.ret sup.ret in
@@ -134,7 +151,9 @@ and isa_app sub sup =
 
 (* TYPE JOIN *)
 
-and join left right =
+and join left right = with_freeze (join_freeze left right)
+
+and join_freeze left right =
   let* sub = isa left right in
   let* sup = isa right left in
   match sub, sup with
@@ -153,10 +172,11 @@ and join_disjoint left right =
 
 and join_inter left right =
   let* sub = isa_inter left right in
-  let* sup = isa_inter left right in
+  let* sup = isa_inter right left in
   match sub, sup with
   | true, true ->
-    return (Some left)
+    (* Both types work here. *)
+    return (Some right)
   | true, false ->
     return (Some right)
   | false, true ->
@@ -166,11 +186,14 @@ and join_inter left right =
 
 (* TYPE MEET *)
 
-and meet left right =
+and meet left right = with_freeze (meet_freeze left right)
+
+and meet_freeze left right =
   let* sub = isa left right in
   let* sup = isa right left in
   match sub, sup with
   | true, true ->
+    (* Both types work here. *)
     return left
   | true, false ->
     return left
@@ -249,3 +272,108 @@ and meet_abs left right =
   let right_body = rename right.body right.param.bind left.param.bind in
   let* body = with_param_rigid left.param (meet left.body right_body) in
   return (Some (Abs { param = left.param; body }))
+
+(* MAP TYPE *)
+
+and map_type f type' =
+  map_union (map_inter f) type'.dnf
+
+and map_union f types =
+  let* types = list_map f types in
+  list_reduce join types
+
+and map_inter f types =
+  let* types = list_map f types in
+  list_reduce meet types
+
+(* SUBSTITUTE *)
+
+and substitute bind other (type': Node.type') =
+  map_type (substitute_base bind other) type'
+
+and substitute_base bind other (type': Node.base) =
+  match type' with
+  | Top | Bot | Unit | Bool | Int | String ->
+    return (base type')
+  | Var var ->
+    substitute_var bind other var
+  | Tuple tuple ->
+    let* elems = list_map (substitute bind other) tuple.elems in
+    return (Node.tuple elems)
+  | Record record ->
+    let* attrs = map_map (substitute_attr bind other) record.attrs in
+    return (Node.record attrs)
+  | Lam lam ->
+    let* param = substitute bind other lam.param in
+    let* ret   = substitute bind other lam.ret   in
+    return (Node.lam param ret)
+  | Univ univ ->
+    let* param = substitute_param bind other univ.param in
+    let* ret = with_param_rigid param (substitute bind other univ.ret) in
+    return (Node.univ param ret)
+  | Abs abs ->
+    let* param = substitute_param bind other abs.param in
+    let* body = with_param_rigid param (substitute bind other abs.body) in
+    return (Node.abs param body)
+  | App app ->
+    let* abs = substitute bind other app.abs in
+    let* arg = substitute bind other app.arg in
+    compute abs arg
+
+and substitute_var bind other var =
+  if var.bind == bind then
+    return other
+  else
+    return (Node.var var.bind)
+
+and substitute_param bind other param =
+  let* lower = substitute bind other param.lower in
+  let* upper = substitute bind other param.upper in
+  return { param with lower; upper }
+
+and substitute_attr bind other attr =
+  let* type' = substitute bind other attr.type' in
+  return { attr with type' }
+
+(* TYPE COMPUTATION *)
+
+and compute (abs: Node.type') (arg: Node.type'): type' t =
+  map_type (Util.flip compute_base arg) abs
+
+and compute_base (abs: Node.base) (arg: Node.type') =
+  match abs with
+  | Abs abs ->
+    substitute abs.param.bind arg abs.body
+  | _ ->
+    return (Node.app (Node.base abs) arg)
+
+(* TYPE PROMOTION *)
+
+and promote type' =
+  map_type promote_base type'
+
+and promote_base type' =
+  match type' with
+  | Var var ->
+    let* var = get_var var.bind in
+    (match var with
+    | Fresh fresh ->
+      promote fresh.upper
+    | Rigid rigid ->
+      promote rigid.upper)
+  | _ ->
+    return (Node.base type')
+
+(* KIND EQUIVALENCE *)
+
+let rec is_kind left right =
+  match left, right with
+  | Kind.Type, Kind.Type ->
+    return true
+  | Kind.Abs left_abs, Kind.Abs right_abs ->
+    let* lower = is left_abs.lower right_abs.lower in
+    let* upper = is left_abs.upper right_abs.upper in
+    let* body = is_kind left_abs.body right_abs.body in
+    return (lower && upper && body)
+  | _, _ ->
+    return false

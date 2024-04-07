@@ -114,20 +114,20 @@ let get_context2 state =
   { Type.Context2.rigids; level = 0; freshs = [] }, state
 
 let validate type' =
-  let* ctx = get_context in
-  return (Type.Validate.validate ctx type')
+  let* ctx = get_context2 in
+  return (Type.Validate.validate type' ctx |> fst)
 
 let validate_param param =
-  let* ctx = get_context in
-  return (Type.Validate.validate_param ctx param)
+  let* ctx = get_context2 in
+  return (Type.Validate.validate_param param ctx |> fst)
 
 let validate_proper type' =
-  let* ctx = get_context in
-  return (Type.Validate.validate_proper ctx type')
+  let* ctx = get_context2 in
+  return (Type.Validate.validate_proper type' ctx |> fst)
 
 let substitute bind arg type' =
-  let* ctx = get_context in
-  return (Type.System.substitute ctx type' bind arg)
+  let* ctx = get_context2 in
+  return (Type.System2.substitute bind arg  type' ctx |> fst)
 
 let is left right =
   let* ctx = get_context2 in

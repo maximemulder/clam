@@ -1,7 +1,7 @@
 open Vars
 
 let test ctx sub sup (_: unit) =
-  System.isa ctx sub sup
+  System2.isa sub sup ctx |> fst
 
 let name sub sup expect =
   let sub = display sub in
@@ -14,7 +14,7 @@ let case sub sup expect ctx =
 
 let case_var name bound case expect ctx =
   let bind = { Abt.name } in
-  let ctx = Context.add_bounds ctx bind Type.bot bound in
+  let ctx = { ctx with Context2.rigids = { bind; lower = Type.bot; upper = bound } :: ctx.Context2.rigids } in
   let var = var bind in
   case var expect ctx
 

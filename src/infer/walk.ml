@@ -72,7 +72,8 @@ and infer_record_attr attr =
 
 and infer_elem expr =
   let* tuple = infer expr.tuple in
-  let* type' = Search.search_proj (infer_elem_base expr.index) tuple in
+  let* ctx = get_context2 in
+  let type' = Search.search_proj (infer_elem_base expr.index) tuple ctx in
   match type' with
   | Some type' ->
     return type'
@@ -130,7 +131,8 @@ and infer_univ_abs expr =
 
 and infer_univ_app expr =
   let* univ = infer expr.abs in
-  let* type' = Search.search_app_type infer_univ_app_base univ in
+  let* ctx = get_context2 in
+  let type' = Search.search_app_type infer_univ_app_base univ ctx in
   match type' with
   | Some { param; ret } ->
     let* arg = validate expr.arg in
@@ -202,4 +204,8 @@ let check_defs defs primitives =
   List.map (fun (entry: entry_expr) -> entry.bind, entry.type') state.exprs
 
 let check_types defs =
-  List.map (fun (def: Abt.def_type) -> def.name, Type.Validate.validate Type.Context.empty def.type' |> Type.Kind.get_kind Type.Context.empty) defs
+  List.map (fun (def: Abt.def_type) -> def.name,
+    let ctx = Type.Context2.empty in
+    let type', _ = Type.Validate.validate def.type' ctx in
+    let kind, _ = Type.Kind.get_kind type' ctx in
+  kind) defs

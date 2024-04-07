@@ -26,6 +26,20 @@ type ctx = {
 
 let empty = { level = 0; freshs = []; rigids = [] }
 
+(* FREEZE CONTEXT *)
+
+let freeze_fresh (fresh: fresh) =
+  { bind = fresh.bind; lower = fresh.lower; upper = fresh.upper }
+
+let freeze ctx =
+  let freshs = List.map freeze_fresh ctx.freshs in
+  { freshs = []; rigids = ctx.rigids @ freshs; level = 0 }
+
+let with_freeze f ctx =
+  let frozen = freeze ctx in
+  let x, _ = f frozen in
+  x, ctx
+
 (* ACCESS TYPE VARIABLES *)
 
 let update_fresh (var: fresh) ctx =

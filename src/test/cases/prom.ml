@@ -1,7 +1,7 @@
 open Vars
 
 let test ctx type' (_: unit) =
-  System.promote ctx type'
+  System2.promote type' ctx |> fst
 
 let name type' expect =
   let type'  = display type'  in
@@ -13,7 +13,7 @@ let case type' expect ctx =
 
 let case_var name bound case ctx =
   let bind = { Abt.name } in
-  let ctx = Context.add_bounds ctx bind Type.bot bound in
+  let ctx = { ctx with Context2.rigids = { bind; lower = Type.bot; upper = bound } :: ctx.Context2.rigids } in
   let var = var bind in
   case var ctx
 
