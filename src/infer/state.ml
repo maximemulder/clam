@@ -28,10 +28,8 @@ type entry_var = {
   bind: Abt.bind_type;
   lower: Type.type';
   upper: Type.type';
-  id: int;
   level_orig: int;
   level_low: int;
-  level: int;
 }
 
 type var =
@@ -72,7 +70,6 @@ let print_vars state =
   if !debug_flag then
     Util.list_group (fun (var: entry_var) -> var.level_low) state.vars
     |> List.iter (fun (id, vars) ->
-      let vars = List.sort (fun (a: entry_var) b -> Int.compare a.id b.id) vars in
       let vars = String.concat ", " (List.map (fun var -> var.bind.name ^ ": " ^ Type.display var.lower ^  " .. " ^ Type.display var.upper) vars) in
       print_endline (Util.string_indent id vars)
     );
@@ -222,7 +219,7 @@ let with_type bind lower upper f state =
 let make_var state =
   let bind = { Abt.name = "'" ^ string_of_int state.id } in
   let _ = print ("var " ^ bind.name) state in
-  let var = { id = state.id; bind; level_orig = state.level; level_low = state.level; level = state.level; lower = Type.bot; upper = Type.top } in
+  let var = { bind; level_orig = state.level; level_low = state.level; lower = Type.bot; upper = Type.top } in
   let state = { state with id = state.id + 1; level = state.level + 1; vars = var :: state.vars } in
   bind, state
 
