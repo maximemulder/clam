@@ -13,9 +13,9 @@
 *)
 
 open State
-open Type.System2
-open Type.Context2
-open Type.Context2.Monad
+open Type.System
+open Type.Context
+open Type.Context.Monad
 
 type 'a s = 'a t
 
@@ -51,8 +51,8 @@ module Searcher(S: SEARCHER) = struct
         search f fresh.lower
       )
     | App app ->
-      let* abs = Type.System2.promote app.abs     in
-      let* arg = Type.System2.compute abs app.arg in
+      let* abs = Type.System.promote_lower app.abs     in
+      let* arg = Type.System.compute abs app.arg in
       search f arg
     | _ ->
       f type'
@@ -64,8 +64,8 @@ end
 module SearcherProj = struct
   type t = Type.type'
   let bot = Type.bot
-  let join = Type.System2.join
-  let meet = Type.System2.meet
+  let join = Type.System.join
+  let meet = Type.System.meet
 end
 
 let make_param bound =
@@ -84,12 +84,12 @@ module SearcherAppType = struct
     return { param; ret }
 
   let join left right =
-    let* upper = Type.System2.meet left.param.upper right.param.upper in
-    with_merge_param upper left right Type.System2.join
+    let* upper = Type.System.meet left.param.upper right.param.upper in
+    with_merge_param upper left right Type.System.join
 
   let meet left right =
-    let* upper = Type.System2.join left.param.upper right.param.upper in
-    with_merge_param upper left right Type.System2.meet
+    let* upper = Type.System.join left.param.upper right.param.upper in
+    with_merge_param upper left right Type.System.meet
 end
 
 module SearchProj    = Searcher(SearcherProj)

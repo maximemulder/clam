@@ -99,19 +99,12 @@ let make_state defs exprs =
   data structures.
 *)
 
-let get_context state =
-  let assumptions = List.append
+let get_context2 state =
+  let rigids = List.append
     (List.map (fun (entry: entry_type) -> { Type.Context.bind = entry.bind; lower = entry.lower; upper = entry.upper }) state.types)
     (List.map (fun (entry: entry_var) -> { Type.Context.bind = entry.bind; lower = entry.lower; upper = entry.upper }) state.vars)
   in
-  { Type.Context.assumptions }, state
-
-let get_context2 state =
-  let rigids = List.append
-    (List.map (fun (entry: entry_type) -> { Type.Context2.bind = entry.bind; lower = entry.lower; upper = entry.upper }) state.types)
-    (List.map (fun (entry: entry_var) -> { Type.Context2.bind = entry.bind; lower = entry.lower; upper = entry.upper }) state.vars)
-  in
-  { Type.Context2.rigids; level = 0; freshs = [] }, state
+  { Type.Context.rigids; level = 0; freshs = [] }, state
 
 let validate type' =
   let* ctx = get_context2 in
@@ -127,23 +120,23 @@ let validate_proper type' =
 
 let substitute bind arg type' =
   let* ctx = get_context2 in
-  return (Type.System2.substitute bind arg  type' ctx |> fst)
+  return (Type.System.substitute bind arg  type' ctx |> fst)
 
 let is left right =
   let* ctx = get_context2 in
-  return (Type.System2.is left right ctx |> fst)
+  return (Type.System.is left right ctx |> fst)
 
 let isa sub sup =
   let* ctx = get_context2 in
-  return (Type.System2.isa sub sup ctx |> fst)
+  return (Type.System.isa sub sup ctx |> fst)
 
 let join left right =
   let* ctx = get_context2 in
-  return (Type.System2.join left right ctx |> fst)
+  return (Type.System.join left right ctx |> fst)
 
 let meet left right =
   let* ctx = get_context2 in
-  return (Type.System2.meet left right ctx |> fst)
+  return (Type.System.meet left right ctx |> fst)
 
 (* STATE FUNCTION *)
 
@@ -199,11 +192,11 @@ let get_var_upper bind =
 
 let update_var_lower bind bound =
   let* ctx = get_context2 in
-  update_var_entry bind (fun entry -> { entry with lower = Type.System2.join entry.lower bound ctx |> fst })
+  update_var_entry bind (fun entry -> { entry with lower = Type.System.join entry.lower bound ctx |> fst })
 
 let update_var_upper bind bound =
   let* ctx = get_context2 in
-  update_var_entry bind (fun entry -> { entry with upper = Type.System2.meet entry.upper bound ctx |> fst})
+  update_var_entry bind (fun entry -> { entry with upper = Type.System.meet entry.upper bound ctx |> fst})
 
 let add_expr span bind type' state =
   let exprs = { span; bind; level = state.level; type' } :: state.exprs in

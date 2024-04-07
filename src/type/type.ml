@@ -2,8 +2,6 @@ include Display
 include Node
 include Rename
 
-module System2  = System2
-module Context2 = Context2
 module Context  = Context
 module Compare  = Compare
 module Error    = Error

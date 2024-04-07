@@ -18,12 +18,12 @@ and abs = {
 (**
   Get the kind of a type in a given context.
 *)
-val get_kind : Node.type' -> kind Context2.Monad.t
+val get_kind : Node.type' -> kind Context.Monad.t
 
 (**
   Get the kind of a type base in a given context.
 *)
-val get_kind_base : Node.base -> kind Context2.Monad.t
+val get_kind_base : Node.base -> kind Context.Monad.t
 
 (**
   Get the maximal type of a given kind, that is, the type that is a supertype

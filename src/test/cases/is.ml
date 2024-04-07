@@ -1,7 +1,7 @@
 open Vars
 
 let test ctx left right (_: unit) =
-  System2.is left right ctx |> fst
+  System.is left right ctx |> fst
 
 let name left right expect =
   let left  = display left in
@@ -14,7 +14,7 @@ let case left right expect ctx =
 
 let case_var name bound case expect ctx =
   let bind = { Abt.name } in
-  let ctx = { ctx with Context2.rigids = { bind; lower = Type.bot; upper = bound } :: ctx.Context2.rigids } in
+  let ctx = { ctx with Context.rigids = { bind; lower = Type.bot; upper = bound } :: ctx.Context.rigids } in
   let var = var bind in
   case var expect ctx
 

@@ -1,5 +1,5 @@
-open Context2
-open Context2.Monad
+open Context
+open Context.Monad
 open Node
 
 let return_base type' = return (base type')
@@ -75,33 +75,33 @@ and validate_app app =
   let* abs = validate app.abs in
   let* arg = validate app.arg in
   let* param = validate_app_param abs in
-  let* cond = System2.isa arg param in
+  let* cond = System.isa arg param in
   if not cond then
     Error.validate_app_arg app param arg
   else
-  System2.compute abs arg
+  System.compute abs arg
 
 and validate_union union =
   let* left  = validate union.left  in
   let* right = validate union.right in
   let* kind_left  = Kind.get_kind left in
   let* kind_right = Kind.get_kind right in
-  let* cond = System2.is_kind kind_left kind_right in
+  let* cond = System.is_kind kind_left kind_right in
   if not cond then
     Error.validate_union_kind union
   else
-  System2.join left right
+  System.join left right
 
 and validate_inter inter =
   let* left  = validate inter.left  in
   let* right = validate inter.right in
   let* kind_left  = Kind.get_kind left in
   let* kind_right = Kind.get_kind right in
-  let* cond = System2.is_kind kind_left kind_right in
+  let* cond = System.is_kind kind_left kind_right in
   if not cond then
     Error.validate_inter_kind inter
   else
-  System2.meet left right
+  System.meet left right
 
 (* TODO: Handle both lower and upper bounds in parameter validation *)
 and validate_app_param abs =
@@ -109,11 +109,11 @@ and validate_app_param abs =
 
 and validate_app_param_union types =
   let* types = list_map validate_app_param_inter types in
-  list_reduce System2.meet types
+  list_reduce System.meet types
 
 and validate_app_param_inter types =
   let* types = list_map validate_app_param_base types in
-  list_reduce System2.join types
+  list_reduce System.join types
 
 and validate_app_param_base type' =
   match type' with
@@ -148,7 +148,7 @@ and validate_param (param: Abt.param_type) =
   | None, None ->
     return (Node.bot, Node.top)
   in
-  let* cond = System2.isa lower upper in
+  let* cond = System.isa lower upper in
   if not cond then
     Error.validate_interval param.interval lower upper
   else

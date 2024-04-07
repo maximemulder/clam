@@ -205,7 +205,7 @@ let check_defs defs primitives =
 
 let check_types defs =
   List.map (fun (def: Abt.def_type) -> def.name,
-    let ctx = Type.Context2.empty in
+    let ctx = Type.Context.empty in
     let type', _ = Type.Validate.validate def.type' ctx in
     let kind, _ = Type.Kind.get_kind type' ctx in
   kind) defs

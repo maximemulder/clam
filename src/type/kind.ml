@@ -1,6 +1,6 @@
 open Node
-open Context2
-open Context2.Monad
+open Context
+open Context.Monad
 
 type kind =
   | Type

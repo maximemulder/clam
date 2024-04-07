@@ -1,5 +1,5 @@
-open Context2
-open Context2.Monad
+open Context
+open Context.Monad
 
 let rec levelize bind (type': Node.type') =
   list_iter (list_iter (levelize_base bind)) type'.dnf
