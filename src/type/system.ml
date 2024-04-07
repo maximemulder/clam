@@ -4,7 +4,38 @@ open Level
 open Node
 open Rename
 
+(* EXTRACT FRESH TYPE VARIABLES *)
+
+(* Extract fresh type variables from wrong polarities. This is not perfect and
+   should be refactored once negation types are implemented. *)
+
+let get_fresh_sub sub =
+  match sub with
+  | [Var var] ->
+    let* var = get_var var.bind in
+    (match var with
+    | Fresh fresh ->
+      return (Some { bind = fresh.bind })
+    | Rigid _ ->
+      return None)
+  | _ ->
+    return None
+
+let get_fresh_sup sup =
+  match sup with
+  | Var var ->
+    let* var = get_var var.bind in
+    (match var with
+    | Fresh fresh ->
+      return (Some { bind = fresh.bind })
+    | Rigid _ ->
+      return None)
+  | _ ->
+    return None
+
 (* CONSTRAIN EQUIVALENCE *)
+
+(* Constrain two types to be equal in a given context. *)
 
 let rec is left right =
   let* sub = isa left right in
@@ -18,14 +49,34 @@ and is_param left right =
 
 (* CONSTRAIN SUBTYPE *)
 
-and isa left right =
-  isa_union left.dnf right.dnf
+(* Constrain a type to be a subtype of another type in a given context.
+   The handling of unions and intersections is currently not perfect. It should
+   be improved once negation types are implemented. *)
 
-and isa_union left right =
-  list_all (fun left -> list_any (isa_inter left) right) left
+and isa sub sup =
+  isa_union sub.dnf sup.dnf
 
-and isa_inter left right =
-  list_all (fun right -> list_any (fun left -> isa_base left right) left) right
+and isa_union sub sup =
+  list_all (fun sub -> isa_union_2 sub sup) sub
+
+and isa_union_2 sub sup =
+  let* fresh = get_fresh_sub sub in
+  match fresh with
+  | Some sub when List.length sup > 1 ->
+    isa_var_sub sub { dnf = sup }
+  | _ ->
+    list_any (isa_inter sub) sup
+
+and isa_inter sub sup =
+  list_all (fun sup -> isa_inter_2 sub sup) sup
+
+and isa_inter_2 sub sup =
+  let* fresh = get_fresh_sup sup in
+  match fresh with
+  | Some sup when List.length sub > 1 ->
+    isa_var_sup { dnf = [sub] } sup
+  | _ ->
+    list_any (fun sub -> isa_base sub sup) sub
 
 and isa_base sub sup =
   match sub, sup with

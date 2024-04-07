@@ -80,9 +80,9 @@ let get_var bind ctx =
   let fresh = List.find_opt (fun (var: fresh) -> var.bind == bind) ctx.freshs in
   let rigid = List.find_opt (fun (var: rigid) -> var.bind == bind) ctx.rigids in
   match fresh, rigid with
-  | Some _, Some _ ->
-    failwith ("Type variable `" ^ bind.name ^ "` present in both fresh and rigid variables.")
-  | Some var, None ->
+  | Some var, _ ->
+    (* TODO: Investigate on the cases in which a variable can be in both fresh and rigid
+             variables. *)
     Fresh var, ctx
   | None, Some var ->
     Rigid var, ctx
