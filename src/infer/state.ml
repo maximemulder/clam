@@ -3,6 +3,8 @@
   about the current inference type variables, parameter type variables and expression types.
 *)
 
+open Type.Context
+
 let cmp_bind a b =
   a.Abt.id = b.Abt.id
 
@@ -18,33 +20,13 @@ type entry_expr = {
   type': Type.type';
 }
 
-type entry_type = {
-  bind: Abt.bind_type;
-  lower: Type.type';
-  upper: Type.type';
-}
-
-type entry_var = {
-  bind: Abt.bind_type;
-  lower: Type.type';
-  upper: Type.type';
-  level_orig: int;
-  level_low: int;
-}
-
-type var =
-  | Param of entry_type
-  | Infer of entry_var
-
 (* STATE *)
 
 type state = {
   id: int;
-  level: int;
   defs: entry_def list;
   exprs: entry_expr list;
-  types: entry_type list;
-  vars: entry_var list;
+  ctx: ctx;
 }
 
 include Util.Monad.Monad(Util.Monad.StateMonad(struct
@@ -60,80 +42,76 @@ let get_state state =
 (** Global mutable flag used to enable debugging. *)
 let debug_flag = ref false
 
-let print string =
-  let* state = get_state in
-  if !debug_flag then
-    print_endline (Util.string_indent state.level string);
-  return ()
-
-let print_vars state =
-  if !debug_flag then
-    Util.list_group (fun (var: entry_var) -> var.level_low) state.vars
-    |> List.iter (fun (id, vars) ->
-      let vars = String.concat ", " (List.map (fun var -> var.bind.name ^ ": " ^ Type.display var.lower ^  " .. " ^ Type.display var.upper) vars) in
-      print_endline (Util.string_indent id vars)
-    );
-  (), state
-
 (* FUNCTIONS *)
-
-let get_var bind state =
-  match List.find_opt (fun (entry: entry_type) -> entry.bind == bind) state.types with
-  | Some entry -> Param entry, state
-  | None ->
-  match List.find_opt (fun (entry: entry_var) -> entry.bind == bind) state.vars with
-  | Some entry -> Infer entry, state
-  | None ->
-    raise Not_found
 
 let make_state defs exprs =
   let defs = List.map (fun (def: Abt.def_expr) -> { bind = def.bind; def }) defs in
-  { id = 0; level = 0; defs; exprs; types = []; vars = [] }
+  { id = 0; defs; exprs; ctx = empty }
 
-(*
-  Adapter functions that allow to use the old type system in the new one. Eventually
-  they should disappear once the old type system has been reworked to use the new
-  data structures.
-*)
+(* Adapter functions to directly use the type context monadic functions. *)
 
-let get_context2 state =
-  let rigids = List.append
-    (List.map (fun (entry: entry_type) -> { Type.Context.bind = entry.bind; lower = entry.lower; upper = entry.upper }) state.types)
-    (List.map (fun (entry: entry_var) -> { Type.Context.bind = entry.bind; lower = entry.lower; upper = entry.upper }) state.vars)
-  in
-  { Type.Context.rigids; level = 0; freshs = [] }, state
+let with_ctx f state =
+  let x, ctx = f state.ctx in
+  x, { state with ctx }
+
+let with_msg str f state =
+  print_endline ("start " ^ str);
+  let x, state = f state in
+  print_endline ("end " ^ str);
+  x, state
+
+let get_var bind =
+  with_ctx (get_var bind)
+
+let update_fresh fresh =
+  with_ctx (update_fresh fresh)
 
 let validate type' =
-  let* ctx = get_context2 in
-  return (Type.Validate.validate type' ctx |> fst)
+  with_ctx (Type.Validate.validate type')
 
 let validate_param param =
-  let* ctx = get_context2 in
-  return (Type.Validate.validate_param param ctx |> fst)
+  with_ctx (Type.Validate.validate_param param)
 
 let validate_proper type' =
-  let* ctx = get_context2 in
-  return (Type.Validate.validate_proper type' ctx |> fst)
+  with_ctx (Type.Validate.validate_proper type')
 
 let substitute bind arg type' =
-  let* ctx = get_context2 in
-  return (Type.System.substitute bind arg  type' ctx |> fst)
+  with_ctx (Type.System.substitute bind arg type')
 
 let is left right =
-  let* ctx = get_context2 in
-  return (Type.System.is left right ctx |> fst)
+  with_ctx (Type.Context.with_freeze(Type.System.is left right))
 
 let isa sub sup =
-  let* ctx = get_context2 in
-  return (Type.System.isa sub sup ctx |> fst)
+  with_ctx (Type.System.isa sub sup)
 
 let join left right =
-  let* ctx = get_context2 in
-  return (Type.System.join left right ctx |> fst)
+  with_ctx (Type.System.join left right)
 
 let meet left right =
-  let* ctx = get_context2 in
-  return (Type.System.meet left right ctx |> fst)
+  with_ctx (Type.System.meet left right)
+
+let with_param_rigid (param: Type.param) f state =
+  let var = { bind = param.bind; lower = param.lower; upper = param.upper } in
+  let ctx = { state.ctx with rigids = var :: state.ctx.rigids } in
+  let state = { state with ctx } in
+  let x, state = f state in
+  let ctx = { state.ctx with rigids = List.tl state.ctx.rigids } in
+  let state = { state with ctx } in
+  x, state
+
+(* PRINT STATE CONTEXT *)
+
+let print string ctx =
+  if !debug_flag then
+    with_ctx (print string) ctx
+  else
+    (), ctx
+
+let print_ctx ctx =
+  if !debug_flag then
+    with_ctx print_ctx ctx
+  else
+    (), ctx
 
 (* STATE FUNCTION *)
 
@@ -142,21 +120,6 @@ let get_def_entry bind state =
 
 let get_expr_entry bind state =
   List.find_opt (fun (entry: entry_expr) -> cmp_bind entry.bind bind) state.exprs, state
-
-let get_var_entry bind state =
-  List.find (fun (entry: entry_var) -> entry.bind == bind) state.vars, state
-
-let get_var_entry_opt bind state =
-  List.find_opt (fun (entry: entry_var) -> entry.bind == bind) state.vars, state
-
-let update_var_entry bind f state =
-  let vars = List.map (fun (entry: entry_var) ->
-    if entry.bind == bind then
-      f entry
-    else
-      entry
-  ) state.vars in
-  (), { state with vars }
 
 let update_expr f bind state =
   let exprs = List.map (fun (var_expr: entry_expr) ->
@@ -179,24 +142,8 @@ let get_expr_type bind =
   let type' = Option.map (fun entry -> entry.type') entry in
   return type'
 
-let get_var_lower bind =
-  let* entry = get_var_entry bind in
-  return entry.lower
-
-let get_var_upper bind =
-  let* entry = get_var_entry bind in
-  return entry.upper
-
-let update_var_lower bind bound =
-  let* ctx = get_context2 in
-  update_var_entry bind (fun entry -> { entry with lower = Type.System.join entry.lower bound ctx |> fst })
-
-let update_var_upper bind bound =
-  let* ctx = get_context2 in
-  update_var_entry bind (fun entry -> { entry with upper = Type.System.meet entry.upper bound ctx |> fst})
-
 let add_expr span bind type' state =
-  let exprs = { span; bind; level = state.level; type' } :: state.exprs in
+  let exprs = { span; bind; level = state.ctx.level; type' } :: state.exprs in
   (), { state with exprs }
 
 let remove_expr bind state =
@@ -209,50 +156,5 @@ let with_expr span bind type' f =
   let* () = remove_expr bind in
   return x
 
-let with_type bind lower upper f state =
-  let types = state.types in
-  let state = { state with types = { bind; lower; upper } :: types } in
-  let x, state = f state in
-  let state = { state with types } in
-  x, state
-
-let make_var state =
-  let bind = { Abt.name = "'" ^ string_of_int state.id } in
-  let _ = print ("var " ^ bind.name) state in
-  let var = { bind; level_orig = state.level; level_low = state.level; lower = Type.bot; upper = Type.top } in
-  let state = { state with id = state.id + 1; level = state.level + 1; vars = var :: state.vars } in
-  bind, state
-
-let remove_var bind state =
-  let vars = List.filter (fun entry -> entry.bind != bind) state.vars in
-  (), { state with level = state.level - 1; vars }
-
-let is_infer bind state =
-  List.exists (fun (entry: entry_var) -> entry.bind == bind) state.vars
-
-(**
-  Reorder variables such that the variable is below a given level.
-*)
-let reorder level bind state =
-  let bind_level = (List.find (fun entry -> entry.bind == bind) state.vars).level_low in
-  if level < bind_level then
-    let vars = List.map (fun entry -> { entry with
-      level_low = if entry.level_low >= level && entry.level_low < bind_level then
-        entry.level_low + 1
-      else if entry.level_low = bind_level then
-        level
-      else
-        entry.level_low
-      }) state.vars in
-    (), { state with vars }
-  else
-    (), state
-
-let get_highest_variable state =
-  let var = List.fold_left (fun a b -> match a with
-  | Some a -> if a.level_low > b.level_low then Some a else Some b
-  | None -> Some b) None state.vars in
-  Option.map (fun var -> var.bind) var, state
-
 let get_high_exprs state =
-  List.filter (fun (var_expr: entry_expr) -> var_expr.level = state.level) state.exprs, state
+  List.filter (fun (var_expr: entry_expr) -> var_expr.level = state.ctx.level) state.exprs, state

@@ -88,10 +88,6 @@ and isa_base sub sup =
     return (kind = Type)
   | Unit, Unit | Bool, Bool | Int, Int | String, String ->
     return true
-  | Univ univ, sup ->
-    with_param_fresh univ.param (isa univ.ret (base sup))
-  | sub, Univ univ ->
-    with_param_rigid univ.param (isa (base sub) univ.ret)
   | Var sub, Var sup ->
     isa_var sub sup
   | Var sub, sup ->
@@ -116,6 +112,10 @@ and isa_base sub sup =
     let* sup_abs = promote_lower sup.abs in
     let* sup = compute sup_abs sup.arg in
     isa (Node.base sub) sup
+  | Univ univ, sup ->
+    with_param_fresh univ.param (isa univ.ret (base sup))
+  | sub, Univ univ ->
+    with_param_rigid univ.param (isa (base sub) univ.ret)
   | _, _ ->
     return false
 

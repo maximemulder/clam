@@ -1,4 +1,4 @@
-open State
+(*open State
 
 let rec levelize bind (type': Type.type') =
   list_iter (list_iter (levelize_base bind)) type'.dnf
@@ -100,3 +100,4 @@ and get_level_param param =
   let* lower = get_level param.lower in
   let* upper = get_level param.upper in
   return (join_level lower upper)
+*)

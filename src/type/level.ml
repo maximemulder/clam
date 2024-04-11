@@ -29,11 +29,11 @@ and levelize_base bind type' =
     return ()
   | Univ univ ->
     let* () = levelize_param bind univ.param in
-    let* () = levelize bind univ.ret in
+    let* () = with_param_rigid univ.param (levelize bind univ.ret) in
     return ()
   | Abs abs ->
     let* () = levelize_param bind abs.param in
-    let* () = levelize bind abs.body in
+    let* () = with_param_rigid abs.param (levelize bind abs.body) in
     return ()
   | App app ->
     let* () = levelize bind app.abs in

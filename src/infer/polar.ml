@@ -1,4 +1,5 @@
-open State
+open Type.System
+open Type.Context
 
 type pol = Neg | Pos
 
@@ -86,8 +87,8 @@ and get_pols_base state bind pol type' =
       (get_pols state bind pol lam.ret)
   | Univ univ ->
     let param = get_pols_param state bind pol univ.param in
-    let ret, state = with_type univ.param.bind univ.param.lower univ.param.upper
-      (fun state -> get_pols state bind pol univ.ret, state) state in
+    let ret, state = with_param_rigid univ.param
+      (fun ctx -> get_pols state bind pol univ.ret, ctx) state in
     merge_pols state param ret
   | _ ->
     none

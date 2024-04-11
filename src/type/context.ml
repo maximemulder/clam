@@ -40,12 +40,29 @@ let with_freeze f ctx =
   let x, _ = f frozen in
   x, ctx
 
+(* PRINT CONTEXT *)
+
+let print string ctx =
+    Util.string_indent (List.length ctx.freshs) string
+    |> print_endline;
+  (), ctx
+
+let print_ctx ctx =
+  List.map (fun (var: rigid) -> (var.bind.name) ^ " = " ^ Display.display var.lower ^ " .. " ^ Display.display var.upper) (List.rev ctx.rigids)
+  |> String.concat ", "
+  |> print_endline;
+  List.mapi (fun i (var: fresh) -> Util.string_indent i (var.bind.name) ^ " " ^ string_of_int var.level ^ ": " ^ Display.display var.lower ^ " .. " ^ Display.display var.upper) (List.rev ctx.freshs)
+  |> String.concat "\n"
+  |> print_endline;
+  (), ctx
+
 (* ACCESS TYPE VARIABLES *)
 
 let rec collect_freshs ctx =
   let fresh = List.nth_opt ctx.freshs 0 in
   match fresh with
   | Some fresh when fresh.level >= ctx.level ->
+    let _ = print ("remove_ctx " ^ fresh.bind.name) ctx in
     let ctx = { ctx with freshs = List.tl ctx.freshs } in
     collect_freshs ctx
   | _ ->
@@ -56,11 +73,12 @@ let update_fresh (var: fresh) ctx =
   (), { ctx with freshs }
 
 let with_param_fresh (param: Node.param) f ctx =
-  let var = { bind = param.bind; level = ctx.level; lower = param.lower; upper = param.upper } in
+  let var = { bind = param.bind; level = ctx.level + 1; lower = param.lower; upper = param.upper } in
   let ctx = { ctx with level = ctx.level + 1; freshs = var :: ctx.freshs } in
+  let _ = print ("add_ctx " ^ var.bind.name) ctx in
   let x, ctx = f ctx in
-  let ctx = { ctx with level = ctx.level - 1 } in
   let ctx = collect_freshs ctx in
+  let ctx = { ctx with level = ctx.level - 1 } in
   x, ctx
 
 let with_param_rigid (param: Node.param) f ctx =
@@ -122,8 +140,8 @@ let rec reorder bind other (vars: fresh list) =
   | [] ->
     []
   | var :: vars ->
-    var :: if var.bind == bind then
-      vars
+    if var.bind == bind then
+      var :: vars
     else if var.bind == other then
       insert bind var vars
     else

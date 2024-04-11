@@ -5,107 +5,104 @@
 *)
 
 open Polar
-open State
 open Inline
+open Type.Context
+open State
 
-let solve type' bind =
+let solve (fresh: fresh) type' =
   let* state = get_state in
-  let pols = get_pols state bind Pos type' in
-  let* () = if Option.is_some pols.neg then
-    print ("NEG" ^ bind.name ^ " IN " ^ Type.display type')
-  else
-      return () in
-    let* () = if Option.is_some pols.pos then
-    print ("POS" ^ bind.name ^ " IN " ^ Type.display type')
-  else
-      return () in
+  let pols = get_pols state.ctx fresh.bind Pos type' in
   match pols.neg, pols.pos with
   | Some neg, _ when neg <> Type.bot ->
-    let* () = print("co_neg " ^ bind.name ^ " by " ^ Type.display neg ^ " in " ^ Type.display type') in
+    let* () = print("co_neg " ^ fresh.bind.name ^ " by " ^ Type.display neg ^ " in " ^ Type.display type') in
     (* let* lower = get_var_lower bind in
     let* upper = get_var_upper bind in
     let* neg = join neg lower in *)
-    inline bind (Type.top) neg Pos type'
+    with_ctx (inline fresh (Type.top) neg Pos type')
   | _, Some pos when pos <> Type.top ->
-    let* () = print("co_pos " ^ bind.name ^ " by " ^ Type.display pos ^ " in " ^ Type.display type') in
+    let* () = print("co_pos " ^ fresh.bind.name ^ " by " ^ Type.display pos ^ " in " ^ Type.display type') in
     (* let* lower = get_var_lower bind in
     let* upper = get_var_upper bind in
     let* pos = meet pos upper in *)
-    inline bind pos (Type.bot) Pos type'
+    with_ctx (inline fresh pos (Type.bot) Pos type')
   | Some _, Some _ ->
-    let* () = print("quantify " ^ bind.name ^ " in " ^ Type.display type') in
-    let* lower = get_var_lower bind in
-    let* upper = get_var_upper bind in
-    let* cond = is lower upper in
+    let* () = print("quantify " ^ fresh.bind.name ^ " in " ^ Type.display type') in
+    let* cond = is fresh.lower fresh.upper in
     if cond then
-      substitute bind lower type'
+      substitute fresh.bind fresh.lower type'
     else
-      let param_bind = { Abt.name = bind.name } in
-      let type' = Type.rename type' bind param_bind in
-      return (Type.univ { bind = param_bind; lower; upper } type')
+      let param_bind = { Abt.name = fresh.bind.name } in
+      let type' = Type.rename type' fresh.bind param_bind in
+      return (Type.univ { bind = param_bind; lower = fresh.lower; upper = fresh.upper } type')
   | Some _, None ->
-    let* () = print("inline_neg " ^ bind.name ^ " in " ^ Type.display type') in
-    let* upper = get_var_upper bind in
-    substitute bind upper type'
+    let* () = print("inline_neg " ^ fresh.bind.name ^ " in " ^ Type.display type') in
+    substitute fresh.bind fresh.upper type'
   | None, Some _ ->
-    let* () = print("inline_pos " ^ bind.name ^ " in " ^ Type.display type') in
-    let* lower = get_var_lower bind in
-    substitute bind lower type'
+    let* () = print("inline_pos " ^ fresh.bind.name ^ " in " ^ Type.display type') in
+    substitute fresh.bind fresh.lower type'
   | None, None ->
-    let* () = print("none " ^ bind.name ^ " in " ^ Type.display type') in
+    let* () = print("none " ^ fresh.bind.name ^ " in " ^ Type.display type') in
     return type'
 
-let find_recursive span entry type' =
-  let* level = Level.get_level type' in
+let find_recursive span fresh type' =
+  (*let* level = Level.get_level type' in
   match level with
   | Some level when level = entry.level_low ->
     Error.raise_recursive span entry.bind type'
-  | _ ->
+  | _ -> *)
+  (* TODO: Port this. *)
     return ()
 
-let solve_type span bind type' =
-  let* type' = solve type' bind in
-  let* var_entry = get_var_entry bind in
-  let* () = find_recursive span var_entry type' in
+let solve_type span fresh type' =
+  let* type' = solve fresh type' in
+  let* () = find_recursive span fresh type' in
   let* () = print ("= " ^ Type.display type') in
   return type'
 
-let solve_expr bind var_expr =
-  let* type' = solve var_expr.type' bind in
+let solve_expr (fresh: fresh) (var_expr: entry_expr) =
+  let* type' = solve fresh var_expr.type' in
   let* () = update_expr_type var_expr.bind type' in
-  let* var_entry = get_var_entry bind in
-  let* () = find_recursive var_expr.span var_entry type' in
+  let* () = find_recursive var_expr.span fresh type' in
   let* () = print (var_expr.bind.name ^ ": " ^ Type.display type') in
-  let* level = Level.get_level type' in
+  (* let* level = Level.get_level type' in
   match level with
   | Some level ->
     let* () = update_expr_level var_expr.bind level in
     return ()
-  | None ->
+  | None -> *)
+  (* TODO: Port this. *)
     return ()
 
-let solve_exprs bind =
+let solve_exprs fresh =
   let* exprs = get_high_exprs in
-  list_iter (solve_expr bind) exprs
+  list_iter (solve_expr fresh) exprs
 
-let rec solve_bis span level type' =
-  let* high = get_highest_variable in
-  match high with
-  | None ->
-    return type'
-  | Some high ->
-    let* high_entry = get_var_entry high in
-    if high_entry.level_orig >= level then
-      let* type' = solve_type span high type'  in
-      let* () = solve_exprs high in
-      let* () = remove_var high in
-      solve_bis span level type'
-    else
-      return type'
+let rec solve_bis span fresh type' =
+  let* type' = solve_type span fresh type'  in
+  let* () = solve_exprs fresh in
+  return type'
 
-let with_var span f =
-  let* var = make_var in
-  let type' = Type.var var in
-  let* type' = f type' in
-  let* entry = get_var_entry var in
-  solve_bis span entry.level_orig type'
+let rec collect_freshs f x state =
+  let fresh = List.nth_opt state.ctx.freshs 0 in
+  match fresh with
+  | Some fresh when fresh.level >= state.ctx.level ->
+    let x, state = f fresh x state in
+    let ctx = { state.ctx with freshs = List.tl state.ctx.freshs } in
+    let state = { state with ctx } in
+    collect_freshs f x state
+  | _ ->
+    x, state
+
+let with_var span f state =
+  let bind = { Abt.name = "'" ^ string_of_int state.id } in
+  let _ = print ("var " ^ bind.name) state in
+  let state = { state with id = state.id + 1 } in
+  let var = { bind; level = state.ctx.level + 1; lower = Type.bot; upper = Type.top } in
+  let type' = Type.var bind in
+  let ctx = { state.ctx with level = state.ctx.level + 1; freshs = var :: state.ctx.freshs } in
+  let state = { state with ctx } in
+  let x, state = f type' state in
+  let x, state = collect_freshs (solve_bis span) x state in
+  let ctx = { state.ctx with level = state.ctx.level - 1 } in
+  let state = { state with ctx } in
+  x, state

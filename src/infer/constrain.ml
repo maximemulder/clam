@@ -1,4 +1,4 @@
-open Level
+(* open Level
 open State
 
 (*
@@ -144,12 +144,14 @@ and constrain_record_attr sub_record sup_attr =
 and constrain_lam sub_abs sup_abs =
   let* param = constrain sup_abs.param sub_abs.param in
   let* ret = constrain sub_abs.ret sup_abs.ret in
-  return (param && ret)
+  return (param && ret) *)
+
+open State
 
 let constrain span sub sup =
   let* () = print ("constrain " ^ Type.display sub ^ " < " ^ Type.display sup) in
-  let* result = constrain sub sup in
-  let* () = print_vars in
+  let* result = isa sub sup in
+  let* () = print_ctx in
   if result then
     return ()
   else

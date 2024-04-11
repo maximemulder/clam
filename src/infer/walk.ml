@@ -72,8 +72,8 @@ and infer_record_attr attr =
 
 and infer_elem expr =
   let* tuple = infer expr.tuple in
-  let* ctx = get_context2 in
-  let type' = Search.search_proj (infer_elem_base expr.index) tuple ctx in
+  let* state = get_state in
+  let type' = Search.search_proj (infer_elem_base expr.index) tuple state.ctx in
   match type' with
   | Some type' ->
     return type'
@@ -124,15 +124,15 @@ and infer_univ_abs expr =
   let* param = validate_param expr.param in
   with_var expr.span (fun var ->
     let type' = Type.univ param var in
-    let* () = with_type expr.param.bind param.lower param.upper
+    let* () = with_param_rigid param
       (infer_parent expr.body var) in
     return type'
   )
 
 and infer_univ_app expr =
   let* univ = infer expr.abs in
-  let* ctx = get_context2 in
-  let type' = Search.search_app_type infer_univ_app_base univ ctx in
+  let* state = get_state in
+  let type' = Search.search_app_type infer_univ_app_base univ state.ctx in
   match type' with
   | Some { param; ret } ->
     let* arg = validate expr.arg in
