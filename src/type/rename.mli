@@ -3,4 +3,4 @@
   substitution, however, the two variables should be equivalent as
   no simplification or bound-checking is performed.
 *)
-val rename: Node.type' -> Abt.bind_type -> Abt.bind_type -> Node.type'
+val rename: Abt.bind_type -> Abt.bind_type -> Node.type' -> Node.type'

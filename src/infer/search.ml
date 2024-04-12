@@ -78,8 +78,8 @@ module SearcherAppType = struct
 
   let with_merge_param bound left right f =
     let param = make_param bound in
-    let left_ret  = Type.rename left.ret  left.param.bind  param.bind in
-    let right_ret = Type.rename right.ret right.param.bind param.bind in
+    let left_ret  = Type.rename left.param.bind  param.bind left.ret  in
+    let right_ret = Type.rename right.param.bind param.bind right.ret in
     let* ret = f left_ret right_ret in
     return { param; ret }
 

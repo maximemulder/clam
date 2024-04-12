@@ -113,7 +113,7 @@ and isa_base sub sup =
     let* sup = compute sup_abs sup.arg in
     isa (Node.base sub) sup
   | Univ univ, sup ->
-    with_param_fresh univ.param (isa univ.ret (base sup))
+    with_param_fresh univ.param univ.ret (fun ret -> isa ret (base sup))
   | sub, Univ univ ->
     with_param_rigid univ.param (isa (base sub) univ.ret)
   | _, _ ->
@@ -199,7 +199,7 @@ and isa_lam sub sup =
 
 and isa_abs sub sup =
   let* param = is_param sub.param sup.param in
-  let sup_body = rename sup.body sup.param.bind sub.param.bind in
+  let sup_body = rename sup.param.bind sub.param.bind sup.body in
   let* body = with_param_rigid sub.param (isa sub.body sup_body) in
   return (param && body)
 
@@ -319,7 +319,7 @@ and meet_univ left right =
   if not param then
     return (Some Bot)
   else
-  let right_ret = rename right.ret right.param.bind left.param.bind in
+  let right_ret = rename right.param.bind left.param.bind right.ret in
   let* ret = with_param_rigid left.param (meet left.ret right_ret) in
   return (Some (Univ { param = left.param; ret }))
 
@@ -328,7 +328,7 @@ and meet_abs left right =
   if not param then
     return (Some Bot)
   else
-  let right_body = rename right.body right.param.bind left.param.bind in
+  let right_body = rename right.param.bind left.param.bind right.body in
   let* body = with_param_rigid left.param (meet left.body right_body) in
   return (Some (Abs { param = left.param; body }))
 

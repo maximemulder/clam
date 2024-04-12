@@ -19,12 +19,13 @@ type rigid = {
 
 (** Typing context, which contains both fresh and rigid type variables. *)
 type ctx = {
+  id: int;
   level: int;
   freshs: fresh list;
   rigids: rigid list;
 }
 
-let empty = { level = 0; freshs = []; rigids = [] }
+let empty = { id = 0; level = 0; freshs = []; rigids = [] }
 
 (* FREEZE CONTEXT *)
 
@@ -33,7 +34,8 @@ let freeze_fresh (fresh: fresh) =
 
 let freeze ctx =
   let freshs = List.map freeze_fresh ctx.freshs in
-  { freshs = []; rigids = ctx.rigids @ freshs; level = 0 }
+  (* TODO: SUS AF *)
+  { id = 0; level = 0; freshs = []; rigids = ctx.rigids @ freshs }
 
 let with_freeze f ctx =
   let frozen = freeze ctx in
@@ -72,11 +74,13 @@ let update_fresh (var: fresh) ctx =
   let freshs = List.map (fun (old: fresh) -> if old.bind == var.bind then var else old) ctx.freshs in
   (), { ctx with freshs }
 
-let with_param_fresh (param: Node.param) f ctx =
-  let var = { bind = param.bind; level = ctx.level + 1; lower = param.lower; upper = param.upper } in
-  let ctx = { ctx with level = ctx.level + 1; freshs = var :: ctx.freshs } in
+let with_param_fresh (param: Node.param) type' f ctx =
+  let bind = { Abt.name = "'" ^ string_of_int ctx.id } in
+  let var = { bind = bind; level = ctx.level + 1; lower = param.lower; upper = param.upper } in
+  let ctx = { ctx with id = ctx.id + 1; level = ctx.level + 1; freshs = var :: ctx.freshs } in
   let _ = print ("add_ctx " ^ var.bind.name) ctx in
-  let x, ctx = f ctx in
+  let type' = Rename.rename param.bind bind type' in
+  let x, ctx = f type' ctx in
   let ctx = collect_freshs ctx in
   let ctx = { ctx with level = ctx.level - 1 } in
   x, ctx

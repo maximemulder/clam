@@ -65,7 +65,7 @@ and rename_infer univ i =
   if Str.string_match pattern univ.param.bind.name 0 then
     let bind = { Abt.name = index_to_name i } in
     let param = { univ.param with bind } in
-    let ret = Type.rename univ.ret univ.param.bind bind in
+    let ret = Type.rename univ.param.bind bind univ.ret in
     { param; ret }, i + 1
   else
     univ, i

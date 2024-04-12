@@ -42,6 +42,3 @@ and rename_param bind other param =
   let lower = rename bind other param.lower in
   let upper = rename bind other param.upper in
   { param with lower; upper }
-
-let rename type' bind other =
-  rename bind other type'

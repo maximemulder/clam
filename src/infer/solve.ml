@@ -32,7 +32,7 @@ let solve (fresh: fresh) type' =
       substitute fresh.bind fresh.lower type'
     else
       let param_bind = { Abt.name = fresh.bind.name } in
-      let type' = Type.rename type' fresh.bind param_bind in
+      let type' = Type.rename fresh.bind param_bind type' in
       return (Type.univ { bind = param_bind; lower = fresh.lower; upper = fresh.upper } type')
   | Some _, None ->
     let* () = print("inline_neg " ^ fresh.bind.name ^ " in " ^ Type.display type') in
@@ -94,12 +94,11 @@ let rec collect_freshs f x state =
     x, state
 
 let with_var span f state =
-  let bind = { Abt.name = "'" ^ string_of_int state.id } in
+  let bind = { Abt.name = "'" ^ string_of_int state.ctx.id } in
   let _ = print ("var " ^ bind.name) state in
-  let state = { state with id = state.id + 1 } in
   let var = { bind; level = state.ctx.level + 1; lower = Type.bot; upper = Type.top } in
   let type' = Type.var bind in
-  let ctx = { state.ctx with level = state.ctx.level + 1; freshs = var :: state.ctx.freshs } in
+  let ctx = { state.ctx with id = state.ctx.id + 1; level = state.ctx.level + 1; freshs = var :: state.ctx.freshs } in
   let state = { state with ctx } in
   let x, state = f type' state in
   let x, state = collect_freshs (solve_bis span) x state in

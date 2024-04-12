@@ -44,6 +44,7 @@ let ea = bind "EA"
 let fa = bind "FA"
 
 let ctx = {
+  id = 0;
   level = 0;
   freshs = [];
   rigids = [

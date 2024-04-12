@@ -23,7 +23,6 @@ type entry_expr = {
 (* STATE *)
 
 type state = {
-  id: int;
   defs: entry_def list;
   exprs: entry_expr list;
   ctx: ctx;
@@ -46,7 +45,7 @@ let debug_flag = ref false
 
 let make_state defs exprs =
   let defs = List.map (fun (def: Abt.def_expr) -> { bind = def.bind; def }) defs in
-  { id = 0; defs; exprs; ctx = empty }
+  { defs; exprs; ctx = empty }
 
 (* Adapter functions to directly use the type context monadic functions. *)
 
