@@ -88,7 +88,7 @@ and get_pols_base state bind pol type' =
   | Univ univ ->
     let param = get_pols_param state bind pol univ.param in
     let ret, state = with_param_rigid univ.param
-      (fun ctx -> get_pols state bind pol univ.ret, ctx) state in
+      (fun ctx -> get_pols ctx bind pol univ.ret, ctx) state in
     merge_pols state param ret
   | _ ->
     none
