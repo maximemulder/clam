@@ -187,6 +187,11 @@ module Monad (M: MONAD) = struct
     | x :: xs -> list_collapse x xs [] [] f
     | _ -> invalid_arg "list_collapse"
 
+  let map_any f xs =
+    let f = (fun (_, v) -> f v) in
+    let xs = List.of_seq (NameMap.to_seq xs) in
+    list_any f xs
+
   let map_all f xs =
     let f = (fun (_, v) -> f v) in
     let xs = List.of_seq (NameMap.to_seq xs) in

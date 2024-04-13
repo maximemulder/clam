@@ -6,4 +6,4 @@
 let show_infer = ref false
 
 (** Flag to show the subtyping steps *)
-let show_isa   = ref false
+let show_isa = ref false

@@ -56,3 +56,89 @@ let run code config =
     Error.handle_infer  error config.print_err
   | Eval.Error   error ->
     Error.handle_eval   error config.print_err
+
+  ;;
+  open Type.Context
+
+  let inline v _ = v
+
+  let id v = v
+
+  (* Types *)
+
+  include Type
+
+  (* TODO: Adopt new bind system once typing is refactored *)
+
+  let bind name =
+    { Abt.name }
+
+  let record attrs =
+    let attrs = attrs
+      |> List.map (fun (label, type') -> (label, { label; type' }))
+      |> List.to_seq
+      |> Util.NameMap.of_seq in
+    base (Record { attrs })
+
+  let univ name bound ret =
+    let bind = bind name in
+    let param: Type.param = { bind; lower = bot; upper = bound } in
+    let ret = ret (var bind) in
+    base (Univ { param; ret })
+
+  let abs name bound body =
+    let bind = bind name in
+    let param: Type.param = { bind; lower = bot; upper = bound } in
+    let body = body (var bind) in
+    base (Abs { param; body })
+
+  let a = bind "A"
+  let b = bind "B"
+  let c = bind "C"
+  let d = bind "D"
+  let e = bind "E"
+  let f = bind "F"
+  let z = bind "Z"
+
+  let ea = bind "EA"
+  let fa = bind "FA"
+
+  let ctx = {
+    id = 0;
+    level = 0;
+    freshs = [];
+    rigids = [
+      { bind = a; lower = bot; upper = top };
+      { bind = b; lower = bot; upper = top };
+      { bind = c; lower = bot; upper = top };
+      { bind = d; lower = bot; upper = top };
+      { bind = e; lower = bot; upper = top };
+      { bind = f; lower = bot; upper = top };
+      { bind = z; lower = bot; upper = top };
+      { bind = ea; lower = bot; upper = var a };
+      { bind = fa; lower = bot; upper = var a };
+    ]
+  }
+
+  let union types =
+    let types = List.map (fun type' -> type'.dnf) types in
+    let types = List.flatten types in
+    { dnf = types }
+
+  let inter types =
+    Util.list_reduce (fun left right -> { dnf = Util.list_product (fun left right -> left @ right) left.dnf right.dnf }) types
+
+  let a = var a
+  let b = var b
+  let c = var c
+  let d = var d
+  let e = var e
+  let f = var f
+  let z = var z
+  let ea = var ea
+  let fa = var fa
+
+;;
+
+let _ =
+  System.isa (univ "T" top (inline a)) (univ "U" top (inline a)) ctx

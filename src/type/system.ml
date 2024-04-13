@@ -4,6 +4,44 @@ open Level
 open Node
 open Rename
 
+let rec has_fresh type' =
+  list_any (list_any has_fresh_base) type'.dnf
+
+and has_fresh_base type' =
+  match type' with
+  | Top | Bot | Unit | Bool | Int | String ->
+    return false
+  | Var var ->
+    let* var = get_var var.bind in (
+      match var with
+      | Fresh _ ->
+        return true
+      | Rigid _ ->
+        return false
+    )
+  | Tuple tuple ->
+    list_any has_fresh tuple.elems
+  | Record record ->
+    map_any has_fresh_attr record.attrs
+  | Lam lam ->
+    let* param = has_fresh lam.param in
+    let* ret   = has_fresh lam.ret in
+    return (param || ret)
+  | Univ univ ->
+    let* param = has_fresh_param univ.param in
+    let* ret   = with_param_rigid univ.param (has_fresh univ.ret) in
+    return (param || ret)
+  | _ ->
+    return false
+
+and has_fresh_attr attr =
+  has_fresh attr.type'
+
+and has_fresh_param param =
+  let* lower = has_fresh param.lower in
+  let* upper = has_fresh param.upper in
+  return (lower || upper)
+
 (* EXTRACT FRESH TYPE VARIABLES *)
 
 (* Extract fresh type variables from wrong polarities. This is not perfect and
@@ -15,7 +53,7 @@ let get_fresh_sub sub =
     let* var = get_var var.bind in
     (match var with
     | Fresh fresh ->
-      return (Some { bind = fresh.bind })
+      return (Some fresh)
     | Rigid _ ->
       return None)
   | _ ->
@@ -27,7 +65,7 @@ let get_fresh_sup sup =
     let* var = get_var var.bind in
     (match var with
     | Fresh fresh ->
-      return (Some { bind = fresh.bind })
+      return (Some fresh)
     | Rigid _ ->
       return None)
   | _ ->
@@ -53,6 +91,13 @@ and is_param left right =
    The handling of unions and intersections is currently not perfect. It should
    be improved once negation types are implemented. *)
 
+(* For a few steps, priority is important:
+   1. Process bilateral fresh variables.
+   2. Process unilateral fresh variables.
+   3. Process universal types.
+   4. Process rigid types.
+*)
+
 and isa sub sup =
   let* () = show_isa ("isa " ^ Display.display sub ^ " < " ^ Display.display sup) in
   isa_nesting := !isa_nesting + 1;
@@ -62,26 +107,95 @@ and isa sub sup =
   return result
 
 and isa_union sub sup =
-  list_all (fun sub -> isa_union_2 sub sup) sub
+  list_all (fun sub -> isa_union_hard sub sup) sub
 
-and isa_union_2 sub sup =
-  let* fresh = get_fresh_sub sub in
-  match fresh with
-  | Some sub when List.length sup > 1 ->
-    isa_var_sub sub { dnf = sup }
+and isa_union_hard sub sup =
+  match sup with
+  | [sup] ->
+    isa_inter sub sup
   | _ ->
-    list_any (isa_inter sub) sup
+    (* This solution is imperfect. *)
+    let* fresh = get_fresh_sub sub in
+    match fresh with
+    | Some sub ->
+      isa_fresh_sub sub { dnf = sup }
+    | None ->
+      let* fresh = list_any (list_any has_fresh_base) sup in
+      if fresh then
+        let* () = show_isa ("isa_wrong_union " ^ (List.map Display.display_base sub |> String.concat " & ") ^ " < " ^ Display.display { dnf = sup }) in
+        return false
+      else
+        list_any (isa_inter sub) sup
 
 and isa_inter sub sup =
-  list_all (fun sup -> isa_inter_2 sub sup) sup
+  list_all (fun sup -> isa_inter_hard sub sup) sup
 
-and isa_inter_2 sub sup =
-  let* fresh = get_fresh_sup sup in
-  match fresh with
-  | Some sup when List.length sub > 1 ->
-    isa_var_sup { dnf = [sub] } sup
+and isa_inter_hard sub sup =
+  match sub with
+  | [sub] ->
+    isa_base_var sub sup
   | _ ->
-    list_any (fun sub -> isa_base sub sup) sub
+    (* This solution is imperfect. *)
+    let* fresh = get_fresh_sup sup in
+    match fresh with
+    | Some sup ->
+      isa_fresh_sup { dnf = [sub] } sup
+    | None ->
+      let* fresh = list_any has_fresh_base sub in
+      if fresh then
+        let* () = show_isa ("isa_wrong_inter " ^ (List.map Display.display_base sub |> String.concat " & ") ^ " < " ^ Display.display_base sup) in
+        return false
+      else
+        list_any (fun sub -> isa_base_var sub sup) sub
+
+and isa_base_var sub sup =
+  match sub, sup with
+  | Var sub, Var sup ->
+    isa_var sub sup
+  | Var sub, sup ->
+    isa_var_sub sub sup
+  | sub, Var sup ->
+    isa_var_sup sub sup
+  | sub, sup ->
+    isa_base_univ sub sup
+
+and isa_var sub sup =
+  let* sub = get_var sub.bind in
+  let* sup = get_var sup.bind in
+  match sub, sup with
+  | Fresh sub, Fresh sup ->
+    isa_fresh sub sup
+  | Fresh sub, Rigid sup ->
+    isa_fresh_sub sub (Node.var sup.bind)
+  | Rigid sub, Fresh sup ->
+    isa_fresh_sup (Node.var sub.bind) sup
+  | Rigid sub, Rigid sup ->
+    isa_base_univ (Var { bind = sub.bind }) (Var { bind = sup.bind })
+
+and isa_var_sub sub sup =
+  let* sub = get_var sub.bind in
+  match sub with
+  | Fresh sub ->
+    isa_fresh_sub sub (Node.base sup)
+  | Rigid sub ->
+    isa_base_univ (Var { bind = sub.bind }) sup
+
+and isa_var_sup sub sup =
+  let* sup = get_var sup.bind in
+  match sup with
+  | Fresh sup ->
+    isa_fresh_sup (Node.base sub) sup
+  | Rigid sup ->
+    isa_base_univ sub (Var { bind = sup.bind })
+
+and isa_base_univ sub sup =
+  match sub, sup with
+  | sub, Univ sup ->
+    with_param_rigid sup.param (isa (base sub) sup.ret)
+  | Univ sub, sup ->
+    with_param_fresh sub.param sub.ret (fun ret -> isa ret (base sup))
+  | sub, sup ->
+    isa_base sub sup
 
 and isa_base sub sup =
   match sub, sup with
@@ -94,11 +208,11 @@ and isa_base sub sup =
   | Unit, Unit | Bool, Bool | Int, Int | String, String ->
     return true
   | Var sub, Var sup ->
-    isa_var sub sup
+    isa_rigid sub sup
   | Var sub, sup ->
-    isa_var_sub sub (Node.base sup)
-  | sub, Var sup ->
-    isa_var_sup (Node.base sub) sup
+    isa_rigid_sub sub sup
+  | sub, Var var ->
+    isa_rigid_sup sub var
   | Tuple sub, Tuple sup ->
     isa_tuple sub sup
   | Record sub, Record sup ->
@@ -109,76 +223,76 @@ and isa_base sub sup =
     isa_abs sub sup
   | App sub, App sup ->
     isa_app sub sup
-  | App sub, _ ->
+  | App sub, sup ->
     let* sub_abs = promote_upper sub.abs in
     let* sub = compute sub_abs sub.arg in
     isa sub (Node.base sup)
-  | _, App sup ->
+  | sub, App sup ->
     let* sup_abs = promote_lower sup.abs in
     let* sup = compute sup_abs sup.arg in
     isa (Node.base sub) sup
-  | Univ univ, sup ->
-    with_param_fresh univ.param univ.ret (fun ret -> isa ret (base sup))
-  | sub, Univ univ ->
-    with_param_rigid univ.param (isa (base sub) univ.ret)
   | _, _ ->
     return false
 
-and isa_var sub sup =
+and isa_fresh sub sup =
+  if sub.bind == sup.bind then
+    return true
+  else
+  let* level = cmp_level sub.bind sup.bind in
+  if level then
+    isa_fresh_sub sub (Node.var sup.bind)
+  else
+    isa_fresh_sup (Node.var sub.bind) sup
+
+and isa_fresh_sub sub sup =
+  let* cond = isa sub.lower sup in
+  if not cond then
+    return false
+  else
+  let* upper = meet sub.upper sup in
+  let sub = { sub with upper } in
+  let* () = levelize sub sup in
+  let* () = update_fresh sub in
+  return true
+
+and isa_fresh_sup sub sup =
+  let* cond = isa sub sup.upper in
+  if not cond then
+    return false
+  else
+  let* lower = join sup.lower sub in
+  let sup = { sup with lower } in
+  let* () = levelize sup sub in
+  let* () = update_fresh sup in
+  return true
+
+and isa_rigid sub sup =
   if sub.bind == sup.bind then
     return true
   else
   let* sub = get_var sub.bind in
   let* sup = get_var sup.bind in
   match sub, sup with
-  | Fresh sub, Fresh sup ->
-    let* level = cmp_level sub.bind sup.bind in
-    if level then
-      isa_var_sub { bind = sub.bind } (Node.var sup.bind)
-    else
-      isa_var_sup (Node.var sub.bind) { bind = sup.bind }
-  | Fresh sub, Rigid sup ->
-    isa_var_sub { bind = sub.bind } (Node.var sup.bind)
-  | Rigid sub, Fresh sup ->
-    isa_var_sup (Node.var sub.bind) { bind = sup.bind }
   | Rigid sub, Rigid sup ->
-    (* TODO: Checking both lower and upper bounds result in infintie recursion,
-    check what is the right approach *)
-    let* lower = isa sub.upper (Node.var sup.bind) in
-    (* let* upper = isa (Node.var sub.bind) sub.lower in *)
-    return lower
+    isa_rigid_sub { bind = sub.bind } (Var { bind = sup.bind })
+  | _, _ ->
+    failwith "Unreachable"
 
-and isa_var_sub var sup =
-  let* var = get_var var.bind in
-  match var with
-  | Fresh var ->
-    let* cond = isa var.lower sup in
-    if not cond then
-      return false
-    else
-    let* upper = meet var.upper sup in
-    let var = { var with upper } in
-    let* () = levelize var sup in
-    let* () = update_fresh var in
-    return true
-  | Rigid var ->
-    isa var.upper sup
+and isa_rigid_sub sub sup =
+  let* sub = get_var sub.bind in
+  match sub with
+  | Fresh _ ->
+    failwith "Unreachable"
+  | Rigid sub ->
+    isa sub.upper (Node.base sup)
 
-and isa_var_sup sub var =
-  let* var = get_var var.bind in
-  match var with
-  | Fresh var ->
-    let* cond = isa sub var.upper in
-    if not cond then
-      return false
-    else
-    let* lower = join var.lower sub in
-    let var = { var with lower } in
-    let* () = levelize var sub in
-    let* () = update_fresh var in
-    return true
-  | Rigid var ->
-    isa sub var.lower
+and isa_rigid_sup sub sup =
+  let* sup = get_var sup.bind in
+  match sup with
+  | Fresh _ ->
+    failwith "Unreachable"
+  | Rigid sup ->
+    isa (Node.base sub) sup.lower
 
 and isa_tuple sub sup =
   if List.compare_lengths sub.elems sup.elems != 0 then

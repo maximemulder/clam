@@ -10,8 +10,7 @@ open Type.Context
 open State
 
 let solve (fresh: fresh) type' =
-  let* state = get_state in
-  let pols = get_pols state.ctx fresh.bind Pos type' in
+  let* pols = with_ctx (get_pols fresh Pos type') in
   match pols.neg, pols.pos with
   | Some neg, _ when neg <> Type.bot ->
     let* () = show_infer ("co_neg " ^ fresh.bind.name ^ " by " ^ Type.display neg ^ " in " ^ Type.display type') in
