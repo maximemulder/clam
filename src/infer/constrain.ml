@@ -149,9 +149,9 @@ and constrain_lam sub_abs sup_abs =
 open State
 
 let constrain span sub sup =
-  let* () = print ("constrain " ^ Type.display sub ^ " < " ^ Type.display sup) in
+  let* () = show_infer ("constrain " ^ Type.display sub ^ " < " ^ Type.display sup) in
   let* result = isa sub sup in
-  let* () = print_ctx in
+  let* () = show_infer_ctx in
   if result then
     return ()
   else

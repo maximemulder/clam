@@ -38,9 +38,6 @@ end))
 let get_state state =
   state, state
 
-(** Global mutable flag used to enable debugging. *)
-let debug_flag = ref false
-
 (* FUNCTIONS *)
 
 let make_state defs exprs =
@@ -52,12 +49,6 @@ let make_state defs exprs =
 let with_ctx f state =
   let x, ctx = f state.ctx in
   x, { state with ctx }
-
-let with_msg str f state =
-  print_endline ("start " ^ str);
-  let x, state = f state in
-  print_endline ("end " ^ str);
-  x, state
 
 let get_var bind =
   with_ctx (get_var bind)
@@ -78,7 +69,7 @@ let substitute bind arg type' =
   with_ctx (Type.System.substitute bind arg type')
 
 let is left right =
-  with_ctx (Type.Context.with_freeze(Type.System.is left right))
+  with_ctx (Type.Context.with_freeze (Type.System.is left right))
 
 let isa sub sup =
   with_ctx (Type.System.isa sub sup)
@@ -100,17 +91,17 @@ let with_param_rigid (param: Type.param) f state =
 
 (* PRINT STATE CONTEXT *)
 
-let print string ctx =
-  if !debug_flag then
-    with_ctx (print string) ctx
+let show_infer string state =
+  if !Global.show_infer then
+    with_ctx (show string) state
   else
-    (), ctx
+    (), state
 
-let print_ctx ctx =
-  if !debug_flag then
-    with_ctx print_ctx ctx
+let show_infer_ctx state =
+  if !Global.show_infer then
+    with_ctx show_ctx state
   else
-    (), ctx
+    (), state
 
 (* STATE FUNCTION *)
 

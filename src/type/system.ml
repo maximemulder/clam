@@ -54,7 +54,12 @@ and is_param left right =
    be improved once negation types are implemented. *)
 
 and isa sub sup =
-  isa_union sub.dnf sup.dnf
+  let* () = show_isa ("isa " ^ Display.display sub ^ " < " ^ Display.display sup) in
+  isa_nesting := !isa_nesting + 1;
+  let* result = isa_union sub.dnf sup.dnf in
+  isa_nesting := !isa_nesting - 1;
+  let* () = show_isa ("= " ^ string_of_bool result) in
+  return result
 
 and isa_union sub sup =
   list_all (fun sub -> isa_union_2 sub sup) sub

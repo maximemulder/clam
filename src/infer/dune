@@ -1,6 +1,6 @@
 (library
   (name infer)
-  (libraries abt str type))
+  (libraries abt global str type))
 
 (env
   (dev

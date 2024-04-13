@@ -5,7 +5,6 @@ type config = {
   show_values : Util.writer option;
   print_out   : Util.writer;
   print_err   : Util.writer;
-  debug_infer : bool;
 }
 
 let parse code config =
@@ -41,8 +40,6 @@ let eval abt config =
   Eval.eval main abt.exprs Prim.values config.print_out
 
 let run code config =
-  if config.debug_infer then
-    Infer.debug_flag := true;
   try
     let ast = parse code config in
     let abt = desugar ast in

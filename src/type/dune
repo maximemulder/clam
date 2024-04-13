@@ -1,6 +1,6 @@
 (library
   (name type)
-  (libraries abt code util))
+  (libraries abt code global util))
 
 (env
   (dev

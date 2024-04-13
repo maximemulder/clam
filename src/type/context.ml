@@ -2,6 +2,8 @@
   New super mega cool type context for type checking algorithm V2
 *)
 
+let isa_nesting = ref 0
+
 (** Fresh type variable, whose bounds can be tightened, and which can be reordered in the context. *)
 type fresh = {
   bind: Abt.bind_type;
@@ -39,24 +41,40 @@ let freeze ctx =
 
 let with_freeze f ctx =
   let frozen = freeze ctx in
+  let show_isa = !Global.show_isa in
+  Global.show_isa := false;
   let x, _ = f frozen in
+  Global.show_isa := show_isa;
   x, ctx
 
 (* PRINT CONTEXT *)
 
-let print string ctx =
-    Util.string_indent (List.length ctx.freshs) string
+let show string ctx =
+    Util.string_indent (List.length ctx.rigids + List.length ctx.freshs + !isa_nesting) string
     |> print_endline;
   (), ctx
 
-let print_ctx ctx =
-  List.map (fun (var: rigid) -> (var.bind.name) ^ " = " ^ Display.display var.lower ^ " .. " ^ Display.display var.upper) (List.rev ctx.rigids)
-  |> String.concat ", "
-  |> print_endline;
-  List.mapi (fun i (var: fresh) -> Util.string_indent i (var.bind.name) ^ " " ^ string_of_int var.level ^ ": " ^ Display.display var.lower ^ " .. " ^ Display.display var.upper) (List.rev ctx.freshs)
-  |> String.concat "\n"
-  |> print_endline;
+let show_ctx ctx =
+  List.mapi (fun i (var: rigid) -> Util.string_indent i (var.bind.name) ^ ": " ^ Display.display var.lower ^ " .. " ^ Display.display var.upper ^ "\n") (List.rev ctx.rigids)
+  |> String.concat ""
+  |> print_string;
+  let rigids_length = List.length ctx.rigids in
+  List.mapi (fun i (var: fresh) -> Util.string_indent (rigids_length + i) (var.bind.name) ^ "~: " ^ Display.display var.lower ^ " .. " ^ Display.display var.upper ^ "\n") (List.rev ctx.freshs)
+  |> String.concat ""
+  |> print_string;
   (), ctx
+
+let show_isa string ctx =
+  if !Global.show_isa then
+    show string ctx
+  else
+    (), ctx
+
+let show_isa_ctx ctx =
+  if !Global.show_isa then
+    show_ctx ctx
+  else
+    (), ctx
 
 (* ACCESS TYPE VARIABLES *)
 
@@ -64,7 +82,7 @@ let rec collect_freshs ctx =
   let fresh = List.nth_opt ctx.freshs 0 in
   match fresh with
   | Some fresh when fresh.level >= ctx.level ->
-    let _ = print ("remove_ctx " ^ fresh.bind.name) ctx in
+    let _ = show_isa ("collect " ^ fresh.bind.name) ctx in
     let ctx = { ctx with freshs = List.tl ctx.freshs } in
     collect_freshs ctx
   | _ ->
@@ -78,7 +96,7 @@ let with_param_fresh (param: Node.param) type' f ctx =
   let bind = { Abt.name = "'" ^ string_of_int ctx.id } in
   let var = { bind = bind; level = ctx.level + 1; lower = param.lower; upper = param.upper } in
   let ctx = { ctx with id = ctx.id + 1; level = ctx.level + 1; freshs = var :: ctx.freshs } in
-  let _ = print ("add_ctx " ^ var.bind.name) ctx in
+  let _ = show_isa ("fresh_isa " ^ var.bind.name) ctx in
   let type' = Rename.rename param.bind bind type' in
   let x, ctx = f type' ctx in
   let ctx = collect_freshs ctx in
