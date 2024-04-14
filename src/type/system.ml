@@ -4,48 +4,10 @@ open Level
 open Node
 open Rename
 
-let rec has_fresh type' =
-  list_any (list_any has_fresh_base) type'.dnf
-
-and has_fresh_base type' =
-  match type' with
-  | Top | Bot | Unit | Bool | Int | String ->
-    return false
-  | Var var ->
-    let* var = get_var var.bind in (
-      match var with
-      | Fresh _ ->
-        return true
-      | Rigid _ ->
-        return false
-    )
-  | Tuple tuple ->
-    list_any has_fresh tuple.elems
-  | Record record ->
-    map_any has_fresh_attr record.attrs
-  | Lam lam ->
-    let* param = has_fresh lam.param in
-    let* ret   = has_fresh lam.ret in
-    return (param || ret)
-  | Univ univ ->
-    let* param = has_fresh_param univ.param in
-    let* ret   = with_param_rigid univ.param (has_fresh univ.ret) in
-    return (param || ret)
-  | _ ->
-    return false
-
-and has_fresh_attr attr =
-  has_fresh attr.type'
-
-and has_fresh_param param =
-  let* lower = has_fresh param.lower in
-  let* upper = has_fresh param.upper in
-  return (lower || upper)
-
 (* EXTRACT FRESH TYPE VARIABLES *)
 
-(* Extract fresh type variables from wrong polarities. This is not perfect and
-   should be refactored once negation types are implemented. *)
+(* Extract sole fresh type variables from the type of a given side of a type
+  inequation. *)
 
 let get_fresh_sub sub =
   match sub with
@@ -87,17 +49,31 @@ and is_param left right =
 
 (* CONSTRAIN SUBTYPE *)
 
-(* Constrain a type to be a subtype of another type in a given context.
-   The handling of unions and intersections is currently not perfect. It should
-   be improved once negation types are implemented. *)
+(** Constrain a type to, if possible, be a subtype of another type in a given
+  context, and return the updated context for this subtyping to hold.
 
-(* For a few steps, priority is important:
-   1. Process bilateral fresh variables.
-   2. Process unilateral fresh variables.
-   3. Process universal types.
-   4. Process rigid types.
+  There are several subtleties here.
+
+  First, in the presence of existential type variables, and unions or intersections,
+  there may be several solutions to a given subtyping inequation. For instance,
+  considering the following inequation with two existential type variables A and B:
+
+  {A, B} < {Int, String} | {String, Int}
+
+  The solutions for this inequation are: A < Int, B < String OR A < String, B < Int
+  To avoid such cases, the algorithm conservatively rejects cases where existential
+  variables appear in inequations where unions or intersections are located on the
+  wrong side of the inequation, respectively right and left, unless the opposite
+  side is a sole existential variable.
+
+  Additionally, the types constrained must be compared in the following order:
+  1. Fresh type variables
+  2. Universal types
+  3. Other types (including rigid variables)
+
+  Finally, cases where two type variables are compared to one another are treated
+  separately to cases where a type variable is compared to another type.
 *)
-
 and isa sub sup =
   let* () = show_isa ("isa " ^ Display.display sub ^ " < " ^ Display.display sup) in
   isa_nesting := !isa_nesting + 1;
@@ -114,18 +90,18 @@ and isa_union_hard sub sup =
   | [sup] ->
     isa_inter sub sup
   | _ ->
-    (* This solution is imperfect. *)
     let* fresh = get_fresh_sub sub in
     match fresh with
     | Some sub ->
       isa_fresh_sub sub { dnf = sup }
     | None ->
-      let* fresh = list_any (list_any has_fresh_base) sup in
-      if fresh then
-        let* () = show_isa ("isa_wrong_union " ^ (List.map Display.display_base sub |> String.concat " & ") ^ " < " ^ Display.display { dnf = sup }) in
-        return false
-      else
+      let* fresh_sub = list_any has_fresh_base sub in
+      let* fresh_sup = list_any (list_any has_fresh_base) sup in
+      if not fresh_sub && not fresh_sup then
         list_any (isa_inter sub) sup
+      else
+        let* () = show_isa "maybe" in
+        return false
 
 and isa_inter sub sup =
   list_all (fun sup -> isa_inter_hard sub sup) sup
@@ -135,18 +111,18 @@ and isa_inter_hard sub sup =
   | [sub] ->
     isa_base_var sub sup
   | _ ->
-    (* This solution is imperfect. *)
     let* fresh = get_fresh_sup sup in
     match fresh with
     | Some sup ->
       isa_fresh_sup { dnf = [sub] } sup
     | None ->
-      let* fresh = list_any has_fresh_base sub in
-      if fresh then
-        let* () = show_isa ("isa_wrong_inter " ^ (List.map Display.display_base sub |> String.concat " & ") ^ " < " ^ Display.display_base sup) in
-        return false
-      else
+      let* fresh_sub = list_any has_fresh_base sub in
+      let* fresh_sup = has_fresh_base sup in
+      if not fresh_sub && not fresh_sup then
         list_any (fun sub -> isa_base_var sub sup) sub
+      else
+        let* () = show_isa "maybe" in
+        return false
 
 and isa_base_var sub sup =
   match sub, sup with

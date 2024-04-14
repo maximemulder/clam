@@ -1,6 +1,1 @@
-def main = unit
-
-def foo = [A] -> (a: A) ->
-    var bar: [T] -> A = ([T] -> a);
-    unit
-
+def main = print("Hello world !")

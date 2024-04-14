@@ -43,13 +43,11 @@ let solve (fresh: fresh) type' =
     let* () = show_infer ("none " ^ fresh.bind.name ^ " in " ^ Type.display type') in
     return type'
 
-let find_recursive span fresh type' =
-  (*let* level = Level.get_level type' in
-  match level with
-  | Some level when level = entry.level_low ->
-    Error.raise_recursive span entry.bind type'
-  | _ -> *)
-  (* TODO: Port this. *)
+let find_recursive span (fresh: fresh) type' =
+  let* recursive = with_ctx (Type.Level.occurs fresh.bind type') in
+  if recursive then
+    Error.raise_recursive span fresh.bind type'
+  else
     return ()
 
 let solve_type span fresh type' =
