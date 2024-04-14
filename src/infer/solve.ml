@@ -14,15 +14,9 @@ let solve (fresh: fresh) type' =
   match pols.neg, pols.pos with
   | Some neg, _ when neg <> Type.bot ->
     let* () = show_infer ("co_neg " ^ fresh.bind.name ^ " by " ^ Type.display neg ^ " in " ^ Type.display type') in
-    (* let* lower = get_var_lower bind in
-    let* upper = get_var_upper bind in
-    let* neg = join neg lower in *)
     with_ctx (inline fresh (Type.top) neg Pos type')
   | _, Some pos when pos <> Type.top ->
     let* () = show_infer ("co_pos " ^ fresh.bind.name ^ " by " ^ Type.display pos ^ " in " ^ Type.display type') in
-    (* let* lower = get_var_lower bind in
-    let* upper = get_var_upper bind in
-    let* pos = meet pos upper in *)
     with_ctx (inline fresh pos (Type.bot) Pos type')
   | Some _, Some _ ->
     let* () = show_infer ("quantify " ^ fresh.bind.name ^ " in " ^ Type.display type') in
@@ -44,7 +38,7 @@ let solve (fresh: fresh) type' =
     return type'
 
 let find_recursive span (fresh: fresh) type' =
-  let* recursive = with_ctx (Type.Level.occurs fresh.bind type') in
+  let* recursive = with_ctx (Type.appears fresh.bind type') in
   if recursive then
     Error.raise_recursive span fresh.bind type'
   else
@@ -67,7 +61,7 @@ let solve_expr (fresh: fresh) (var_expr: entry_expr) =
     let* () = update_expr_level var_expr.bind level in
     return ()
   | None -> *)
-  (* TODO: Port this. *)
+  (* TODO: Why does mutual recursion seem to work without this code. *)
     return ()
 
 let solve_exprs fresh =

@@ -2,8 +2,6 @@ module Error = Error
 
 exception Error = Error.Error
 
-include Rename
-
 (**
   Type check a program.
 *)

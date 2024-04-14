@@ -1,6 +1,16 @@
 open State
-open Constrain
 open Solve
+
+(* TYPE CONSTRAIN *)
+
+let constrain span sub sup =
+  let* () = show_infer ("constrain " ^ Type.display sub ^ " < " ^ Type.display sup) in
+  let* result = isa sub sup in
+  let* () = show_infer_ctx in
+  if result then
+    return ()
+  else
+    Error.raise_constrain span sub sup
 
 (* TYPE INFERENCE *)
 

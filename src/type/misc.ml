@@ -4,9 +4,6 @@ open Node
 
 (* TYPE LEVELING *)
 
-(* Update the context to ensure all the type variables present in a given type
-  appear before the given other type variable. *)
-
 let rec levelize bind type' =
   list_iter (list_iter (levelize_base bind)) type'.dnf
 
@@ -59,14 +56,12 @@ let levelize (fresh: fresh) type' =
   let* () = levelize fresh.bind fresh.upper in
   return ()
 
-(* TYPE FRESH *)
+(* TYPE APPEARS FRESH *)
 
-(* Check if a type contains any fresh variable. *)
+let rec appears_fresh type' =
+  list_any (list_any appears_fresh_base) type'.dnf
 
-let rec has_fresh type' =
-  list_any (list_any has_fresh_base) type'.dnf
-
-and has_fresh_base type' =
+and appears_fresh_base type' =
   match type' with
   | Top | Bot | Unit | Bool | Int | String ->
     return false
@@ -79,72 +74,70 @@ and has_fresh_base type' =
         return false
     )
   | Tuple tuple ->
-    list_any has_fresh tuple.elems
+    list_any appears_fresh tuple.elems
   | Record record ->
-    map_any has_fresh_attr record.attrs
+    map_any appears_fresh_attr record.attrs
   | Lam lam ->
-    let* param = has_fresh lam.param in
-    let* ret   = has_fresh lam.ret in
+    let* param = appears_fresh lam.param in
+    let* ret   = appears_fresh lam.ret in
     return (param || ret)
   | Univ univ ->
-    let* param = has_fresh_param univ.param in
-    let* ret   = with_param_rigid univ.param (has_fresh univ.ret) in
+    let* param = appears_fresh_param univ.param in
+    let* ret   = with_param_rigid univ.param (appears_fresh univ.ret) in
     return (param || ret)
   | Abs abs ->
-    let* param = has_fresh_param abs.param in
-    let* body  = with_param_rigid abs.param (has_fresh abs.body) in
+    let* param = appears_fresh_param abs.param in
+    let* body  = with_param_rigid abs.param (appears_fresh abs.body) in
     return (param || body)
   | App app ->
-    let* abs = has_fresh app.abs in
-    let* arg = has_fresh app.arg in
+    let* abs = appears_fresh app.abs in
+    let* arg = appears_fresh app.arg in
     return (abs || arg)
 
-and has_fresh_attr attr =
-  has_fresh attr.type'
+and appears_fresh_attr attr =
+  appears_fresh attr.type'
 
-and has_fresh_param param =
-  let* lower = has_fresh param.lower in
-  let* upper = has_fresh param.upper in
+and appears_fresh_param param =
+  let* lower = appears_fresh param.lower in
+  let* upper = appears_fresh param.upper in
   return (lower || upper)
 
-(* TYPE CONTAIN *)
+(* TYPE APPEARS *)
 
-(* Check if a type variable appears in a given type. *)
+let rec appears bind type' =
+  list_any (list_any (appears_base bind)) type'.dnf
 
-let rec occurs bind type' =
-  list_any (list_any (occurs_base bind)) type'.dnf
-
-and occurs_base bind type' =
+and appears_base bind type' =
   match type' with
   | Top | Bot | Unit | Bool | Int | String ->
     return false
   | Var var ->
     return (var.bind == bind)
   | Tuple tuple ->
-    list_any (occurs bind) tuple.elems
+    list_any (appears bind) tuple.elems
   | Record record ->
-    map_any (occurs_attr bind) record.attrs
+    map_any (appears_attr bind) record.attrs
   | Lam lam ->
-    let* param = occurs bind lam.param in
-    let* ret   = occurs bind lam.ret   in
+    let* param = appears bind lam.param in
+    let* ret   = appears bind lam.ret   in
     return (param || ret)
   | Univ univ ->
-    let* param = occurs_param bind univ.param in
-    let* ret   = with_param_rigid univ.param (occurs bind univ.ret) in
+    let* param = appears_param bind univ.param in
+    let* ret   = with_param_rigid univ.param (appears bind univ.ret) in
     return (param || ret)
   | Abs abs ->
-    let* param = occurs_param bind abs.param in
-    let* body  = with_param_rigid abs.param (occurs bind abs.body) in
+    let* param = appears_param bind abs.param in
+    let* body  = with_param_rigid abs.param (appears bind abs.body) in
     return (param || body)
   | App app ->
-    let* abs = occurs bind app.abs in
-    let* arg = occurs bind app.arg in
+    let* abs = appears bind app.abs in
+    let* arg = appears bind app.arg in
     return (abs || arg)
 
-and occurs_attr bind attr =
-  occurs bind attr.type'
+and appears_attr bind attr =
+  appears bind attr.type'
 
-and occurs_param bind param =
-  let* lower = occurs bind param.lower in
-  let* upper = occurs bind param.upper in
+and appears_param bind param =
+  let* lower = appears bind param.lower in
+  let* upper = appears bind param.upper in
   return (lower || upper)

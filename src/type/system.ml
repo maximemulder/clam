@@ -1,6 +1,6 @@
 open Context
 open Context.Monad
-open Level
+open Misc
 open Node
 open Rename
 
@@ -95,8 +95,8 @@ and isa_union_hard sub sup =
     | Some sub ->
       isa_fresh_sub sub { dnf = sup }
     | None ->
-      let* fresh_sub = list_any has_fresh_base sub in
-      let* fresh_sup = list_any (list_any has_fresh_base) sup in
+      let* fresh_sub = list_any appears_fresh_base sub in
+      let* fresh_sup = list_any (list_any appears_fresh_base) sup in
       if not fresh_sub && not fresh_sup then
         list_any (isa_inter sub) sup
       else
@@ -116,8 +116,8 @@ and isa_inter_hard sub sup =
     | Some sup ->
       isa_fresh_sup { dnf = [sub] } sup
     | None ->
-      let* fresh_sub = list_any has_fresh_base sub in
-      let* fresh_sup = has_fresh_base sup in
+      let* fresh_sub = list_any appears_fresh_base sub in
+      let* fresh_sup = appears_fresh_base sup in
       if not fresh_sub && not fresh_sup then
         list_any (fun sub -> isa_base_var sub sup) sub
       else

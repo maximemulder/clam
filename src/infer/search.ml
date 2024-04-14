@@ -12,8 +12,6 @@
   ```
 *)
 
-open State
-open Type.System
 open Type.Context
 open Type.Context.Monad
 
