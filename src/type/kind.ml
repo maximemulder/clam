@@ -1,4 +1,6 @@
 open Node
+open Context
+open Context.Monad
 
 type kind =
   | Type
@@ -7,52 +9,62 @@ type kind =
 and abs = {
   lower: type';
   upper: type';
-  ret: kind;
+  body: kind;
 }
 
-let rec get_kind ctx type' =
-  get_kind_base ctx (List.nth (List.nth type'.dnf 0) 0)
+let rec get_kind type' =
+  get_kind_base (List.nth (List.nth type'.dnf 0) 0)
 
-and get_kind_base ctx type' =
+and get_kind_base type' =
   match type' with
   | Var var ->
-    let lower, _ = Context.get_bounds ctx var.bind in
-    get_kind ctx lower
+    get_kind_var var
   | Abs abs ->
-    let ctx = Context.add_param ctx abs.param in
-    let ret  = get_kind ctx abs.body in
-    Abs { lower = abs.param.lower; upper = abs.param.upper; ret }
+    get_kind_abs abs
   | App app ->
-    get_kind_app ctx app
+    get_kind_app app
   | _ ->
-    Type
+    return Type
 
-and get_kind_app ctx app =
-  match get_kind ctx app.abs with
-  | Abs { ret; _ } ->
-    ret
+and get_kind_var var =
+  let* var = get_var var.bind in
+  match var with
+  | Fresh _ ->
+    return Type
+  | Rigid rigid ->
+    get_kind rigid.lower
+
+and get_kind_abs abs =
+  let* body = with_param_rigid abs.param (get_kind abs.body) in
+  return (Abs { lower = abs.param.lower; upper = abs.param.upper; body })
+
+and get_kind_app app =
+  let* abs = get_kind app.abs in
+  match abs with
+  | Abs { body; _ } ->
+    return body
   | Type ->
     invalid_arg "TypeKind.get_kind"
 
-let rec get_kind_max ctx kind =
-  match kind with
-  | Type ->
-    Node.top
-  | Abs { lower; upper; ret } ->
-    let bind: Abt.bind_type = { name = "_" } in
-    let param: Node.param = { bind; lower; upper } in
-    Node.abs param (get_kind_max ctx ret)
-
-let rec get_kind_min ctx kind =
+let rec get_kind_min kind =
   match kind with
   | Type ->
     Node.bot
-  | Abs { lower; upper; ret } ->
+  | Abs { lower; upper; body } ->
     let bind: Abt.bind_type = { name = "_" } in
     let param: Node.param = { bind; lower; upper } in
-    Node.abs param (get_kind_min ctx ret)
+    Node.abs param (get_kind_min body)
+
+let rec get_kind_max kind =
+  match kind with
+  | Type ->
+    Node.top
+  | Abs { lower; upper; body } ->
+    let bind: Abt.bind_type = { name = "_" } in
+    let param: Node.param = { bind; lower; upper } in
+    Node.abs param (get_kind_max body)
 
 let rec display kind =
   match kind with
   | Type -> "*"
-  | Abs abs -> "[" ^ Display.display abs.lower ^ " .. " ^ Display.display abs.upper ^ "] -> " ^ display abs.ret
+  | Abs abs -> "[" ^ Display.display abs.lower ^ " .. " ^ Display.display abs.upper ^ "] -> " ^ display abs.body

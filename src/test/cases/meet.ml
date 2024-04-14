@@ -1,7 +1,7 @@
 open Vars
 
 let test ctx left right (_: unit) =
-  System.meet ctx left right
+  System.meet left right ctx |> fst
 
 let name left right expect =
   let left   = display left   in

@@ -44,7 +44,10 @@ let ea = bind "EA"
 let fa = bind "FA"
 
 let ctx = {
-  assumptions = [
+  id = 0;
+  level = 0;
+  freshs = [];
+  rigids = [
     { bind = a; lower = bot; upper = top };
     { bind = b; lower = bot; upper = top };
     { bind = c; lower = bot; upper = top };
@@ -58,10 +61,12 @@ let ctx = {
 }
 
 let union types =
-  Util.list_reduce (System.join ctx) types
+  let types = List.map (fun type' -> type'.dnf) types in
+  let types = List.flatten types in
+  { dnf = types }
 
 let inter types =
-  Util.list_reduce (System.meet ctx) types
+  Util.list_reduce (fun left right -> { dnf = Util.list_product (fun left right -> left @ right) left.dnf right.dnf }) types
 
 let a = var a
 let b = var b
@@ -119,7 +124,7 @@ let e_app_te expr arg =
   ExprTypeApp { pos; expr; arg }*)
 
 (*
-  TODO: Although the tests have been ported to the new archtitecture, they haven't
+  TODO: Although the tests have been ported to the new architecture, they haven't
   yet be updated to better match the new type structure. This work should eventually
   be done, with notably union and inter no longer using join and meet.
 

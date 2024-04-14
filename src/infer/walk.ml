@@ -1,6 +1,16 @@
 open State
-open Constrain
 open Solve
+
+(* TYPE CONSTRAIN *)
+
+let constrain span sub sup =
+  let* () = show_infer ("constrain " ^ Type.display sub ^ " < " ^ Type.display sup) in
+  let* result = isa sub sup in
+  let* () = show_infer_ctx in
+  if result then
+    return ()
+  else
+    Error.raise_constrain span sub sup
 
 (* TYPE INFERENCE *)
 
@@ -72,7 +82,8 @@ and infer_record_attr attr =
 
 and infer_elem expr =
   let* tuple = infer expr.tuple in
-  let* type' = Search.search_proj (infer_elem_base expr.index) tuple in
+  let* state = get_state in
+  let type' = Search.search_proj (infer_elem_base expr.index) tuple state.ctx in
   match type' with
   | Some type' ->
     return type'
@@ -123,14 +134,15 @@ and infer_univ_abs expr =
   let* param = validate_param expr.param in
   with_var expr.span (fun var ->
     let type' = Type.univ param var in
-    let* () = with_type expr.param.bind param.lower param.upper
+    let* () = with_param_rigid param
       (infer_parent expr.body var) in
     return type'
   )
 
 and infer_univ_app expr =
   let* univ = infer expr.abs in
-  let* type' = Search.search_app_type infer_univ_app_base univ in
+  let* state = get_state in
+  let type' = Search.search_app_type infer_univ_app_base univ state.ctx in
   match type' with
   | Some { param; ret } ->
     let* arg = validate expr.arg in
@@ -202,4 +214,8 @@ let check_defs defs primitives =
   List.map (fun (entry: entry_expr) -> entry.bind, entry.type') state.exprs
 
 let check_types defs =
-  List.map (fun (def: Abt.def_type) -> def.name, Type.Validate.validate Type.Context.empty def.type' |> Type.Kind.get_kind Type.Context.empty) defs
+  List.map (fun (def: Abt.def_type) -> def.name,
+    let ctx = Type.Context.empty in
+    let type', _ = Type.Validate.validate def.type' ctx in
+    let kind, _ = Type.Kind.get_kind type' ctx in
+  kind) defs

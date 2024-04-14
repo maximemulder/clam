@@ -7,7 +7,6 @@ type config = {
   show_kinds  : bool;
   show_types  : bool;
   show_values : bool;
-  debug_infer : bool;
 }
 
 let empty_config = {
@@ -17,7 +16,6 @@ let empty_config = {
   show_kinds  = false;
   show_types  = false;
   show_values = false;
-  debug_infer = false;
 }
 
 (* SETUP RUN CONFIGURATION *)
@@ -44,8 +42,12 @@ let parse_arg arg config =
     { config with show_types = true }
   | "-v"   | "--show-values" ->
     { config with show_values = true }
-  | "--debug-infer" ->
-    { config with debug_infer = true }
+  | "--show-infer" ->
+    Global.show_infer := true;
+    config
+  | "--show-isa" ->
+    Global.show_isa := true;
+    config
   | _ ->
     if String.starts_with ~prefix:"-" arg then
       Failure.raise ("Unknown option '" ^ arg ^ "'.")

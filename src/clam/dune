@@ -1,7 +1,7 @@
 (executable
   (name clam)
   (public_name clam)
-  (libraries main parser prim sugar util))
+  (libraries global main parser prim sugar util type))
 
 (env
   (dev

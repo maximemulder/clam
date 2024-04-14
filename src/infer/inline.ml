@@ -1,8 +1,10 @@
 open Polar
-open State
+open Type.Context
+open Type.Context.Monad
+open Type.System
 
 type entry = {
-  bind: Abt.bind_type;
+  fresh: fresh;
   neg: Type.type';
   pos: Type.type';
 }
@@ -22,12 +24,12 @@ and inline_base entry pol type' =
   match type' with
   | Top | Bot | Unit | Bool | Int | String ->
     return (Type.base type')
-  | Var var when var.bind == entry.bind -> (
+  | Var var when var.bind == entry.fresh.bind -> (
     match pol with
     | Neg ->
-      return entry.neg
+      meet entry.neg entry.fresh.upper
     | Pos ->
-      return entry.pos)
+      join entry.pos entry.fresh.lower)
   | Var var ->
     return (Type.var var.bind)
   | Tuple tuple ->
@@ -42,7 +44,7 @@ and inline_base entry pol type' =
     return (Type.lam param ret)
   | Univ univ ->
     let* param = inline_param entry (inv pol) univ.param in
-    let* ret = with_type univ.param.bind univ.param.lower univ.param.upper (inline entry pol univ.ret) in
+    let* ret = with_param_rigid univ.param (inline entry pol univ.ret) in
     return (Type.univ param ret)
   | _ ->
     return (Type.base type')
@@ -56,5 +58,5 @@ and inline_param entry _pol param =
   let* upper = inline entry Neg param.upper in
   return { param with lower; upper }
 
-let inline bind neg pos pol type' =
-  inline { bind; neg; pos } pol type'
+let inline fresh neg pos pol type' =
+  inline { fresh; neg; pos } pol type'

@@ -208,7 +208,7 @@ Whenever a type parameter only has one declared bound, the other bound is inferr
 
 ## Type inference
 
-Clam features a constraint-based type inference algorithm capable of inferring types for most expressions.
+Clam features a constraint-based type inference algorithm capable of inferring principal types for most expressions.
 
 <table>
     <tr>

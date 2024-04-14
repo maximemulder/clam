@@ -1,352 +1,549 @@
-(*
-  This file contains various algorithms used for type checking. These algorithms predate type
-  constraining and do not implement some new rules such as higher-rank polymorphism subtyping.
-  I should work on unifying them with constraining when I have the time.
-*)
-
+open Context
+open Context.Monad
+open Misc
 open Node
+open Rename
 
-(* TYPE EQUIVALENCE *)
+(* EXTRACT FRESH TYPE VARIABLES *)
 
-(**
-  This function uses mutual subtyping to check for type equivalence so that it
-  can handle cases such as the following:
-  `A <: B |- A | B = A`
-  This introduces a dependency of type equivalence to subtyping. It should however
-  be noted that the above type should always appear simplified to `B`, therefore
-  the handling of this case is not strictly necessary.
+(* Extract sole fresh type variables from the type of a given side of a type
+  inequation. *)
+
+let get_fresh_sub sub =
+  match sub with
+  | [Var var] ->
+    let* var = get_var var.bind in
+    (match var with
+    | Fresh fresh ->
+      return (Some fresh)
+    | Rigid _ ->
+      return None)
+  | _ ->
+    return None
+
+let get_fresh_sup sup =
+  match sup with
+  | Var var ->
+    let* var = get_var var.bind in
+    (match var with
+    | Fresh fresh ->
+      return (Some fresh)
+    | Rigid _ ->
+      return None)
+  | _ ->
+    return None
+
+(* CONSTRAIN EQUIVALENCE *)
+
+(* Constrain two types to be equal in a given context. *)
+
+let rec is left right =
+  let* sub = isa left right in
+  let* sup = isa right left in
+  return (sub && sup)
+
+and is_param left right =
+  let* sub = is left.lower right.lower in
+  let* sup = is left.upper right.upper in
+  return (sub && sup)
+
+(* CONSTRAIN SUBTYPE *)
+
+(** Constrain a type to, if possible, be a subtype of another type in a given
+  context, and return the updated context for this subtyping to hold.
+
+  There are several subtleties here.
+
+  First, in the presence of existential type variables, and unions or intersections,
+  there may be several solutions to a given subtyping inequation. For instance,
+  considering the following inequation with two existential type variables A and B:
+
+  {A, B} < {Int, String} | {String, Int}
+
+  The solutions for this inequation are: A < Int, B < String OR A < String, B < Int
+  To avoid such cases, the algorithm conservatively rejects cases where existential
+  variables appear in inequations where unions or intersections are located on the
+  wrong side of the inequation, respectively right and left, unless the opposite
+  side is a sole existential variable.
+
+  Additionally, the types constrained must be compared in the following order:
+  1. Fresh type variables
+  2. Universal types
+  3. Other types (including rigid variables)
+
+  Finally, cases where two type variables are compared to one another are treated
+  separately to cases where a type variable is compared to another type.
 *)
-let rec is ctx left right =
-  isa ctx left right && isa ctx right left
+and isa sub sup =
+  let* () = show_isa ("isa " ^ Display.display sub ^ " < " ^ Display.display sup) in
+  isa_nesting := !isa_nesting + 1;
+  let* result = isa_union sub.dnf sup.dnf in
+  isa_nesting := !isa_nesting - 1;
+  let* () = show_isa ("= " ^ string_of_bool result) in
+  return result
 
-and is_param ctx (left: Node.param) (right: Node.param) =
-  is ctx left.lower right.lower
-  && is ctx left.upper right.upper
+and isa_union sub sup =
+  list_all (fun sub -> isa_union_hard sub sup) sub
 
-(* SUBTYPING *)
+and isa_union_hard sub sup =
+  match sup with
+  | [sup] ->
+    isa_inter sub sup
+  | _ ->
+    let* fresh = get_fresh_sub sub in
+    match fresh with
+    | Some sub ->
+      isa_fresh_sub sub { dnf = sup }
+    | None ->
+      let* fresh_sub = list_any appears_fresh_base sub in
+      let* fresh_sup = list_any (list_any appears_fresh_base) sup in
+      if not fresh_sub && not fresh_sup then
+        list_any (isa_inter sub) sup
+      else
+        let* () = show_isa "maybe" in
+        return false
 
-and isa ctx (sub: Node.type') (sup: Node.type') =
-  isa_union_1 ctx sub.dnf sup.dnf
+and isa_inter sub sup =
+  list_all (fun sup -> isa_inter_hard sub sup) sup
 
-and isa_union_1 ctx sub sup =
-  List.for_all (Util.flip (isa_union_2 ctx) sup) sub
+and isa_inter_hard sub sup =
+  match sub with
+  | [sub] ->
+    isa_base_var sub sup
+  | _ ->
+    let* fresh = get_fresh_sup sup in
+    match fresh with
+    | Some sup ->
+      isa_fresh_sup { dnf = [sub] } sup
+    | None ->
+      let* fresh_sub = list_any appears_fresh_base sub in
+      let* fresh_sup = appears_fresh_base sup in
+      if not fresh_sub && not fresh_sup then
+        list_any (fun sub -> isa_base_var sub sup) sub
+      else
+        let* () = show_isa "maybe" in
+        return false
 
-and isa_union_2 ctx sub sup =
-  List.exists (isa_inter_1 ctx sub) sup
+and isa_base_var sub sup =
+  match sub, sup with
+  | Var sub, Var sup ->
+    isa_var sub sup
+  | Var sub, sup ->
+    isa_var_sub sub sup
+  | sub, Var sup ->
+    isa_var_sup sub sup
+  | sub, sup ->
+    isa_base_univ sub sup
 
-and isa_inter_1 ctx sub sup =
-  List.for_all (isa_inter_2 ctx sub) sup
+and isa_var sub sup =
+  let* sub = get_var sub.bind in
+  let* sup = get_var sup.bind in
+  match sub, sup with
+  | Fresh sub, Fresh sup ->
+    isa_fresh sub sup
+  | Fresh sub, Rigid sup ->
+    isa_fresh_sub sub (Node.var sup.bind)
+  | Rigid sub, Fresh sup ->
+    isa_fresh_sup (Node.var sub.bind) sup
+  | Rigid sub, Rigid sup ->
+    isa_base_univ (Var { bind = sub.bind }) (Var { bind = sup.bind })
 
-and isa_inter_2 ctx sub sup =
-  List.exists (Util.flip (isa_base ctx) sup) sub
+and isa_var_sub sub sup =
+  let* sub = get_var sub.bind in
+  match sub with
+  | Fresh sub ->
+    isa_fresh_sub sub (Node.base sup)
+  | Rigid sub ->
+    isa_base_univ (Var { bind = sub.bind }) sup
 
-and isa_base ctx (sub: Node.base) (sup: Node.base) =
+and isa_var_sup sub sup =
+  let* sup = get_var sup.bind in
+  match sup with
+  | Fresh sup ->
+    isa_fresh_sup (Node.base sub) sup
+  | Rigid sup ->
+    isa_base_univ sub (Var { bind = sup.bind })
+
+and isa_base_univ sub sup =
+  match sub, sup with
+  | sub, Univ sup ->
+    with_param_rigid sup.param (isa (base sub) sup.ret)
+  | Univ sub, sup ->
+    with_param_fresh sub.param sub.ret (fun ret -> isa ret (base sup))
+  | sub, sup ->
+    isa_base sub sup
+
+and isa_base sub sup =
   match sub, sup with
   | _, Top ->
-    isa_top ctx sub
+    let* kind = Kind.get_kind_base sub in
+    return (kind = Type)
   | Bot, _ ->
-    isa_bot ctx sup
-  | Unit, Unit ->
-    true
-  | Bool, Bool ->
-    true
-  | Int, Int ->
-    true
-  | String, String ->
-    true
-  | Var sub_var, _ ->
-    isa_var_sub ctx sub_var sup
-  | _, Var sup_var ->
-    isa_var_sup ctx sub sup_var
-  | Tuple sub_tuple, Tuple sup_tuple ->
-    isa_tuple ctx sub_tuple sup_tuple
-  | Record sub_record, Record sup_record ->
-    isa_record ctx sub_record sup_record
-  | Lam sub_lam, Lam sup_lam ->
-    isa_lam ctx sub_lam sup_lam
-  | Univ sub_univ, Univ sup_univ ->
-    isa_univ ctx sub_univ sup_univ
-  | Abs sub_abs, Abs sup_abs ->
-    isa_abs ctx sub_abs sup_abs
-  | App sub_app, App sup_app ->
-    isa_app ctx sub_app sup_app
-  | App sub_app, _ ->
-    let sub_abs = promote ctx sub_app.abs in
-    let sub_type = compute ctx sub_abs sub_app.arg in
-    isa ctx sub_type (Node.base sup)
-  | _ ->
-    false
+    let* kind = Kind.get_kind_base sup in
+    return (kind = Type)
+  | Unit, Unit | Bool, Bool | Int, Int | String, String ->
+    return true
+  | Var sub, Var sup ->
+    isa_rigid sub sup
+  | Var sub, sup ->
+    isa_rigid_sub sub sup
+  | sub, Var var ->
+    isa_rigid_sup sub var
+  | Tuple sub, Tuple sup ->
+    isa_tuple sub sup
+  | Record sub, Record sup ->
+    isa_record sub sup
+  | Lam sub, Lam sup ->
+    isa_lam sub sup
+  | Abs sub, Abs sup ->
+    isa_abs sub sup
+  | App sub, App sup ->
+    isa_app sub sup
+  | App sub, sup ->
+    let* sub_abs = promote_upper sub.abs in
+    let* sub = compute sub_abs sub.arg in
+    isa sub (Node.base sup)
+  | sub, App sup ->
+    let* sup_abs = promote_lower sup.abs in
+    let* sup = compute sup_abs sup.arg in
+    isa (Node.base sub) sup
+  | _, _ ->
+    return false
 
-and isa_top ctx sub =
-  Kind.get_kind_base ctx sub = Type
+and isa_fresh sub sup =
+  if sub.bind == sup.bind then
+    return true
+  else
+  let* level = cmp_level sub.bind sup.bind in
+  if level then
+    isa_fresh_sub sub (Node.var sup.bind)
+  else
+    isa_fresh_sup (Node.var sub.bind) sup
 
-and isa_bot ctx sup =
-  Kind.get_kind_base ctx sup = Type
+and isa_fresh_sub sub sup =
+  let* cond = isa sub.lower sup in
+  if not cond then
+    return false
+  else
+  let* upper = meet sub.upper sup in
+  let sub = { sub with upper } in
+  let* () = levelize sub sup in
+  let* () = update_fresh sub in
+  return true
 
-and isa_var_sub ctx sub_var sup =
-  match sup with
-  | Var sup_var when sub_var.bind == sup_var.bind ->
-    true
-  | _ ->
-    let _, sub_upper = Context.get_bounds ctx sub_var.bind in
-    isa ctx sub_upper (base sup)
+and isa_fresh_sup sub sup =
+  let* cond = isa sub sup.upper in
+  if not cond then
+    return false
+  else
+  let* lower = join sup.lower sub in
+  let sup = { sup with lower } in
+  let* () = levelize sup sub in
+  let* () = update_fresh sup in
+  return true
 
-and isa_var_sup ctx sub sup_var =
+and isa_rigid sub sup =
+  if sub.bind == sup.bind then
+    return true
+  else
+  let* sub = get_var sub.bind in
+  let* sup = get_var sup.bind in
+  match sub, sup with
+  | Rigid sub, Rigid sup ->
+    isa_rigid_sub { bind = sub.bind } (Var { bind = sup.bind })
+  | _, _ ->
+    failwith "Unreachable"
+
+and isa_rigid_sub sub sup =
+  let* sub = get_var sub.bind in
   match sub with
-  | Var sub_var when sub_var.bind == sup_var.bind ->
-    true
-  | _ ->
-    let sup_lower, _ = Context.get_bounds ctx sup_var.bind in
-    isa ctx (base sub) sup_lower
+  | Fresh _ ->
+    failwith "Unreachable"
+  | Rigid sub ->
+    isa sub.upper (Node.base sup)
 
-and isa_tuple ctx sub_tuple sup_tuple =
-  List.equal (isa ctx) sub_tuple.elems sup_tuple.elems
+and isa_rigid_sup sub sup =
+  let* sup = get_var sup.bind in
+  match sup with
+  | Fresh _ ->
+    failwith "Unreachable"
+  | Rigid sup ->
+    isa (Node.base sub) sup.lower
 
-and isa_record ctx sub_record sup_record =
-  Util.NameMap.for_all (fun _ sup_attr -> isa_record_attr ctx sub_record sup_attr) sup_record.attrs
+and isa_tuple sub sup =
+  if List.compare_lengths sub.elems sup.elems != 0 then
+    return false
+  else
+    let elems = List.combine sub.elems sup.elems in
+    list_all (fun (left, right) -> isa left right) elems
 
-and isa_record_attr ctx sub_record sup_attr =
+and isa_record sub sup =
+  map_all (fun sup_attr -> isa_record_attr sub sup_attr) sup.attrs
+
+and isa_record_attr sub_record sup_attr =
   match Util.NameMap.find_opt sup_attr.label sub_record.attrs with
   | Some sub_attr ->
-    isa ctx sub_attr.type' sup_attr.type'
+    isa sub_attr.type' sup_attr.type'
   | None ->
-    false
+    return false
 
-and isa_lam ctx sub_lam sup_lam =
-  isa ctx sup_lam.param sub_lam.param &&
-  isa ctx sub_lam.ret sup_lam.ret
+and isa_lam sub sup =
+  let* param = isa sup.param sub.param in
+  let* ret = isa sub.ret sup.ret in
+  return (param && ret)
 
-and isa_univ ctx sub_univ sup_univ =
-  is_param ctx sub_univ.param sup_univ.param &&
-  let sup_ret = Rename.rename sup_univ.ret sup_univ.param.bind sub_univ.param.bind in
-  let ctx = Context.add_param ctx sub_univ.param in
-  isa ctx sub_univ.ret sup_ret
+and isa_abs sub sup =
+  let* param = is_param sub.param sup.param in
+  let sup_body = rename sup.param.bind sub.param.bind sup.body in
+  let* body = with_param_rigid sub.param (isa sub.body sup_body) in
+  return (param && body)
 
-and isa_abs ctx sub_abs sup_abs =
-  is_param ctx sub_abs.param sup_abs.param &&
-  let sup_body = Rename.rename sup_abs.body sup_abs.param.bind sub_abs.param.bind in
-  let ctx = Context.add_param ctx sub_abs.param in
-  isa ctx sub_abs.body sup_body
-
-and isa_app ctx sub_app sup_app =
-  isa ctx sub_app.abs sup_app.abs &&
-  is ctx sub_app.arg sup_app.arg
-
-(* TYPE PROMOTION *)
-
-and promote ctx type' =
-  map_type ctx (promote_base ctx) type'
-
-and promote_base ctx type' =
-  match type' with
-  | Var var ->
-    let _, upper = Context.get_bounds ctx var.bind in
-    promote ctx upper
-  | _ ->
-    Node.base type'
-
-(* TYPE SUBSTITUTION *)
-
-and substitute ctx bind other (type': Node.type') =
-  map_type ctx (substitute_base ctx bind other) type'
-
-and substitute_base ctx bind other (type': Node.base) =
-  match type' with
-  | Top | Bot | Unit | Bool | Int | String ->
-    base type'
-  | Var var ->
-    substitute_var bind other var
-  | Tuple tuple ->
-    let elems = List.map (substitute ctx bind other) tuple.elems in
-    Node.tuple elems
-  | Record record ->
-    let attrs = Util.NameMap.map (substitute_attr ctx bind other) record.attrs in
-    Node.record attrs
-  | Lam lam ->
-    let param = substitute ctx bind other lam.param in
-    let ret = substitute ctx bind other lam.ret in
-    Node.lam param ret
-  | Univ univ ->
-    let param = substitute_param ctx bind other univ.param in
-    let ctx = Context.add_param ctx param in
-    let ret = substitute ctx bind other univ.ret in
-    Node.univ param ret
-  | Abs abs ->
-    let param = substitute_param ctx bind other abs.param in
-    let ctx = Context.add_param ctx param in
-    let body = substitute ctx bind other abs.body in
-    Node.abs param body
-  | App app ->
-    let abs = substitute ctx bind other app.abs in
-    let arg = substitute ctx bind other app.arg in
-    compute ctx abs arg
-
-and substitute_var bind other var =
-  if var.bind == bind then
-    other
-  else
-    Node.var var.bind
-
-and substitute_param ctx bind other param =
-  let lower = substitute ctx bind other param.lower in
-  let upper = substitute ctx bind other param.upper in
-  { param with lower; upper }
-
-and substitute_attr ctx bind other attr =
-  let type' = substitute ctx bind other attr.type' in
-  { attr with type' }
-
-(* TYPE COMPUTATION *)
-
-and compute ctx (type': Node.type') (arg: Node.type') =
-  map_type ctx (Util.flip (compute_base ctx) arg) type'
-
-and compute_base ctx (abs: Node.base) (arg: Node.type') =
-  match abs with
-  | Abs abs ->
-    substitute ctx abs.param.bind arg abs.body
-  | _ ->
-    Node.app (Node.base abs) arg
-
-(* TYPE MAP *)
-
-and map_type ctx f type' =
-  map_union ctx (map_inter ctx f) type'.dnf
-
-and map_union ctx f types =
-  let types = List.map f types in
-  Util.list_reduce (join ctx) types
-
-and map_inter ctx f types =
-  let types = List.map f types in
-  Util.list_reduce (meet ctx) types
+and isa_app sub sup =
+  let* abs = isa sub.abs sup.abs in
+  let* arg = is sub.arg sup.arg in
+  return (abs && arg)
 
 (* TYPE JOIN *)
 
-and join ctx (left: Node.type') (right: Node.type') =
-  let types = Util.list_collapse (join_inter ctx) (left.dnf @ right.dnf) in
-  { dnf = types }
+and join left right = with_freeze (join_freeze left right)
 
-and join_inter ctx left right =
-  if isa_inter_1 ctx left right then
-    Some right
-  else
-  if isa_inter_1 ctx right left then
-    Some left
-  else
-    None
+and join_freeze left right =
+  let* sub = isa left right in
+  let* sup = isa right left in
+  match sub, sup with
+  | true, true ->
+    return left
+  | true, false ->
+    return right
+  | false, true ->
+    return left
+  | false, false ->
+    join_disjoint left right
+
+and join_disjoint left right =
+    let* types = list_collapse join_inter (left.dnf @ right.dnf) in
+    return { dnf = types }
+
+and join_inter left right =
+  let* sub = isa_inter left right in
+  let* sup = isa_inter right left in
+  match sub, sup with
+  | true, true ->
+    (* Both types work here. *)
+    return (Some right)
+  | true, false ->
+    return (Some right)
+  | false, true ->
+    return (Some left)
+  | false, false ->
+    return None
 
 (* TYPE MEET *)
 
-and meet ctx left right =
-  let types = Util.list_product (meet_inter ctx) left.dnf right.dnf in
-  let types = Util.list_collapse (join_inter ctx) types in
-  { dnf = types }
+and meet left right = with_freeze (meet_freeze left right)
 
-and meet_inter ctx left right =
-  Util.list_collapse (meet_base ctx) (left @ right)
-
-and meet_base ctx (left: Node.base) (right: Node.base) =
-  match left, right with
-  | Top    , right  -> Some right
-  | left   , Top    -> Some left
-  | Bot    , _      -> Some Bot
-  | _      , Bot    -> Some Bot
-  | Unit   , Unit   -> Some Unit
-  | Bool   , Bool   -> Some Bool
-  | Int    , Int    -> Some Int
-  | String , String -> Some String
-  | Var left_var, _ when isa_var_sub ctx left_var right ->
-    Some (Var left_var)
-  | _, Var right_var  when isa_var_sub ctx right_var left ->
-    Some (Var right_var)
-  | Var _, _ -> None
-  | _, Var _ -> None
-  | Tuple left_tuple, Tuple right_tuple ->
-    meet_tuple ctx left_tuple right_tuple
-  | Record left_record, Record right_record ->
-    meet_record ctx left_record right_record
-  | Lam left_lam, Lam right_lam ->
-    meet_lam ctx left_lam right_lam
-  | Univ left_univ, Univ right_univ ->
-    meet_univ ctx left_univ right_univ
-  | Abs left_abs, Abs right_abs ->
-    meet_abs ctx left_abs right_abs
-  (* For the two next rules, find the maximum type of app and check if subtype of other *)
-  | App _, _ ->
-    None
-  | _, App _ ->
-    None
-  | _, _ ->
-    Some Bot
-
-and meet_tuple ctx left right =
-  if List.compare_lengths left.elems right.elems != 0 then
-    Some Bot
-  else
-  let elems = List.map2 (meet ctx) left.elems right.elems in
-  Some (Tuple { elems })
-
-and meet_record ctx left right =
-  let attrs = Util.NameMap.merge (meet_record_attr ctx) left.attrs right.attrs in
-  Some (Record { attrs })
-
-and meet_record_attr ctx label left right =
-  match left, right with
-  | Some left, Some right ->
-    let type' = meet ctx left.type' right.type' in
-    Some { label; type' }
-  | Some left, None ->
-    Some left
-  | None, Some right ->
-    Some right
-  | None, None ->
-    None
-
-and meet_lam ctx left right =
-  match is ctx left.param right.param, is ctx left.ret right.ret with
+and meet_freeze left right =
+  let* sub = isa left right in
+  let* sup = isa right left in
+  match sub, sup with
+  | true, true ->
+    (* Both types work here. *)
+    return left
+  | true, false ->
+    return left
+  | false, true ->
+    return right
   | false, false ->
-    None
+    meet_disjoint left right
+
+and meet_disjoint left right =
+  let* types = list_product meet_inter left.dnf right.dnf in
+  let* types = list_collapse join_inter types in
+  return { dnf = types }
+
+and meet_inter left right =
+  list_collapse meet_base (left @ right)
+
+and meet_base left right =
+  match left, right with
+  | Var _, _ ->
+    return None
+  | _, Var _ ->
+    return None
+  | Tuple left, Tuple right ->
+    meet_tuple left right
+  | Record left, Record right ->
+    meet_record left right
+  | Lam left, Lam right ->
+    meet_lam left right
+  | Univ left, Univ right ->
+    meet_univ left right
+  | Abs left, Abs right ->
+    meet_abs left right
   | _, _ ->
-    let param = join ctx left.param right.param in
-    let ret = meet ctx left.ret right.ret in
-    Some (Lam { param; ret })
+    return (Some Bot)
 
-and meet_univ ctx left right =
-  if not (is_param ctx left.param right.param) then
-    Some Bot
+and meet_tuple left right =
+  if List.compare_lengths left.elems right.elems != 0 then
+    return (Some Bot)
   else
-  let right_ret = Rename.rename right.ret right.param.bind left.param.bind in
-  let ctx = Context.add_param ctx left.param in
-  let ret = meet ctx left.ret right_ret in
-  Some (Univ { param = left.param; ret })
+  let* elems = list_map2 meet left.elems right.elems in
+  return (Some (Tuple { elems }))
 
-and meet_abs ctx left right =
-  if not (is_param ctx left.param right.param) then
-    Some Bot
+and meet_record left right =
+  let* attrs = map_join meet_record_attr left.attrs right.attrs in
+  return (Some (Record { attrs }))
+
+and meet_record_attr left right =
+  let* type' = meet left.type' right.type' in
+  return { left with type' }
+
+and meet_lam left right =
+  let* param = is left.param right.param in
+  let* ret   = is left.ret   right.ret   in
+  match param, ret with
+  | false, false ->
+    return None
+  | _, _ ->
+    let* param = join left.param right.param in
+    let* ret = meet left.ret right.ret in
+    return (Some (Lam { param; ret }))
+
+and meet_univ left right =
+  let* param = is_param left.param right.param in
+  if not param then
+    return (Some Bot)
   else
-  let right_body = Rename.rename right.body right.param.bind left.param.bind in
-  let ctx = Context.add_param ctx left.param in
-  let body = meet ctx left.body right_body in
-  Some (Abs { param = left.param; body })
+  let right_ret = rename right.param.bind left.param.bind right.ret in
+  let* ret = with_param_rigid left.param (meet left.ret right_ret) in
+  return (Some (Univ { param = left.param; ret }))
 
-(* PUBLIC FUNCTIONS *)
+and meet_abs left right =
+  let* param = is_param left.param right.param in
+  if not param then
+    return (Some Bot)
+  else
+  let right_body = rename right.param.bind left.param.bind right.body in
+  let* body = with_param_rigid left.param (meet left.body right_body) in
+  return (Some (Abs { param = left.param; body }))
 
-let substitute ctx type' bind other =
-  substitute ctx bind other type'
+(* MAP TYPE *)
 
-(* KIND EQUALITY *)
+and map_type f type' =
+  map_union (map_inter f) type'.dnf
 
-(**
-  Determines if two given kinds are equal.
-*)
-let rec is_kind ctx left right =
+and map_union f types =
+  let* types = list_map f types in
+  list_reduce join types
+
+and map_inter f types =
+  let* types = list_map f types in
+  list_reduce meet types
+
+(* SUBSTITUTE *)
+
+and substitute bind other (type': Node.type') =
+  map_type (substitute_base bind other) type'
+
+and substitute_base bind other (type': Node.base) =
+  match type' with
+  | Top | Bot | Unit | Bool | Int | String ->
+    return (base type')
+  | Var var ->
+    substitute_var bind other var
+  | Tuple tuple ->
+    let* elems = list_map (substitute bind other) tuple.elems in
+    return (Node.tuple elems)
+  | Record record ->
+    let* attrs = map_map (substitute_attr bind other) record.attrs in
+    return (Node.record attrs)
+  | Lam lam ->
+    let* param = substitute bind other lam.param in
+    let* ret   = substitute bind other lam.ret   in
+    return (Node.lam param ret)
+  | Univ univ ->
+    let* param = substitute_param bind other univ.param in
+    let* ret = with_param_rigid param (substitute bind other univ.ret) in
+    return (Node.univ param ret)
+  | Abs abs ->
+    let* param = substitute_param bind other abs.param in
+    let* body = with_param_rigid param (substitute bind other abs.body) in
+    return (Node.abs param body)
+  | App app ->
+    let* abs = substitute bind other app.abs in
+    let* arg = substitute bind other app.arg in
+    compute abs arg
+
+and substitute_var bind other var =
+  if var.bind == bind then
+    return other
+  else
+    return (Node.var var.bind)
+
+and substitute_param bind other param =
+  let* lower = substitute bind other param.lower in
+  let* upper = substitute bind other param.upper in
+  return { param with lower; upper }
+
+and substitute_attr bind other attr =
+  let* type' = substitute bind other attr.type' in
+  return { attr with type' }
+
+(* TYPE COMPUTATION *)
+
+and compute (abs: Node.type') (arg: Node.type'): type' t =
+  map_type (Util.flip compute_base arg) abs
+
+and compute_base (abs: Node.base) (arg: Node.type') =
+  match abs with
+  | Abs abs ->
+    substitute abs.param.bind arg abs.body
+  | _ ->
+    return (Node.app (Node.base abs) arg)
+
+(* TYPE PROMOTION *)
+
+and promote_upper type' =
+  map_type promote_upper_base type'
+
+and promote_upper_base type' =
+  match type' with
+  | Var var ->
+    let* var = get_var var.bind in
+    (match var with
+    | Fresh fresh ->
+      promote_upper fresh.upper
+    | Rigid rigid ->
+      promote_upper rigid.upper
+    )
+  | _ ->
+    return (Node.base type')
+
+and promote_lower type' =
+  map_type promote_lower_base type'
+
+and promote_lower_base type' =
+  match type' with
+  | Var var ->
+    let* var = get_var var.bind in
+    (match var with
+    | Fresh fresh ->
+      promote_lower fresh.lower
+    | Rigid rigid ->
+      promote_lower rigid.lower)
+  | _ ->
+    return (Node.base type')
+
+(* KIND EQUIVALENCE *)
+
+let rec is_kind left right =
   match left, right with
   | Kind.Type, Kind.Type ->
-    true
+    return true
   | Kind.Abs left_abs, Kind.Abs right_abs ->
-    is ctx left_abs.lower right_abs.lower &&
-    is ctx left_abs.upper right_abs.upper &&
-    is_kind ctx left_abs.ret right_abs.ret
+    let* lower = is left_abs.lower right_abs.lower in
+    let* upper = is left_abs.upper right_abs.upper in
+    let* body = is_kind left_abs.body right_abs.body in
+    return (lower && upper && body)
   | _, _ ->
-    false
+    return false

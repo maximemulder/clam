@@ -1,7 +1,7 @@
 open Vars
 
 let test ctx type' bind other (_: unit) =
-  System.substitute ctx type' bind other
+  System.substitute bind other type' ctx |> fst
 
 let name name' other type' expect =
   let other  = display other  in

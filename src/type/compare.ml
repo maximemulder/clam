@@ -22,11 +22,11 @@ and compare_base left right =
     && compare left_lam.ret right_lam.ret
   | Univ left_univ, Univ right_univ ->
     compare_param left_univ.param right_univ.param
-    && let right_ret = Rename.rename right_univ.ret right_univ.param.bind left_univ.param.bind in
+    && let right_ret = Rename.rename right_univ.param.bind left_univ.param.bind right_univ.ret in
     compare left_univ.ret right_ret
   | Abs left_abs, Abs right_abs ->
     compare_param left_abs.param right_abs.param
-    && let right_body = Rename.rename right_abs.body right_abs.param.bind left_abs.param.bind in
+    && let right_body = Rename.rename right_abs.param.bind left_abs.param.bind right_abs.body in
     compare left_abs.body right_body
   | App left_app, App right_app ->
     compare left_app.abs right_app.abs
