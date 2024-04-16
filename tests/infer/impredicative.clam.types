@@ -1,9 +1,9 @@
 main: Unit
-iter: (Int) -> ['A] -> ('A, ('A) -> 'A) -> 'A
+iter: ['A] -> (Int, 'A, ('A) -> 'A) -> 'A
 id: ['A] -> ('A) -> 'A
 double: (Int) -> Int
 apply_2: ['A] -> ('A, ('A) -> 'A) -> 'A
 iter_double: Int
 iter_int: Int
 iter_id: ['A] -> ('A) -> 'A
-iter_iter: (Int) -> ['A] -> ('A, ('A) -> 'A) -> 'A
+iter_iter: ['A] -> (Int, 'A, ('A) -> 'A) -> 'A

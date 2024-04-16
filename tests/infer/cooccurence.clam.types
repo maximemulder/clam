@@ -1,0 +1,12 @@
+main: Unit
+triple_a_1: ['A] -> ('A, Top, Top) -> 'A
+triple_a_2: ['A] -> ('A, Top, Top) -> 'A
+triple_a_3: ['A] -> ('A, Top, Top) -> 'A
+triple_b_1: ['A] -> (Top, 'A, Top) -> 'A
+triple_b_2: ['A] -> (Top, 'A, Top) -> 'A
+triple_b_3: ['A] -> (Top, 'A, Top) -> 'A
+triple_c_1: ['A] -> (Top, Top, 'A) -> 'A
+triple_c_2: ['A] -> (Top, Top, 'A) -> 'A
+triple_c_3: ['A] -> (Top, Top, 'A) -> 'A
+choose_a: ['A: .. Int] -> ('A) -> ['B] -> ('B) -> ('A | 'B)
+choose_b: ['A] -> ('A) -> ['B: .. Int] -> ('B) -> ('A | 'B)

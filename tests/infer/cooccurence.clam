@@ -1,0 +1,17 @@
+def main = unit
+
+def triple_a_1 = (a, b, c) -> if true then if true then a else triple_a_1(a, b, c) else triple_a_1(a, b, c)
+def triple_a_2 = (a, b, c) -> if true then if true then triple_a_2(a, b, c) else a else triple_a_2(a, b, c)
+def triple_a_3 = (a, b, c) -> if true then if true then triple_a_3(a, b, c) else triple_a_3(a, b, c) else a
+
+def triple_b_1 = (a, b, c) -> if true then if true then b else triple_b_1(a, b, c) else triple_b_1(a, b, c)
+def triple_b_2 = (a, b, c) -> if true then if true then triple_b_2(a, b, c) else b else triple_b_2(a, b, c)
+def triple_b_3 = (a, b, c) -> if true then if true then triple_b_3(a, b, c) else triple_b_3(a, b, c) else b
+
+def triple_c_1 = (a, b, c) -> if true then if true then c else triple_c_1(a, b, c) else triple_c_1(a, b, c)
+def triple_c_2 = (a, b, c) -> if true then if true then triple_c_2(a, b, c) else c else triple_c_2(a, b, c)
+def triple_c_3 = (a, b, c) -> if true then if true then triple_c_3(a, b, c) else triple_c_3(a, b, c) else c
+
+def choose_a = (a, b) -> if a > 1 then a else b
+
+def choose_b = (a, b) -> if b > 1 then a else b

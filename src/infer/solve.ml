@@ -5,35 +5,29 @@
 *)
 
 open Polar
-open Inline
 open Type.Context
 open State
 
 let solve (fresh: fresh) type' =
-  let* pols = with_ctx (get_pols fresh Pos type') in
-  match pols.neg, pols.pos with
-  | Some neg, _ when neg <> Type.bot ->
-    let* () = show_infer ("co_neg " ^ fresh.bind.name ^ " by " ^ Type.display neg ^ " in " ^ Type.display type') in
-    with_ctx (inline fresh (Type.top) neg Pos type')
-  | _, Some pos when pos <> Type.top ->
-    let* () = show_infer ("co_pos " ^ fresh.bind.name ^ " by " ^ Type.display pos ^ " in " ^ Type.display type') in
-    with_ctx (inline fresh pos (Type.bot) Pos type')
-  | Some _, Some _ ->
+  let* occs = with_ctx (occurs fresh.bind Pos type') in
+  match occs.neg, occs.pos with
+  | true, true ->
     let* () = show_infer ("quantify " ^ fresh.bind.name ^ " in " ^ Type.display type') in
     let* cond = is fresh.lower fresh.upper in
     if cond then
       substitute fresh.bind fresh.lower type'
     else
+      let* type' = with_ctx (simplify fresh Pos type') in
       let param_bind = { Abt.name = fresh.bind.name } in
       let type' = Type.rename fresh.bind param_bind type' in
       return (Type.univ { bind = param_bind; lower = fresh.lower; upper = fresh.upper } type')
-  | Some _, None ->
+  | true, false ->
     let* () = show_infer ("inline_neg " ^ fresh.bind.name ^ " in " ^ Type.display type') in
     substitute fresh.bind fresh.upper type'
-  | None, Some _ ->
+  | false, true ->
     let* () = show_infer ("inline_pos " ^ fresh.bind.name ^ " in " ^ Type.display type') in
     substitute fresh.bind fresh.lower type'
-  | None, None ->
+  | false, false ->
     let* () = show_infer ("none " ^ fresh.bind.name ^ " in " ^ Type.display type') in
     return type'
 
@@ -68,7 +62,7 @@ let solve_exprs fresh =
   let* exprs = get_high_exprs in
   list_iter (solve_expr fresh) exprs
 
-let rec solve_bis span fresh type' =
+let solve_bis span fresh type' =
   let* type' = solve_type span fresh type'  in
   let* () = solve_exprs fresh in
   return type'

@@ -11,110 +11,226 @@ let inv pol =
   | Neg -> Pos
   | Pos -> Neg
 
-(** The polarities in which a type variable occurs, along with its co-occurrences. *)
-type pols = {
-  neg: Type.type' option;
-  pos: Type.type' option;
+(** The polarities at which a type variable occurs. *)
+type occs = {
+  neg: bool;
+  pos: bool;
 }
 
-(** The none occurence, when a variable does not occur. *)
-let none = { neg = None; pos = None }
+(** The empty occurrence, when a variable does not occur in a type. *)
+let occs_none = { neg = false; pos = false }
 
-let merge_pols a b =
-  let* neg = option_join meet a.neg b.neg in
-  let* pos = option_join join a.pos b.pos in
+(** The polar occurrence, when a variable occurs at a given polarity in a type. *)
+let occs_pol pol =
+  match pol with
+  | Neg ->
+    { neg = true; pos = false }
+  | Pos ->
+    { neg = false; pos = true }
+
+let merge_occs left right =
+  let neg = left.neg || right.neg in
+  let pos = left.pos || right.pos in
   return { neg; pos }
 
-type entry = {
-  bind: Abt.bind_type;
-  lower: Type.type';
-  upper: Type.type';
-}
+let rec occurs bind pol type' =
+  let* types = list_map (fun types ->
+    let* types = list_map (occurs_base bind pol) types in
+    list_fold merge_occs occs_none types
+  ) type'.Type.dnf in
+  list_fold merge_occs occs_none types
 
-(* POLARITY *)
-
-let occurs bind type' =
-  List.exists (List.exists ((=) (Type.Var { bind }))) type'.Type.dnf
-
-let get_pos_coocurrences bind type' base =
-  let vars = List.filter (fun types -> match types with
-    | [Type.Var var] when var.bind != bind ->
-      true
-    | _ ->
-      false
-  ) type'.Type.dnf
-  |> List.map (fun types -> { Type.dnf = [types] }) in
-  list_fold (fun type' var -> meet type' var) base vars
-
-let get_neg_coocurrences bind type' base =
-  let vars = List.map (List.filter (fun type' -> match type' with
-    | Type.Var var when var.bind != bind ->
-      true
-    | _ ->
-      false
-  )) type'.Type.dnf
-  |> List.flatten
-  |> List.map Type.base in
-  list_fold (fun type' var -> join type' var) base vars
-
-(**
-  Get the polarities at which an inference variable occurs in a type, as well
-  as the other variables it co-occurs with.
-*)
-let rec get_pols entry pol type' =
-  let* pols_1 = match pol with
-  | Pos ->
-    if occurs entry.bind type' then
-      let* pos = get_pos_coocurrences entry.bind type' entry.lower in
-      return { neg = None; pos = Some pos }
-    else
-      return none
-  | Neg ->
-    if occurs entry.bind type' then
-      let* neg = get_neg_coocurrences entry.bind type' entry.upper in
-      return { neg = Some neg; pos = None }
-    else
-      return none
-  in
-  let* tmp = list_map (fun types ->
-    let* tmp = list_map (get_pols_base entry pol) types in
-    list_fold (merge_pols) none tmp
-  ) type'.dnf in
-  let* pols_2 = list_fold merge_pols none tmp in
-  merge_pols pols_1 pols_2
-
-and get_pols_base entry pol type'  =
+and occurs_base bind pol type'  =
   match type' with
   | Top | Bot | Unit | Bool | Int | String ->
-    return none
+    return occs_none
+  | Var var ->
+    if var.bind == bind then
+      return (occs_pol pol)
+    else
+      return occs_none
   | Tuple tuple ->
-    let* elems = list_map (get_pols entry pol) tuple.elems in
-    list_fold merge_pols none elems
+    let* elems = list_map (occurs bind pol) tuple.elems in
+    list_fold merge_occs occs_none elems
   | Record record ->
     let attrs = Util.NameMap.to_list record.attrs
     |> List.map snd in
-    let* attrs = list_map (fun (attr: Type.attr) -> get_pols_attr entry pol attr) attrs in
-    list_fold merge_pols none attrs
+    let* attrs = list_map (fun (attr: Type.attr) -> occurs_attr bind pol attr) attrs in
+    list_fold merge_occs occs_none attrs
   | Lam lam ->
-    let* param = get_pols entry (inv pol) lam.param in
-    let* ret   = get_pols entry pol lam.ret in
-    merge_pols param ret
+    let* param = occurs bind (inv pol) lam.param in
+    let* ret   = occurs bind pol lam.ret in
+    merge_occs param ret
   | Univ univ ->
-    let* param = get_pols_param entry pol univ.param in
-    let* ret   = with_param_rigid univ.param (get_pols entry pol univ.ret) in
-    merge_pols param ret
-  | _ ->
-    return none
+    let* param = occurs_param bind univ.param in
+    let* ret   = with_param_rigid univ.param (occurs bind pol univ.ret) in
+    merge_occs param ret
+  | Abs abs ->
+    let* param = occurs_param bind abs.param in
+    let* body  = with_param_rigid abs.param (occurs bind pol abs.body) in
+    merge_occs param body
+  | App app ->
+    let* abs = occurs bind pol app.abs in
+    let* arg = occurs bind pol app.arg in
+    merge_occs abs arg
 
-and get_pols_attr bind pol attr =
-  get_pols bind pol attr.type'
+and occurs_attr bind pol attr =
+  occurs bind pol attr.type'
 
-and get_pols_param entry _pol param  =
-  let* lower = get_pols entry Pos param.lower in
-  let* upper = get_pols entry Neg param.upper in
-  merge_pols lower upper
+and occurs_param bind param  =
+  let* lower = occurs bind Pos param.lower in
+  let* upper = occurs bind Neg param.upper in
+  merge_occs lower upper
 
-let get_pols (fresh: fresh) pol type' =
-  let* lower = get_pos_coocurrences fresh.bind fresh.lower Type.top in
-  let* upper = get_neg_coocurrences fresh.bind fresh.upper Type.bot in
-  get_pols { bind = fresh.bind; lower; upper } pol type'
+(* GET COOCCURRENCES *)
+
+(** The polarities at which a type variable occurs or cooccurs. *)
+type cooccs = {
+  neg: bool option;
+  pos: bool option;
+}
+
+(** The empty cooccurrence, when a variable does not occur a type. *)
+let cooccs_none = { neg = None; pos = None }
+
+(** The polar cooccurrence, when a variable occurs or cooccurs at a given polarity in a type. *)
+let cooccs_pol pol coocc =
+  match pol with
+  | Neg ->
+    { neg = Some coocc; pos = None }
+  | Pos ->
+    { neg = None; pos = Some coocc }
+
+let merge_cooccs left right =
+  let neg = Util.option_join left.neg right.neg (&&) in
+  let pos = Util.option_join left.pos right.pos (&&) in
+  return { neg; pos }
+
+let occurs_neg bind type' =
+  List.for_all (List.exists ((=) (Type.Var { bind }))) type'.Type.dnf
+
+let occurs_pos bind type' =
+  List.exists (List.for_all ((=) (Type.Var { bind }))) type'.Type.dnf
+
+let rec cooccurs bind other pol type' =
+  let cooccs_self = match pol with
+  | Neg ->
+    if occurs_neg bind type' then
+      if occurs_neg other type' then
+        cooccs_pol Neg true
+      else
+        cooccs_pol Neg false
+    else
+      cooccs_none
+  | Pos ->
+    if occurs_pos bind type' then
+      if occurs_pos other type' then
+        cooccs_pol Pos true
+      else
+        cooccs_pol Pos false
+    else
+      cooccs_none
+  in
+  let* cooccs = list_map (fun types ->
+    let* cooccs = list_map (cooccurs_base bind other pol) types in
+    list_fold merge_cooccs cooccs_none cooccs
+  ) type'.dnf in
+  let* cooccs_inner = list_fold merge_cooccs cooccs_none cooccs in
+  merge_cooccs cooccs_self cooccs_inner
+
+and cooccurs_base bind other pol type'  =
+  match type' with
+  | Top | Bot | Unit | Bool | Int | String | Var _ ->
+    return cooccs_none
+  | Tuple tuple ->
+    let* elems = list_map (cooccurs bind other pol) tuple.elems in
+    list_fold merge_cooccs cooccs_none elems
+  | Record record ->
+    let attrs = Util.NameMap.to_list record.attrs
+    |> List.map snd in
+    let* attrs = list_map (cooccurs_attr bind other pol) attrs in
+    list_fold merge_cooccs cooccs_none attrs
+  | Lam lam ->
+    let* param = cooccurs bind other (inv pol) lam.param in
+    let* ret   = cooccurs bind other pol lam.ret in
+    merge_cooccs param ret
+  | Univ univ ->
+    let* param = cooccurs_param bind other univ.param in
+    let* ret   = with_param_rigid univ.param (cooccurs bind other pol univ.ret) in
+    merge_cooccs param ret
+  | Abs abs ->
+    let* param = cooccurs_param bind other abs.param in
+    let* body  = with_param_rigid abs.param (cooccurs bind other pol abs.body) in
+    merge_cooccs param body
+  | App app ->
+    let* abs = cooccurs bind other pol app.abs in
+    let* arg = cooccurs bind other pol app.arg in
+    merge_cooccs abs arg
+
+and cooccurs_attr bind other pol attr =
+  cooccurs bind other pol attr.type'
+
+and cooccurs_param bind other param  =
+  let* lower = cooccurs bind other Pos param.lower in
+  let* upper = cooccurs bind other Neg param.upper in
+  merge_cooccs lower upper
+
+(* SIMPLIFY COOCCURRENCES *)
+
+let rec simplify (fresh: fresh) pol type' =
+  map_type (simplify_base fresh pol) type'
+
+and simplify_base fresh pol type' =
+  match type' with
+  | Top | Bot | Unit | Bool | Int | String | Var _ ->
+    return (Type.base type')
+  | Lam lam ->
+    let* param = simplify fresh (inv pol) lam.param in
+    let* ret   = simplify fresh pol lam.ret in
+    return (Type.lam param ret)
+  | Tuple tuple ->
+    let* elems = list_map (simplify fresh pol) tuple.elems in
+    return (Type.tuple elems)
+  | Record record ->
+    let* attrs = map_map (simplify_attr fresh pol) record.attrs in
+    return (Type.record attrs)
+  | Univ univ ->
+    let* param: Type.param = simplify_param fresh univ.param in
+    let* cond = simplify_univ_cond fresh pol univ in
+    if cond then
+      let type' = Type.rename param.bind fresh.bind univ.ret in
+      simplify fresh pol type'
+    else
+      let* ret = with_param_rigid param (simplify fresh pol univ.ret) in
+      return (Type.univ param ret)
+  | Abs abs ->
+    let* param = simplify_param fresh abs.param in
+    let* body  = with_param_rigid abs.param (simplify fresh pol abs.body) in
+    return (Type.abs param body)
+  | App app ->
+    let* abs = simplify fresh pol app.abs in
+    let* arg = simplify fresh pol app.arg in
+    return (Type.app abs arg)
+
+and simplify_attr fresh pol attr =
+  let* type' = simplify fresh pol attr.type' in
+  return { attr with type' }
+
+and simplify_param fresh param =
+  let* lower = simplify fresh Pos param.lower in
+  let* upper = simplify fresh Neg param.upper in
+  return { param with lower; upper }
+
+and simplify_univ_cond fresh pol univ =
+  let* lower = with_freeze (is univ.param.lower fresh.lower) in
+  let* upper = with_freeze (is univ.param.upper fresh.upper) in
+  let* sub = with_freeze (is (Type.var fresh.bind) univ.param.lower) in
+  let* sup = with_freeze (is univ.param.upper (Type.var fresh.bind)) in
+  if not (sub || lower) || not (upper || sup) then
+    return false
+  else
+  if occurs_neg fresh.bind univ.param.lower || occurs_pos fresh.bind univ.param.upper then
+    return true
+  else
+  let* cooccs = cooccurs univ.param.bind fresh.bind pol univ.ret in
+  return (cooccs.neg = Some true || cooccs.pos = Some true)
