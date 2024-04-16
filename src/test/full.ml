@@ -79,14 +79,20 @@ let test file_name =
   let channel_values = make_channel_opt file_name "values"          ".values" in
   let channel_out    = make_channel     file_name "standard output" ".out"    in
   let channel_err    = make_channel     file_name "standard error"  ".err"    in
-  Main.run code {
-    show_ast    = Option.map (fun channel -> write_buffer channel.result) channel_ast;
-    show_kinds  = Option.map (fun channel -> write_buffer channel.result) channel_kinds;
-    show_types  = Option.map (fun channel -> write_buffer channel.result) channel_types;
-    show_values = Option.map (fun channel -> write_buffer channel.result) channel_values;
-    print_out   = write_buffer channel_out.result;
-    print_err   = write_buffer channel_err.result;
-  };
+  (try
+    Main.run code {
+      show_ast    = Option.map (fun channel -> write_buffer channel.result) channel_ast;
+      show_kinds  = Option.map (fun channel -> write_buffer channel.result) channel_kinds;
+      show_types  = Option.map (fun channel -> write_buffer channel.result) channel_types;
+      show_values = Option.map (fun channel -> write_buffer channel.result) channel_values;
+      print_out   = write_buffer channel_out.result;
+      print_err   = write_buffer channel_err.result;
+    }
+  with
+  Failure failure ->
+    print_endline ("INTERPRETER ERROR: " ^ failure);
+    false
+  ) &&
   compare_channel_opt file_name channel_ast    &&
   compare_channel_opt file_name channel_types  &&
   compare_channel_opt file_name channel_values &&

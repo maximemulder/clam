@@ -1,6 +1,6 @@
 let handle error message print_err =
   print_err(error ^ ": " ^ message);
-  exit(-1)
+  false
 
 let handle_parser message =
   handle "SYNTAX ERROR" message

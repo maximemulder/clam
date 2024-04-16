@@ -30,13 +30,15 @@ let () =
       print_endline Help.help
     else
     let code = read_code config.file in
-    Main.run code {
+    let run = Main.run code {
       show_ast    = Util.bool_then config.show_ast   print_endline;
       show_kinds  = Util.bool_then config.show_kinds print_endline;
       show_types  = Util.bool_then config.show_types print_endline;
       show_values = None;
       print_out   = print_endline;
       print_err   = print_endline;
-    }
+    } in
+    if not run then
+      exit (-1)
   with Failure.Error message ->
     Failure.exit message

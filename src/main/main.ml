@@ -33,11 +33,11 @@ let type_check abt config =
   | None -> ()
 
 let eval abt config =
-  let main = (match List.find_opt (fun (def: Abt.def_expr) -> def.bind.name = "main") abt.Abt.exprs with
-  | Some main -> main
-  | None -> Error.handle_main () config.print_err
-  ) in
-  Eval.eval main abt.exprs Prim.values config.print_out
+  match List.find_opt (fun (def: Abt.def_expr) -> def.bind.name = "main") abt.Abt.exprs with
+  | Some main ->
+    Eval.eval main abt.exprs Prim.values config.print_out; true
+  | None ->
+    Error.handle_main () config.print_err
 
 let run code config =
   try
