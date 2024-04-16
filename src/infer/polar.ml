@@ -226,7 +226,7 @@ and simplify_univ_cond fresh pol univ =
   let* upper = with_freeze (is univ.param.upper fresh.upper) in
   let* sub = with_freeze (is (Type.var fresh.bind) univ.param.lower) in
   let* sup = with_freeze (is univ.param.upper (Type.var fresh.bind)) in
-  if not (sub || lower) || not (upper || sup) then
+  if not (sub || lower) || not (sup || upper) then
     return false
   else
   if occurs_neg fresh.bind univ.param.lower || occurs_pos fresh.bind univ.param.upper then

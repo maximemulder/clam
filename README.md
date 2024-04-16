@@ -208,7 +208,7 @@ Whenever a type parameter only has one declared bound, the other bound is inferr
 
 ## Type inference
 
-Clam features a constraint-based type inference algorithm capable of inferring principal types for most expressions.
+Clam features a constraint-based type inference algorithm capable of inferring compact principal types for most expressions.
 
 <table>
     <tr>
@@ -243,7 +243,7 @@ is_odd: (Int) -> Bool
     </tr>
 </table>
 
-As shown by these examples, Clam's type inference algorithm supports both impredicative polymorphism, subtyping, and recursive types. Although it has not been formalized yet and would benefit from a little code polishing, practical tests show that it peforms similarly to the world's most advanced algorithms, although its type simplification could be improved. Comparisons against the [SuperF paper](https://dl.acm.org/doi/10.1145/3632890) (from which this algorithm took some inspiration from) can be found in the `tests/infer/compare.clam` test.
+As shown by these examples, Clam's type inference algorithm supports both impredicative polymorphism and subtyping. Although it has not been formalized, practical tests show that it peforms similarly to the world's most advanced algorithms, although its type simplification could be improved. Comparisons against the [SuperF paper](https://dl.acm.org/doi/10.1145/3632890) (from which this algorithm took some inspiration from) can be found in the `tests/infer/compare.clam` test.
 
 ## Recursive types
 
@@ -251,7 +251,7 @@ Although Clam's type inference algorithm is capable of infering recursive types,
 
 # Correctness
 
-There is currently no mathematical proof of correctness for this language or interpeter, but I wish to write one one day. While the code may still be rough in some places, all the examples provided work, as well as all the unit tests and the sample programs found in the `tests` directory.
+There is currently no mathematical proof of correctness for this language or interpeter, but I wish to write one one day. Nevertheless, all the examples provided work, as well as all the unit tests and the sample programs found in the `tests` directory.
 
 # Roadmap
 
