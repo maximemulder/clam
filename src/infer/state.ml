@@ -28,15 +28,11 @@ type state = {
   ctx: ctx;
 }
 
-include Util.Monad.Monad(Util.Monad.StateMonad(struct
+module Monad = Util.Monad.StateMonad(struct
   type s = state
-end))
+end)
 
-(* DEBUG FUNCTIONS *)
-
-(* TODO: Factorize in the state monad *)
-let get_state state =
-  state, state
+open Monad
 
 (* FUNCTIONS *)
 

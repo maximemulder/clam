@@ -1,5 +1,6 @@
-open State
 open Solve
+open State
+open State.Monad
 
 (* TYPE CONSTRAIN *)
 
@@ -82,7 +83,7 @@ and infer_record_attr attr =
 
 and infer_elem expr =
   let* tuple = infer expr.tuple in
-  let* state = get_state in
+  let* state = get in
   let type' = Search.search_proj (infer_elem_base expr.index) tuple state.ctx in
   match type' with
   | Some type' ->
@@ -141,7 +142,7 @@ and infer_univ_abs expr =
 
 and infer_univ_app expr =
   let* univ = infer expr.abs in
-  let* state = get_state in
+  let* state = get in
   let type' = Search.search_app_type infer_univ_app_base univ state.ctx in
   match type' with
   | Some { param; ret } ->

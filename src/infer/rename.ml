@@ -16,9 +16,9 @@ let rec index_to_name index =
 let index_to_name index =
   "'" ^ index_to_name index
 
-include Util.Monad.Monad(Util.Monad.StateMonad(struct
+open Util.Monad.StateMonad(struct
   type s = int
-end))
+end)
 
 let rec rename type' =
   let* types = (list_map (list_map rename_base)) type'.dnf in

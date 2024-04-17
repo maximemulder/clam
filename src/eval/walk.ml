@@ -28,11 +28,9 @@ let rec get_bind bind stack =
   | Some value -> value
   | None -> get_bind bind (Option.get stack.parent)
 
-module Reader = struct
+open Util.Monad.ReaderMonad(struct
   type r = context
-end
-
-open Util.Monad.Monad(Util.Monad.ReaderMonad(Reader))
+end)
 
 let rec eval (expr: Abt.expr) =
   match expr with

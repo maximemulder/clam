@@ -82,8 +82,8 @@ let rec collect_freshs ctx =
   let fresh = List.nth_opt ctx.freshs 0 in
   match fresh with
   | Some fresh when fresh.level >= ctx.level ->
-    let _ = show_isa ("collect " ^ fresh.bind.name) ctx in
     let ctx = { ctx with freshs = List.tl ctx.freshs } in
+    let _ = show_isa ("collect " ^ fresh.bind.name) ctx in
     collect_freshs ctx
   | _ ->
     ctx
@@ -94,9 +94,9 @@ let update_fresh (var: fresh) ctx =
 
 let with_param_fresh (param: Node.param) type' f ctx =
   let bind = { Abt.name = "'" ^ string_of_int ctx.id } in
+  let _ = show_isa ("fresh_isa " ^ bind.name) ctx in
   let var = { bind = bind; level = ctx.level + 1; lower = param.lower; upper = param.upper } in
   let ctx = { ctx with id = ctx.id + 1; level = ctx.level + 1; freshs = var :: ctx.freshs } in
-  let _ = show_isa ("fresh_isa " ^ var.bind.name) ctx in
   let type' = Rename.rename param.bind bind type' in
   let x, ctx = f type' ctx in
   let ctx = collect_freshs ctx in
@@ -196,8 +196,6 @@ let display ctx =
 
 (* MONAD *)
 
-module Monad = Util.Monad.Monad(Util.Monad.StateMonad(struct
+module Monad = Util.Monad.StateMonad(struct
   type s = ctx
-end))
-
-let get_context ctx = ctx, ctx
+end)

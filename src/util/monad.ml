@@ -219,13 +219,19 @@ end
 module StateMonad (S: STATE) = struct
   open S
 
-  type 'a t = s -> ('a * s)
+  include Monad(struct
+    type 'a t = s -> ('a * s)
 
-  let return a s = (a, s)
+    let return a s = (a, s)
 
-  let bind m f s =
-    let (a, s1) = m s in
-    f a s1
+    let bind m f s =
+      let (a, s1) = m s in
+      f a s1
+  end)
+
+  let get s = s, s
+
+  let put s _ = (), s
 end
 
 module type READER = sig
@@ -235,10 +241,14 @@ end
 module ReaderMonad (R: READER) = struct
   open R
 
-  type 'a t = r -> 'a
+  include Monad(struct
+    type 'a t = r -> 'a
 
-  let return a _ = a
+    let return a _ = a
 
-  let bind r f =
-    fun c -> f (r c) c
+    let bind r f c =
+      f (r c) c
+  end)
+
+  let get s = s
 end

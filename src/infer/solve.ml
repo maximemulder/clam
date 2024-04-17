@@ -7,6 +7,7 @@
 open Polar
 open Type.Context
 open State
+open State.Monad
 
 let solve (fresh: fresh) type' =
   let* occs = with_ctx (occurs fresh.bind Pos type') in
