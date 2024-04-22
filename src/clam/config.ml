@@ -42,11 +42,17 @@ let parse_arg arg config =
     { config with show_types = true }
   | "-v"   | "--show-values" ->
     { config with show_values = true }
+  | "--show-constrain" ->
+    Global.show_constrain := true;
+    config
+  | "--show-join" ->
+    Global.show_join := true;
+    config
   | "--show-infer" ->
     Global.show_infer := true;
     config
-  | "--show-isa" ->
-    Global.show_isa := true;
+  | "--show-meet" ->
+    Global.show_meet := true;
     config
   | _ ->
     if String.starts_with ~prefix:"-" arg then

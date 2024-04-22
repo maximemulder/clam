@@ -75,11 +75,17 @@ and is_param left right =
   separately to cases where a type variable is compared to another type.
 *)
 and isa sub sup =
-  let* () = show_isa ("isa " ^ Display.display sub ^ " < " ^ Display.display sup) in
+  let* () = show
+    (!Global.show_infer && not !Global.show_constrain)
+    ("constrain " ^ Display.display sub ^ " < " ^ Display.display sup)
+  in
   isa_nesting := !isa_nesting + 1;
   let* result = isa_union sub.dnf sup.dnf in
   isa_nesting := !isa_nesting - 1;
-  let* () = show_isa ("= " ^ string_of_bool result) in
+  let* () = show
+    (!Global.show_infer && not !Global.show_constrain)
+    ("= " ^ string_of_bool result)
+  in
   return result
 
 and isa_union sub sup =
@@ -100,7 +106,7 @@ and isa_union_hard sub sup =
       if not fresh_sub && not fresh_sup then
         list_any (isa_inter sub) sup
       else
-        let* () = show_isa "maybe" in
+        let* () = show !Global.show_constrain "maybe" in
         return false
 
 and isa_inter sub sup =
@@ -121,7 +127,7 @@ and isa_inter_hard sub sup =
       if not fresh_sub && not fresh_sup then
         list_any (fun sub -> isa_base_var sub sup) sub
       else
-        let* () = show_isa "maybe" in
+        let* () = show !Global.show_constrain "maybe" in
         return false
 
 and isa_base_var sub sup =
@@ -305,7 +311,13 @@ and isa_app sub sup =
 
 (* TYPE JOIN *)
 
-and join left right = with_freeze (join_freeze left right)
+and join left right =
+  let* res = with_freeze (join_freeze left right) in
+  let* () = show
+    !Global.show_join
+    ("join " ^ Display.display left ^ " " ^ Display.display right ^ " = " ^ Display.display res)
+  in
+  return res
 
 and join_freeze left right =
   let* sub = isa left right in
@@ -340,7 +352,13 @@ and join_inter left right =
 
 (* TYPE MEET *)
 
-and meet left right = with_freeze (meet_freeze left right)
+and meet left right =
+  let* res = with_freeze (meet_freeze left right) in
+  let* () = show
+    !Global.show_meet
+    ("meet " ^ Display.display left ^ " " ^ Display.display right ^  " = " ^ Display.display res)
+  in
+  return res
 
 and meet_freeze left right =
   let* sub = isa left right in

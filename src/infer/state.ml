@@ -87,17 +87,9 @@ let with_param_rigid (param: Type.param) f state =
 
 (* PRINT STATE CONTEXT *)
 
-let show_infer string state =
-  if !Global.show_infer then
-    with_ctx (show string) state
-  else
-    (), state
+let show cond string = with_ctx (show cond string)
 
-let show_infer_ctx state =
-  if !Global.show_infer then
-    with_ctx show_ctx state
-  else
-    (), state
+let show_ctx cond = with_ctx (show_ctx cond)
 
 (* STATE FUNCTION *)
 

@@ -41,40 +41,28 @@ let freeze ctx =
 
 let with_freeze f ctx =
   let frozen = freeze ctx in
-  let show_isa = !Global.show_isa in
-  Global.show_isa := false;
-  let x, _ = f frozen in
-  Global.show_isa := show_isa;
+  let x, _ = Global.with_flag_off Global.show_constrain (fun () -> f frozen) in
   x, ctx
 
 (* PRINT CONTEXT *)
 
-let show string ctx =
+let show cond string ctx =
+  if cond then
     Util.string_indent (List.length ctx.rigids + List.length ctx.freshs + !isa_nesting) string
     |> print_endline;
   (), ctx
 
-let show_ctx ctx =
-  List.mapi (fun i (var: rigid) -> Util.string_indent i (var.bind.name) ^ ": " ^ Display.display var.lower ^ " .. " ^ Display.display var.upper ^ "\n") (List.rev ctx.rigids)
-  |> String.concat ""
-  |> print_string;
-  let rigids_length = List.length ctx.rigids in
-  List.mapi (fun i (var: fresh) -> Util.string_indent (rigids_length + i) (var.bind.name) ^ "~: " ^ Display.display var.lower ^ " .. " ^ Display.display var.upper ^ "\n") (List.rev ctx.freshs)
-  |> String.concat ""
-  |> print_string;
+let show_ctx cond ctx =
+  if cond then (
+    List.mapi (fun i (var: rigid) -> Util.string_indent i (var.bind.name) ^ ": " ^ Display.display var.lower ^ " .. " ^ Display.display var.upper ^ "\n") (List.rev ctx.rigids)
+    |> String.concat ""
+    |> print_string;
+    let rigids_length = List.length ctx.rigids in
+    List.mapi (fun i (var: fresh) -> Util.string_indent (rigids_length + i) (var.bind.name) ^ "~: " ^ Display.display var.lower ^ " .. " ^ Display.display var.upper ^ "\n") (List.rev ctx.freshs)
+    |> String.concat ""
+    |> print_string
+  );
   (), ctx
-
-let show_isa string ctx =
-  if !Global.show_isa then
-    show string ctx
-  else
-    (), ctx
-
-let show_isa_ctx ctx =
-  if !Global.show_isa then
-    show_ctx ctx
-  else
-    (), ctx
 
 (* ACCESS TYPE VARIABLES *)
 
@@ -83,7 +71,7 @@ let rec collect_freshs ctx =
   match fresh with
   | Some fresh when fresh.level >= ctx.level ->
     let ctx = { ctx with freshs = List.tl ctx.freshs } in
-    let _ = show_isa ("collect " ^ fresh.bind.name) ctx in
+    let _ = show !Global.show_constrain ("constrain_collect " ^ fresh.bind.name) ctx in
     collect_freshs ctx
   | _ ->
     ctx
@@ -94,7 +82,7 @@ let update_fresh (var: fresh) ctx =
 
 let with_param_fresh (param: Node.param) type' f ctx =
   let bind = { Abt.name = "'" ^ string_of_int ctx.id } in
-  let _ = show_isa ("fresh_isa " ^ bind.name) ctx in
+  let _ = show !Global.show_constrain ("constrain_fresh " ^ bind.name) ctx in
   let var = { bind = bind; level = ctx.level + 1; lower = param.lower; upper = param.upper } in
   let ctx = { ctx with id = ctx.id + 1; level = ctx.level + 1; freshs = var :: ctx.freshs } in
   let type' = Rename.rename param.bind bind type' in

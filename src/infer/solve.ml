@@ -4,6 +4,7 @@
   out in which order the type variables should be treated.
 *)
 
+open Cooccur
 open Polar
 open Type.Context
 open State
@@ -13,23 +14,23 @@ let solve (fresh: fresh) type' =
   let* occs = with_ctx (occurs fresh.bind Pos type') in
   match occs.neg, occs.pos with
   | true, true ->
-    let* () = show_infer ("quantify " ^ fresh.bind.name ^ " in " ^ Type.display type') in
+    let* () = show !Global.show_infer ("quantify " ^ fresh.bind.name ^ " in " ^ Type.display type') in
     let* cond = is fresh.lower fresh.upper in
     if cond then
       substitute fresh.bind fresh.lower type'
     else
-      let* type' = with_ctx (simplify fresh Pos type') in
-      let param_bind = { Abt.name = fresh.bind.name } in
-      let type' = Type.rename fresh.bind param_bind type' in
-      return (Type.univ { bind = param_bind; lower = fresh.lower; upper = fresh.upper } type')
+    let* type' = with_ctx (simplify fresh Pos type') in
+    let param_bind = { Abt.name = fresh.bind.name } in
+    let type' = Type.rename fresh.bind param_bind type' in
+    return (Type.univ { bind = param_bind; lower = fresh.lower; upper = fresh.upper } type')
   | true, false ->
-    let* () = show_infer ("inline_neg " ^ fresh.bind.name ^ " in " ^ Type.display type') in
+    let* () = show !Global.show_infer ("inline_neg " ^ fresh.bind.name ^ " in " ^ Type.display type') in
     substitute fresh.bind fresh.upper type'
   | false, true ->
-    let* () = show_infer ("inline_pos " ^ fresh.bind.name ^ " in " ^ Type.display type') in
+    let* () = show !Global.show_infer ("inline_pos " ^ fresh.bind.name ^ " in " ^ Type.display type') in
     substitute fresh.bind fresh.lower type'
   | false, false ->
-    let* () = show_infer ("none " ^ fresh.bind.name ^ " in " ^ Type.display type') in
+    let* () = show !Global.show_infer ("none " ^ fresh.bind.name ^ " in " ^ Type.display type') in
     return type'
 
 let find_recursive span (fresh: fresh) type' =
@@ -42,14 +43,14 @@ let find_recursive span (fresh: fresh) type' =
 let solve_type span fresh type' =
   let* type' = solve fresh type' in
   let* () = find_recursive span fresh type' in
-  let* () = show_infer ("= " ^ Type.display type') in
+  let* () = show !Global.show_infer ("= " ^ Type.display type') in
   return type'
 
 let solve_expr (fresh: fresh) (var_expr: entry_expr) =
   let* type' = solve fresh var_expr.type' in
   let* () = update_expr_type var_expr.bind type' in
   let* () = find_recursive var_expr.span fresh type' in
-  let* () = show_infer (var_expr.bind.name ^ ": " ^ Type.display type') in
+  let* () = show !Global.show_infer (var_expr.bind.name ^ ": " ^ Type.display type') in
   (* let* level = Level.get_level type' in
   match level with
   | Some level ->
@@ -81,7 +82,7 @@ let rec collect_freshs f x state =
 
 let with_var span f state =
   let bind = { Abt.name = "'" ^ string_of_int state.ctx.id } in
-  let _ = show_infer ("fresh_infer " ^ bind.name) state in
+  let _ = show !Global.show_infer ("infer_fresh " ^ bind.name) state in
   let var = { bind; level = state.ctx.level + 1; lower = Type.bot; upper = Type.top } in
   let type' = Type.var bind in
   let ctx = { state.ctx with id = state.ctx.id + 1; level = state.ctx.level + 1; freshs = var :: state.ctx.freshs } in

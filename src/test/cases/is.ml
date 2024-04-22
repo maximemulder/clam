@@ -74,6 +74,9 @@ let tests = [
   case (univ "A" top (inline a)) (univ "A" top (inline a));
   case (univ "A" top id) (univ "A" top id);
   case (univ "A" top id) (univ "B" top id);
+
+  case (univ "A" top (fun a -> (univ "B" (inter [a; int]) (fun b -> (lam b (tuple [a; b])))))) (univ "A" int (fun a -> (lam a (tuple [a; a]))));
+  case (univ "A" top (fun a -> (univ "B" a (fun b -> (tuple [a; b]))))) (univ "A" top (fun a -> (tuple [a; a])));
 ]
 |> List.map (fun case -> case true ctx)
 
