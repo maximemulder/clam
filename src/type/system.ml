@@ -73,6 +73,14 @@ and is_param left right =
 
   Finally, cases where two type variables are compared to one another are treated
   separately to cases where a type variable is compared to another type.
+
+  BUG:
+  If there is a constraining of the form:
+
+  `[A] -> B | C < D | E`
+
+  The algorithm should apply the left universal type rule before decomposing the
+  right-hand side type, which is currently not the case.
 *)
 and isa sub sup =
   let* () = show

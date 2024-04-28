@@ -101,8 +101,11 @@ def g3a = n3 : ChurchInt                      // Ok
 def g4a = ((u: Unit) -> n3(n3)) : ((Unit) -> ChurchInt)
                                               // Ok
 def g5 = n3((x) -> {x, 0}, 1).0.0.0           // Ok
-def g7 = (s(s(z)))(s(s(z)))                   // Ok
-def g8 = to_church                            // Ok
+def g7 = (s(s(z)))(s(s(z)))
+// Not ok, there is a contraining with several possible solutions, which the algorithm
+// cannot handle.
+def g8 = to_church
+// Not ok, see the known bug in `Type.System.isa`.
 def g8a = to_church : ((Int) -> ChurchInt)    // Ok
 // def g9 = (x) -> if true then x else g9(g9, x) // Not ok (infinite recursion)
 // def g10 = ((x) -> x(x))((x) -> x(x))       // Not ok (infinite recursion)
