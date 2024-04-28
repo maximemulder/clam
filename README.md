@@ -1,6 +1,6 @@
 # What is this ?
 
-This is  Clam ! A small statically typed functional programming language with a relatively advanced type system. It implements many features of System $F^ω_{<:}$ and its extensions such as [structrual typing](#structural-typing), [subtyping](#subtyping), [unions and intersections](#union-and-intersection-types), [bounded polymorphism](#universal-types), [higher-kinded types](#higher-kinded-types) and a state-of-the-art [constraint-based type inference algorithm](#type-inference).
+This is  Clam ! A small statically typed functional programming language with a relatively advanced type system. It implements many features of System $F^ω_{<:}$ and its extensions such as [structrual typing](#structural-typing), [subtyping](#subtyping), [unions and intersections](#union-and-intersection-types), [bounded polymorphism](#universal-types), [higher-kinded types](#higher-kinded-types) and an advanced [constraint-based type inference algorithm](#type-inference).
 
 The formal (but currently incomplete) semantics of the language are described in the `semantics.pdf` document available [here](https://raw.githubusercontent.com/MaximeMulder/Clam/main/semantics/semantics.pdf).
 
@@ -243,7 +243,7 @@ is_odd: (Int) -> Bool
     </tr>
 </table>
 
-As shown by these examples, Clam's type inference algorithm supports both impredicative polymorphism and subtyping. Although it has not been formalized, practical tests show that it peforms similarly to the world's most advanced algorithms, although its type simplification could be improved. Comparisons against the [SuperF paper](https://dl.acm.org/doi/10.1145/3632890) (from which this algorithm took some inspiration from) can be found in the `tests/infer/compare.clam` test.
+As shown by these examples, Clam's type inference algorithm supports both impredicative polymorphism and subtyping. Although it has not been formalized yet, practical tests show that it performs similarly to the world's most advanced algorithms. Comparisons against the [SuperF paper](https://dl.acm.org/doi/10.1145/3632890) (from which this algorithm took some inspiration from) can be found in the `tests/infer/compare.clam` test.
 
 ## Recursive types
 
