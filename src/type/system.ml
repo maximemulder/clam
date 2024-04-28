@@ -76,14 +76,14 @@ and is_param left right =
 *)
 and isa sub sup =
   let* () = show
-    (!Global.show_infer && not !Global.show_constrain)
+    !Global.show_constrain
     ("constrain " ^ Display.display sub ^ " < " ^ Display.display sup)
   in
   isa_nesting := !isa_nesting + 1;
   let* result = isa_union sub.dnf sup.dnf in
   isa_nesting := !isa_nesting - 1;
   let* () = show
-    (!Global.show_infer && not !Global.show_constrain)
+    !Global.show_constrain
     ("= " ^ string_of_bool result)
   in
   return result

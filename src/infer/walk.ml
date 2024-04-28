@@ -5,7 +5,9 @@ open State.Monad
 (* TYPE CONSTRAIN *)
 
 let constrain span sub sup =
-  let* () = show !Global.show_infer ("constrain " ^ Type.display sub ^ " < " ^ Type.display sup) in
+  let* () = show
+    (!Global.show_infer && not !Global.show_constrain)
+    ("constrain " ^ Type.display sub ^ " < " ^ Type.display sup) in
   let* result = isa sub sup in
   let* () = show_ctx !Global.show_infer in
   if result then
