@@ -41,6 +41,25 @@ end)
 
 open Monad
 
+let rec collect_freshs ctx =
+  let fresh = List.nth_opt ctx.freshs 0 in
+  match fresh with
+  | Some fresh when fresh.level >= ctx.level ->
+    let ctx = { ctx with freshs = List.tl ctx.freshs } in
+    collect_freshs ctx
+  | _ ->
+    ctx
+
+let with_param_fresh (param: Node.param) type' f ctx =
+  let bind = { Abt.name = "'" ^ string_of_int ctx.id } in
+  let var = { bind = bind; level = ctx.level + 1; lower = param.lower; upper = param.upper } in
+  let ctx = { ctx with id = ctx.id + 1; level = ctx.level + 1; freshs = var :: ctx.freshs } in
+  let type' = Rename.rename param.bind bind type' in
+  let x, ctx = f type' ctx in
+  let ctx = collect_freshs ctx in
+  let ctx = { ctx with level = ctx.level - 1 } in
+  x, ctx
+
 let with_param_rigid (param: Node.param) f =
   let var = { bind = param.bind; lower = param.lower; upper = param.upper } in
   let* () = modify (fun ctx -> { ctx with rigids = var :: ctx.rigids }) in

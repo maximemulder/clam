@@ -63,6 +63,14 @@ and isa sub sup =
   | None, Some fresh_sup ->
     isa_fresh_sup fresh_sup sub
   | None, None ->
+  match sup with
+  | Univ sup ->
+    with_param_rigid sup.param (isa sub sup.ret)
+  | _ ->
+  match sub with
+  | Univ sub ->
+    with_param_fresh sub.param sub.ret (fun ret -> isa ret sup)
+  | _ ->
   match split_inter sup with
   | Some (left, right) ->
     let* left  = isa sub left  in
