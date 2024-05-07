@@ -69,10 +69,10 @@ and isa_tuple sub sup =
   if List.compare_lengths sub.elems sup.elems != 0 then
     return false
   else
-    list_all2 (fun left right -> isa left right) sub.elems sup.elems
+    list_all2 isa sub.elems sup.elems
 
 and isa_record sub sup =
-  map_all (fun sup_attr -> isa_record_attr sub sup_attr) sup.attrs
+  map_all (isa_record_attr sub) sup.attrs
 
 and isa_record_attr sub_record sup_attr =
   match Util.NameMap.find_opt sup_attr.label sub_record.attrs with
