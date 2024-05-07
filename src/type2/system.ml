@@ -1,7 +1,8 @@
 open Context
 open Context.Monad
-open Node
 open Kind
+open Level
+open Node
 open Rename
 open Split
 
@@ -10,6 +11,32 @@ type entry = {
   bind: Abt.bind_type;
   other: type';
 }
+
+(* FIND TYPE VARIABLE *)
+
+let get_type_fresh type' =
+  match type' with
+  | Var var ->
+    let* var = get_var var.bind in (
+    match var with
+    | Fresh fresh ->
+      return (Some fresh)
+    | Rigid _ ->
+      return None)
+  | _ ->
+    return None
+
+let get_type_rigid type' =
+  match type' with
+  | Var var ->
+    let* var = get_var var.bind in (
+    match var with
+    | Fresh _ ->
+      return None
+    | Rigid rigid ->
+      return (Some rigid))
+  | _ ->
+    return None
 
 (* CONSTRAIN EQUIVALENCE *)
 
@@ -26,6 +53,16 @@ and is_param (left: param) (right: param) =
 (* CONSTRAIN SUBTYPE *)
 
 and isa sub sup =
+  let* fresh_sub = get_type_fresh sub in
+  let* fresh_sup = get_type_fresh sup in
+  match fresh_sub, fresh_sup with
+  | Some fresh_sub, Some fresh_sup ->
+    isa_fresh fresh_sub fresh_sup
+  | Some fresh_sub, None ->
+    isa_fresh_sub fresh_sub sup
+  | None, Some fresh_sup ->
+    isa_fresh_sup fresh_sup sub
+  | None, None ->
   match split_inter sup with
   | Some (left, right) ->
     let* left  = isa sub left  in
@@ -55,6 +92,16 @@ and isa sub sup =
     let* right = isa sub right in
     return (left || right)
   | None ->
+  let* rigid_sub = get_type_rigid sub in
+  let* rigid_sup = get_type_rigid sup in
+  match rigid_sub, rigid_sup with
+  | Some rigid_sub, Some rigid_sup ->
+    isa_rigid rigid_sub rigid_sup
+  | Some rigid_sub, None ->
+    isa_rigid_sub rigid_sub sup
+  | None, Some rigid_sup ->
+    isa_rigid_sup rigid_sup sub
+  | None, None ->
   match sub with
   | Bot ->
     is_proper sup
@@ -82,6 +129,52 @@ and isa sub sup =
     isa_app_sup abs sub
   | _, _ ->
     return false
+
+and isa_fresh fresh_sub fresh_sup =
+  if fresh_sub.bind == fresh_sup.bind then
+    return true
+  else
+  let* level = cmp_level fresh_sub.bind fresh_sup.bind in
+  if level then
+    isa_fresh_sub fresh_sub (Var { bind = fresh_sup.bind })
+  else
+    isa_fresh_sup fresh_sup (Var { bind = fresh_sub.bind })
+
+and isa_fresh_sub fresh_sub sup =
+  let* cond = isa fresh_sub.lower sup in
+  if not cond then
+    return false
+  else
+  let* upper = meet fresh_sub.upper sup in
+  let fresh_sub = { fresh_sub with upper } in
+  let* () = levelize fresh_sub sup in
+  let* () = update_fresh fresh_sub in
+  return true
+
+and isa_fresh_sup fresh_sup sub =
+  let* cond = isa sub fresh_sup.upper in
+  if not cond then
+    return false
+  else
+  let* lower = join fresh_sup.lower sub in
+  let fresh_sup = { fresh_sup with lower } in
+  let* () = levelize fresh_sup sub in
+  let* () = update_fresh fresh_sup in
+  return true
+
+and isa_rigid rigid_sub rigid_sup =
+  if rigid_sub.bind == rigid_sup.bind then
+    return true
+  else
+  let* lower = isa (Var { bind = rigid_sub.bind }) rigid_sup.lower in
+  let* upper = isa rigid_sub.upper (Var { bind = rigid_sup.bind }) in
+  return (lower || upper)
+
+and isa_rigid_sub rigid_sub sup =
+  isa rigid_sub.upper sup
+
+and isa_rigid_sup rigid_sup sub =
+  isa sub rigid_sup.lower
 
 and isa_tuple sub sup =
   if List.compare_lengths sub.elems sup.elems != 0 then
@@ -315,8 +408,6 @@ and meet_merge_disjoint left right =
     meet_merge_record left right
   | Lam left, Lam right ->
     meet_merge_lam left right
-  | Univ left, Univ right ->
-    meet_merge_univ left right
   | Abs left, Abs right ->
     meet_merge_abs left right
   | _, _ ->
@@ -347,15 +438,6 @@ and meet_merge_lam left right =
     let* param = join left.param right.param in
     let* ret   = meet left.ret   right.ret   in
     return (Some (Lam { param; ret }))
-
-and meet_merge_univ left right =
-  let* param = is_param left.param right.param in
-  if not param then
-    return None
-  else
-  let right_ret = rename right.param.bind left.param.bind right.ret in
-  let* ret = with_param_rigid left.param (meet left.ret right_ret) in
-  return (Some (Univ { param = left.param; ret }))
 
 and meet_merge_abs left right =
   let* param = is_param left.param right.param in

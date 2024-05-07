@@ -62,3 +62,52 @@ let get_var bind =
     return (Rigid var)
   | None, None ->
     failwith ("Type variable `" ^ bind.name ^ "` not found in the type context.")
+
+let update_fresh (var: fresh) =
+  modify (fun ctx -> { ctx with
+    freshs = List.map (fun (old: fresh) -> if old.bind == var.bind then var else old) ctx.freshs
+  })
+
+(* REORDER FRESH VARIABLES *)
+
+let rec cmp_level (left: Abt.bind_type) (right: Abt.bind_type) (vars: fresh list) =
+  match vars with
+  | [] ->
+    failwith ("Fresh type variables `" ^ left.name ^ "` and `" ^ right.name ^ "` not found in the type context.")
+  | var :: vars ->
+    if var.bind == left then
+      true
+    else if var.bind == right then
+      false
+    else
+      cmp_level left right vars
+
+(** Compares the polymorphic level of two fresh type variables. *)
+let cmp_level left right ctx =
+  cmp_level left right ctx.freshs, ctx
+
+let rec insert bind (other: fresh) vars =
+  match vars with
+  | [] ->
+    [other]
+  | var :: vars ->
+    var :: if var.bind == bind then
+      other :: vars
+    else
+      insert bind other vars
+
+let rec reorder bind other (vars: fresh list) =
+  match vars with
+  | [] ->
+    []
+  | var :: vars ->
+    if var.bind == bind then
+      var :: vars
+    else if var.bind == other then
+      insert bind var vars
+    else
+      var :: reorder bind other vars
+
+let reorder bind other ctx =
+  let freshs = reorder bind other ctx.freshs in
+  (), { ctx with freshs }
