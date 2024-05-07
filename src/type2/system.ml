@@ -55,11 +55,15 @@ and isa sub sup =
     let* right = isa sub right in
     return (left || right)
   | None ->
-  match sub, sup with
-  | sub, Top ->
-    is_proper sub
-  | Bot, sup ->
+  match sub with
+  | Bot ->
     is_proper sup
+  | sub ->
+  match sup with
+  | Top ->
+    is_proper sub
+  | sup ->
+  match sub, sup with
   | Unit, Unit | Bool, Bool | Int, Int | String, String ->
     return true
   | Tuple sub, Tuple sup ->
@@ -163,7 +167,7 @@ and substitute_base entry type' =
   | App app ->
     substitute_app entry app
   | _ ->
-    failwith "Unreachable `System.substitute_base`"
+    failwith "Unreachable `System.substitute_base`."
 
 and substitute_var entry var =
   if var.bind == entry.bind then
