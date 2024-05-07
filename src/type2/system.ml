@@ -1,6 +1,7 @@
 open Context
 open Context.Monad
 open Node
+open Kind
 open Rename
 open Split
 
@@ -9,7 +10,7 @@ let rec is left right =
   let* sup = isa right left in
   return (sub && sup)
 
-and is_param left right =
+and is_param (left: param) (right: param) =
   let* sub = is left.lower right.lower in
   let* sup = is left.upper right.upper in
   return (sub && sup)
@@ -45,30 +46,56 @@ and isa sub sup =
     return (left || right)
   | None ->
   match sub, sup with
-  | _, Top | Bot, _ ->
-    return true (* TODO: Kind *)
+  | sub, Top ->
+    is_proper sub
+  | Bot, sup ->
+    is_proper sup
   | Unit, Unit | Bool, Bool | Int, Int | String, String ->
     return true
   | Tuple sub, Tuple sup ->
-    if List.compare_lengths sub.elems sup.elems != 0 then
-      return false
-    else
-      list_all2 (fun left right -> isa left right) sub.elems sup.elems
+    isa_tuple sub sup
+  | Record sub, Record sup ->
+    isa_record sub sup
   | Lam sub, Lam sup ->
-    let* param = isa sup.param sub.param in
-    let* ret   = isa sub.ret   sup.ret   in
-    return (param && ret)
+    isa_lam sub sup
   | Abs sub, Abs sup ->
-    let* param = is_param sub.param sup.param in
-    let sup_body = rename sup.param.bind sub.param.bind sup.body in
-    let* body = with_param_rigid sub.param (isa sub.body sup_body) in
-    return (param && body)
+    isa_abs sub sup
   | App sub, App sup ->
-    let* abs = isa sub.abs sup.abs in
-    let* arg = is  sub.arg sup.arg in
-    return (abs && arg)
+    isa_app sub sup
   | _, _ ->
     return false
+
+and isa_tuple sub sup =
+  if List.compare_lengths sub.elems sup.elems != 0 then
+    return false
+  else
+    list_all2 (fun left right -> isa left right) sub.elems sup.elems
+
+and isa_record sub sup =
+  map_all (fun sup_attr -> isa_record_attr sub sup_attr) sup.attrs
+
+and isa_record_attr sub_record sup_attr =
+  match Util.NameMap.find_opt sup_attr.label sub_record.attrs with
+  | Some sub_attr ->
+    isa sub_attr.type' sup_attr.type'
+  | None ->
+    return false
+
+and isa_lam sub sup =
+  let* param = isa sup.param sub.param in
+  let* ret   = isa sub.ret   sup.ret   in
+  return (param && ret)
+
+and isa_abs sub sup =
+  let* param = is_param sub.param sup.param in
+  let sup_body = rename sup.param.bind sub.param.bind sup.body in
+  let* body = with_param_rigid sub.param (isa sub.body sup_body) in
+  return (param && body)
+
+and isa_app sub sup =
+  let* abs = isa sub.abs sup.abs in
+  let* arg = is  sub.arg sup.arg in
+  return (abs && arg)
 
 and join left right =
   let* sub = isa left right in
