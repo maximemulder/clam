@@ -3,10 +3,7 @@ open Type2
 open Type2.Display
 open Type2.Build
 open Type2.Build.Default
-open Util
-
-(* TODO Factor out *)
-let inline x = fun _ -> x
+open Util.Func
 
 let test ctx sub sup (_: unit) =
   System.isa sub sup ctx |> fst
@@ -74,18 +71,18 @@ let tests = [
   (* universal abstractions *)
   case (univ_0 "T" id) (univ_0 "T" id);
   case (univ_0 "T" id) (univ_0 "X" id);
-  case (univ_0 "T" (inline a)) (univ_0 "T" (inline a));
-  case (univ_0 "T" (inline a)) (univ_0 "X" (inline a));
+  case (univ_0 "T" (const a)) (univ_0 "T" (const a));
+  case (univ_0 "T" (const a)) (univ_0 "X" (const a));
 
   (* type abstractions *)
   case (abs_0 "T" id) (abs_0 "T" id);
-  case (abs_0 "T" id) (abs_0 "T" (inline top));
-  case (abs_0 "T" (inline a)) (abs_0 "T" (inline a));
-  case (abs_0 "T" (inline a)) (abs_0 "T" (inline top));
+  case (abs_0 "T" id) (abs_0 "T" (const top));
+  case (abs_0 "T" (const a)) (abs_0 "T" (const a));
+  case (abs_0 "T" (const a)) (abs_0 "T" (const top));
 
   (* type applications *)
   (* case_var "T" (abs "T" top id) (fun t -> case (app t top) top);
-  case_var "T" (abs "T" top (inline top)) (fun t -> case (app t top) top); *)
+  case_var "T" (abs "T" top (const top)) (fun t -> case (app t top) top); *)
 ]
 |> List.map (fun case -> case true ctx)
 
@@ -114,17 +111,17 @@ let tests_not = [
   case (inter (lam a c) (lam b d)) (lam (union a b) (inter c d));
 
   (* type abstractions*)
-  case (abs_0 "T" (inline a)) (abs_0 "T" (inline b));
-  case (abs_0 "T" (inline top)) (abs_0 "T" (inline b));
-  case (abs "T" bot a (inline c)) (abs "T" bot b (inline c));
-  case (abs_0 "T" (inline b)) (abs "T" bot a (inline b));
-  case (abs "T" bot a (inline b)) (abs_0 "T" (inline b));
+  case (abs_0 "T" (const a)) (abs_0 "T" (const b));
+  case (abs_0 "T" (const top)) (abs_0 "T" (const b));
+  case (abs "T" bot a (const c)) (abs "T" bot b (const c));
+  case (abs_0 "T" (const b)) (abs "T" bot a (const b));
+  case (abs "T" bot a (const b)) (abs_0 "T" (const b));
 
   (* type abstractions and top *)
   case top (abs_0 "T" id);
-  case top (abs_0 "T" (inline top));
+  case top (abs_0 "T" (const top));
   case (abs_0 "T" id) top;
-  case (abs_0 "T" (inline top)) top;
+  case (abs_0 "T" (const top)) top;
 
   (* type abstractions and variables*)
 
@@ -132,6 +129,6 @@ let tests_not = [
 
   (* type applications *)
   (* case_var "T" (abs "T" top id) (fun t -> case top (app t top));
-  case_var "T" (abs "T" top (inline top)) (fun t -> case top (app t top)); *)
+  case_var "T" (abs "T" top (const top)) (fun t -> case top (app t top)); *)
 ]
 |> List.map (fun case -> case false ctx)

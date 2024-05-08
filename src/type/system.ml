@@ -3,6 +3,7 @@ open Context.Monad
 open Misc
 open Node
 open Rename
+open Util.Func
 
 (* EXTRACT FRESH TYPE VARIABLES *)
 
@@ -518,7 +519,7 @@ and substitute_attr bind other attr =
 (* TYPE COMPUTATION *)
 
 and compute (abs: Node.type') (arg: Node.type'): type' t =
-  map_type (Util.flip compute_base arg) abs
+  map_type (flip compute_base arg) abs
 
 and compute_base (abs: Node.base) (arg: Node.type') =
   match abs with

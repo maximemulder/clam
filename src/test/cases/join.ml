@@ -68,4 +68,4 @@ let tests = [
   case (lam a b) (lam a c) (union [lam a b; lam a c]);
   case (lam a b) (lam c d) (union [lam a b; lam c d]);
 ]
-|> List.map (Util.apply ctx)
+|> List.map (Util.Func.apply ctx)

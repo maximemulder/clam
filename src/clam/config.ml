@@ -63,4 +63,4 @@ let parse_arg arg config =
       { config with file = Some arg }
 
 let parse_args args =
-  List.fold_left (Util.flip parse_arg) empty_config args
+  List.fold_left (Util.Func.flip parse_arg) empty_config args

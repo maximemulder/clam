@@ -1,4 +1,5 @@
 open Node
+open Util.Func
 
 (**
   Direction in which the syntax of a type is recursive.
@@ -90,7 +91,7 @@ let rec display type' =
     display_union inter
 
 and display_tuple tuple =
-  let types = List.map (Util.flip display N) tuple.elems in
+  let types = List.map (flip display N) tuple.elems in
   return N ("{" ^ (String.concat ", " types) ^ "}")
 
 and display_record record =
@@ -105,7 +106,7 @@ and display_record_attr attr =
 
 and display_lam lam =
   let params, ret = curry_lam lam in
-  let params = List.map (Util.flip display N) params in
+  let params = List.map (flip display N) params in
   let type' = "(" ^ (String.concat ", " params) ^ ") -> " ^ (display ret R) in
   return R type'
 
@@ -123,7 +124,7 @@ and display_abs abs =
 
 and display_app app =
   let abs, args = curry_app app in
-  let args = List.map (Util.flip display N) args in
+  let args = List.map (flip display N) args in
   let type' = (display abs L) ^ "[" ^ (String.concat ", " args) ^ "]" in
   return L type'
 
