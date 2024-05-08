@@ -1,3 +1,4 @@
+open Compare
 open Node
 open Util.Func
 
@@ -69,12 +70,12 @@ let curry_app (app: app) =
 let rec display type' =
   match type' with
   | Union union ->
-    let left  = display union.left  B in
-    let right = display union.right B in
+    let left  = display union.left  L in
+    let right = display union.right R in
     return B (left ^ " | " ^ right)
   | Inter inter ->
-    let left  = display inter.left  B in
-    let right = display inter.right B in
+    let left  = display inter.left  L in
+    let right = display inter.right R in
     return B (left ^ " & " ^ right)
   | Top     -> return N "Top"
   | Bot     -> return N "Bot"
@@ -136,8 +137,8 @@ and display_app app =
 
 and display_param param =
   param.bind.name ^
-  let lower = param.lower <> Bot |> not in
-  let upper = param.upper <> Top |> not in
+  let lower = compare param.lower Bot |> not in
+  let upper = compare param.upper Top |> not in
   (if lower || upper then ": " else "") ^
   (if lower then display param.lower N ^ " " else "") ^
   (if lower || upper then ".." else "") ^
