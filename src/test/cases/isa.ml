@@ -1,4 +1,3 @@
-(* open Vars *)
 open Type2
 open Type2.Build
 open Type2.Build.Default
