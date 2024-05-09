@@ -33,6 +33,6 @@ val get_kind_min : kind -> Node.type'
 val get_kind_max : kind -> Node.type'
 
 (**
-  Check if a type is a proper type in a given context.
+  Convert a kind to its string representation.
 *)
-val is_proper : Node.type' -> bool Context.Monad.t
+val display : kind -> string

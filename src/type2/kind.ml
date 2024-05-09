@@ -75,6 +75,7 @@ let rec get_kind_max kind =
     let param: Node.param = { bind; lower; upper } in
     Abs { param; body = get_kind_max body }
 
-let is_proper type' =
-  let* kind = get_kind type' in
-  return (kind = Proper)
+let rec display kind =
+  match kind with
+  | Proper -> "*"
+  | Higher higher -> "[" ^ Display.display higher.lower ^ " .. " ^ Display.display higher.upper ^ "] -> " ^ display higher.body

@@ -455,3 +455,21 @@ and meet_merge_abs left right =
   let right_body = rename right.param.bind left.param.bind right.body in
   let* body = with_param_rigid left.param (meet left.body right_body) in
   return (Some (Abs { param = left.param; body }))
+
+(* TYPE KIND *)
+
+and is_kind left right =
+  match left, right with
+  | Proper, Proper ->
+    return true
+  | Higher left, Higher right ->
+    let* lower = is left.lower right.lower in
+    let* upper = is left.upper right.upper in
+    let* body = is_kind left.body right.body in
+    return (lower && upper && body)
+  | _, _ ->
+    return false
+
+and is_proper type' =
+  let* kind = get_kind type' in
+  is_kind kind Proper

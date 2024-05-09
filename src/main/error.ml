@@ -11,6 +11,9 @@ let handle_sugar error =
 let handle_type error =
   handle "TYPE ERROR" ( error.Type.Error.message ^ "\n" ^ Code.display error.span)
 
+let handle_type2 error =
+  handle "TYPE ERROR" ( error.Type2.Error.message ^ "\n" ^ Code.display error.span)
+
 let handle_infer error =
   handle "TYPE ERROR" ( error.Infer.Error.message ^ "\n" ^ Code.display error.span)
 

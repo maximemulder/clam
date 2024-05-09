@@ -22,7 +22,7 @@ let type_check abt config =
   (match config.show_kinds with
   | Some show_kinds ->
     List.iter (fun (name, kind) ->
-      show_kinds(name ^ " :: " ^ Type.Kind.display kind)
+      show_kinds(name ^ " :: " ^ Type2.Kind.display kind)
     ) kinds
   | None -> ());
   match config.show_types with
@@ -52,6 +52,8 @@ let run code config =
     Error.handle_sugar  error config.print_err
   | Type.Error   error ->
     Error.handle_type   error config.print_err
+  | Type2.Error  error ->
+    Error.handle_type2  error config.print_err
   | Infer.Error  error ->
     Error.handle_infer  error config.print_err
   | Eval.Error   error ->
