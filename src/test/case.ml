@@ -1,11 +1,5 @@
 let print_type ppf x =
-  let string = Type.display x in
-  Format.pp_print_string ppf string
-
-let print_type_option ppf x =
-  let string = match x with
-  | Some x -> Type.display x
-  | None -> "" in
+  let string = Type2.Display.display x in
   Format.pp_print_string ppf string
 
 let print_type_type_option ppf x =
@@ -20,8 +14,7 @@ let compare_type_type x y =
 
 let bool   = Alcotest.bool
 let string = Alcotest.string
-let type'  = Alcotest.testable print_type Type.Compare.compare
-let type_option = Alcotest.testable print_type_option (Option.equal Type.Compare.compare)
+let type'  = Alcotest.testable print_type Type2.Compare.compare
 let type_type_option = Alcotest.testable print_type_type_option (Option.equal compare_type_type)
 
 let make_test testable name subject expect (_: unit) =

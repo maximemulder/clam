@@ -60,6 +60,7 @@ module Default = struct
   let e  = bind "E"
   let a1 = bind "A1"
   let a2 = bind "A2"
+  let z  = bind "Z"
 
   let ctx = { ctx with rigids = [
     { bind = a;  lower = bot; upper = top };
@@ -69,6 +70,7 @@ module Default = struct
     { bind = e;  lower = bot; upper = top };
     { bind = a1; lower = bot; upper = var a };
     { bind = a2; lower = bot; upper = var a };
+    { bind = z;  lower = bot; upper = top };
   ]}
 
   let a = var a
@@ -78,4 +80,5 @@ module Default = struct
   let e = var e
   let a1 = var a1
   let a2 = var a2
+  let z = var z
 end

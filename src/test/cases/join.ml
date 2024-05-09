@@ -1,4 +1,7 @@
-open Vars
+open Type2
+open Type2.Display
+open Type2.Build
+open Type2.Build.Default
 
 let test ctx left right (_: unit) =
   System.join left right ctx |> fst
@@ -31,23 +34,23 @@ let tests = [
 
   (* variables *)
   case a a a;
-  case a b (union [a; b]);
-  case a ea a;
-  case ea a a;
-  case ea fa (union [ea; fa]);
+  case a b (union a b);
+  case a a1 a;
+  case a1 a a;
+  case a1 a2 (union a1 a2);
 
   (* unions *)
-  case a (union [b; c]) (union [a; union [b; c]]);
-  case (union [a; b]) c (union [a; union [b; c]]);
+  case a (union b c) (union a (union b c));
+  case (union a b) c (union (union a b) c);
 
   (* tuples *)
   case (tuple []) (tuple []) (tuple []);
   case (tuple [top]) (tuple [a]) (tuple [top]);
   case (tuple [a]) (tuple [top]) (tuple [top]);
-  case (tuple [a]) (tuple [b]) (union [tuple [a]; tuple [b]]);
-  case (tuple [a]) (tuple [a; b]) (union [tuple [a]; tuple [a; b]]);
-  case (tuple [a; b]) (tuple [a]) (union [tuple [a; b]; tuple [a]]);
-  case (tuple [a; b]) (tuple [c; d]) (union [tuple [a; b]; tuple [c; d]]);
+  case (tuple [a]) (tuple [b]) (union (tuple [a]) (tuple [b]));
+  case (tuple [a]) (tuple [a; b]) (union (tuple [a]) (tuple [a; b]));
+  case (tuple [a; b]) (tuple [a]) (union (tuple [a; b]) (tuple [a]));
+  case (tuple [a; b]) (tuple [c; d]) (union (tuple [a; b]) (tuple [c; d]));
 
   (* records *)
   case (record []) (record []) (record []);
@@ -55,8 +58,8 @@ let tests = [
   case (record []) (record ["foo", a]) (record []);
   case (record ["foo", top]) (record ["foo", a]) (record ["foo", top]);
   case (record ["foo", a]) (record ["foo", top]) (record ["foo", top]);
-  case (record ["foo", a]) (record ["foo", b]) (union [record ["foo", a]; record ["foo", b]]);
-  case (record ["foo", a]) (record ["bar", b]) (union [record ["foo", a]; record ["bar", b]]);
+  case (record ["foo", a]) (record ["foo", b]) (union (record ["foo", a]) (record ["foo", b]));
+  case (record ["foo", a]) (record ["bar", b]) (union (record ["foo", a]) (record ["bar", b]));
 
   (* lambda abstractions *)
   case (lam a b) (lam a b) (lam a b);
@@ -64,8 +67,8 @@ let tests = [
   case (lam a b) (lam top b) (lam a b);
   case (lam a top) (lam a b) (lam a top);
   case (lam a b) (lam a top) (lam a top);
-  case (lam a c) (lam b c) (union [lam a c; lam b c]);
-  case (lam a b) (lam a c) (union [lam a b; lam a c]);
-  case (lam a b) (lam c d) (union [lam a b; lam c d]);
+  case (lam a c) (lam b c) (union (lam a c) (lam b c));
+  case (lam a b) (lam a c) (union (lam a b) (lam a c));
+  case (lam a b) (lam c d) (union (lam a b) (lam c d));
 ]
 |> List.map (Util.Func.apply ctx)
