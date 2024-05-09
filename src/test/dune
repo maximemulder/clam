@@ -1,6 +1,6 @@
 (test
   (name test)
-  (libraries alcotest main type type2)
+  (libraries alcotest main type2)
   (deps (source_tree ../../tests)))
 
 (include_subdirs unqualified)

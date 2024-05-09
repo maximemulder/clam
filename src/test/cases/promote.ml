@@ -1,14 +1,12 @@
-open Type2
-open Type2.Display
 open Type2.Build
 open Type2.Build.Default
 
 let test ctx type' (_: unit) =
-  System.promote_upper type' ctx |> fst
+  Type2.System.promote_upper type' ctx |> fst
 
 let name type' expect =
-  let type'  = display type'  in
-  let expect = display expect in
+  let type'  = Type2.display type'  in
+  let expect = Type2.display expect in
   "prom `" ^ type' ^ "` `" ^ expect ^ "`"
 
 let case type' expect ctx =
@@ -16,7 +14,7 @@ let case type' expect ctx =
 
 let case_var name bound case ctx =
   let bind = { Abt.name } in
-  let ctx = { ctx with Context.rigids = { bind; lower = bot; upper = bound } :: ctx.Context.rigids } in
+  let ctx = { ctx with Type2.Context.rigids = { bind; lower = bot; upper = bound } :: ctx.Type2.Context.rigids } in
   let var = var bind in
   case var ctx
 

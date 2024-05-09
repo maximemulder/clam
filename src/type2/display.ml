@@ -24,12 +24,6 @@ let return self string parent =
   else
     string
 
-let group_types types parent =
-  if List.length types <> 1 then
-    B, B
-  else
-    N, parent
-
 let rec curry_lam (lam: lam) =
   let param = lam.param in
   match lam.ret with

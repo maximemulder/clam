@@ -1,15 +1,13 @@
-open Type2
-open Type2.Display
 open Type2.Build
 open Type2.Build.Default
 
 let test ctx left right (_: unit) =
-  System.join left right ctx |> fst
+  Type2.System.join left right ctx |> fst
 
 let name left right expect =
-  let left   = display left   in
-  let right  = display right  in
-  let expect = display expect in
+  let left   = Type2.display left   in
+  let right  = Type2.display right  in
+  let expect = Type2.display expect in
   "join `" ^ left ^ "` `" ^ right ^ "` `" ^ expect ^ "`"
 
 let case left right expect ctx =

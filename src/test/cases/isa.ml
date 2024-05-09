@@ -1,6 +1,5 @@
 (* open Vars *)
 open Type2
-open Type2.Display
 open Type2.Build
 open Type2.Build.Default
 open Util.Func
@@ -9,8 +8,8 @@ let test ctx sub sup (_: unit) =
   System.isa sub sup ctx |> fst
 
 let name sub sup expect =
-  let sub = display sub in
-  let sup = display sup in
+  let sub = Type2.display sub in
+  let sup = Type2.display sup in
   let suffix = if expect then "" else "!" in
   "isa" ^ suffix ^ " `" ^ sub ^ "` `" ^ sup ^ "`"
 
