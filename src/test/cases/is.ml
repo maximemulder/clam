@@ -1,13 +1,13 @@
-open Type2.Build
-open Type2.Build.Default
+open Type.Build
+open Type.Build.Default
 open Util.Func
 
 let test ctx left right (_: unit) =
-  Type2.System.is left right ctx |> fst
+  Type.System.is left right ctx |> fst
 
 let name left right expect =
-  let left  = Type2.display left in
-  let right = Type2.display right in
+  let left  = Type.display left in
+  let right = Type.display right in
   let suffix = if expect then "" else "!" in
   "is" ^ suffix ^ " `" ^ left ^ "` `" ^ right ^ "`"
 
@@ -16,7 +16,7 @@ let case left right expect ctx =
 
 let case_var name bound case expect ctx =
   let bind = { Abt.name } in
-  let ctx = { ctx with Type2.Context.rigids = { bind; lower = bot; upper = bound } :: ctx.Type2.Context.rigids } in
+  let ctx = { ctx with Type.Context.rigids = { bind; lower = bot; upper = bound } :: ctx.Type.Context.rigids } in
   let var = var bind in
   case var expect ctx
 

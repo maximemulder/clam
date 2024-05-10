@@ -1,5 +1,5 @@
 (library
-  (name type2)
+  (name type_old)
   (libraries abt code global util))
 
 (env

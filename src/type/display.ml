@@ -1,3 +1,4 @@
+open Compare
 open Node
 open Util.Func
 
@@ -9,13 +10,6 @@ type recursion =
   | L (* Left *)
   | R (* Right *)
   | B (* Both *)
-
-let single (type': type') =
-  match type' with
-  | { dnf = [[base]] } ->
-    Some base
-  | _ ->
-    None
 
 let return self string parent =
   let cond = match self, parent with
@@ -30,16 +24,10 @@ let return self string parent =
   else
     string
 
-let group_types types parent =
-  if List.length types <> 1 then
-    B, B
-  else
-    N, parent
-
 let rec curry_lam (lam: lam) =
   let param = lam.param in
-  match single lam.ret with
-  | Some (Lam lam) ->
+  match lam.ret with
+  | Lam lam ->
     let params, ret = curry_lam lam in
     param :: params, ret
   | _ ->
@@ -47,8 +35,8 @@ let rec curry_lam (lam: lam) =
 
 let rec curry_univ (univ: univ) =
   let param = univ.param in
-  match single univ.ret with
-  | Some (Univ univ) ->
+  match univ.ret with
+  | Univ univ ->
     let params, ret = curry_univ univ in
     param :: params, ret
   | _ ->
@@ -56,16 +44,16 @@ let rec curry_univ (univ: univ) =
 
 let rec curry_abs (abs: abs) =
   let param = abs.param in
-  match single abs.body with
-  | Some (Abs abs) ->
+  match abs.body with
+  | Abs abs ->
     let params, ret = curry_abs abs in
     param :: params, ret
   | _ ->
     [abs.param], abs.body
 
 let rec curry_app (abs: type') args =
-  match single abs with
-  | Some (App app) ->
+  match abs with
+  | App app ->
     curry_app app.abs (app.arg :: args)
   | _ ->
     abs, args
@@ -73,23 +61,16 @@ let rec curry_app (abs: type') args =
 let curry_app (app: app) =
   curry_app app.abs [app.arg]
 
-let rec display (type': type') =
-  display_union type'.dnf
-
-and display_union types parent =
-  let self, elem = group_types types parent in
-  let types = List.map (flip display_inter elem) types in
-  let types = String.concat " | " types in
-  return self types parent
-
-and display_inter types parent =
-  let self, elem = group_types types parent in
-  let types = List.map (flip display_base elem) types in
-  let types = String.concat " & " types in
-  return self types parent
-
-and display_base type' =
+let rec display type' =
   match type' with
+  | Union union ->
+    let left  = display union.left  L in
+    let right = display union.right R in
+    return B (left ^ " | " ^ right)
+  | Inter inter ->
+    let left  = display inter.left  L in
+    let right = display inter.right R in
+    return B (left ^ " & " ^ right)
   | Top     -> return N "Top"
   | Bot     -> return N "Bot"
   | Unit    -> return N "Unit"
@@ -150,8 +131,8 @@ and display_app app =
 
 and display_param param =
   param.bind.name ^
-  let lower = Compare.compare param.lower Node.bot |> not in
-  let upper = Compare.compare param.upper Node.top |> not in
+  let lower = compare param.lower Bot |> not in
+  let upper = compare param.upper Top |> not in
   (if lower || upper then ": " else "") ^
   (if lower then display param.lower N ^ " " else "") ^
   (if lower || upper then ".." else "") ^
@@ -159,9 +140,3 @@ and display_param param =
 
 let display type' =
   display type' N
-
-let display_base type' =
-  display_base type' N
-
-let display_inter type' =
-  display_inter type' N

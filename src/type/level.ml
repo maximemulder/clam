@@ -6,14 +6,6 @@ open Node
 
 let rec levelize bind type' =
   match type' with
-  | Union union ->
-    let* () = levelize bind union.left in
-    let* () = levelize bind union.left in
-    return ()
-  | Inter inter ->
-    let* () = levelize bind inter.left in
-    let* () = levelize bind inter.left in
-    return ()
   | Top | Bot | Unit | Bool | Int | String ->
     return ()
   | Var var ->
@@ -45,6 +37,14 @@ let rec levelize bind type' =
   | App app ->
     let* () = levelize bind app.abs in
     let* () = levelize bind app.arg in
+    return ()
+  | Union union ->
+    let* () = levelize bind union.left  in
+    let* () = levelize bind union.right in
+    return ()
+  | Inter inter ->
+    let* () = levelize bind inter.left  in
+    let* () = levelize bind inter.right in
     return ()
 
 and levelize_attr bind attr =

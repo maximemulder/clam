@@ -1,10 +1,10 @@
 let print_type ppf x =
-  let string = Type2.display x in
+  let string = Type.display x in
   Format.pp_print_string ppf string
 
 let bool   = Alcotest.bool
 let string = Alcotest.string
-let type'  = Alcotest.testable print_type Type2.compare
+let type'  = Alcotest.testable print_type Type.compare
 
 let make_test testable name subject expect (_: unit) =
   let result = subject () in

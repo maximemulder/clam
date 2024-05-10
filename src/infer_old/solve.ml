@@ -22,7 +22,7 @@ let solve (fresh: fresh) type' =
     let* type' = with_ctx (simplify fresh Pos type') in
     let param_bind = { Abt.name = fresh.bind.name } in
     let type' = Type.rename fresh.bind param_bind type' in
-    return (Type.Univ { param = { bind = param_bind; lower = fresh.lower; upper = fresh.upper }; ret = type' })
+    return (Type.univ { bind = param_bind; lower = fresh.lower; upper = fresh.upper } type')
   | true, false ->
     let* () = show !Global.show_infer ("inline_neg " ^ fresh.bind.name ^ " in " ^ Type.display type') in
     substitute fresh.bind fresh.upper type'
@@ -34,7 +34,7 @@ let solve (fresh: fresh) type' =
     return type'
 
 let find_recursive span (fresh: fresh) type' =
-  let* recursive = with_ctx (Type.Appear.appears fresh.bind type') in
+  let* recursive = with_ctx (Type.appears fresh.bind type') in
   if recursive then
     Error.raise_recursive span fresh.bind type'
   else
@@ -83,8 +83,8 @@ let rec collect_freshs f x state =
 let with_var span f state =
   let bind = { Abt.name = "'" ^ string_of_int state.ctx.id } in
   let _ = show !Global.show_infer ("infer_fresh " ^ bind.name) state in
-  let var = { bind; level = state.ctx.level + 1; lower = Bot; upper = Top } in
-  let type' = Type.Var { bind } in
+  let var = { bind; level = state.ctx.level + 1; lower = Type.bot; upper = Type.top } in
+  let type' = Type.var bind in
   let ctx = { state.ctx with id = state.ctx.id + 1; level = state.ctx.level + 1; freshs = var :: state.ctx.freshs } in
   let state = { state with ctx } in
   let x, state = f type' state in

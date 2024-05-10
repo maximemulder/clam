@@ -1,4 +1,8 @@
-(* CONTEXT TYPES *)
+(**
+  New super mega cool type context for type checking algorithm V2
+*)
+
+let isa_nesting = ref 0
 
 (** Fresh type variable, whose bounds can be tightened, and which can be reordered in the context. *)
 type fresh = {
@@ -23,35 +27,62 @@ type ctx = {
   rigids: rigid list;
 }
 
-(* TODO: Factorize the enumeration inside the type context. *)
-(** Type variable, either fresh or rigid. *)
-type var =
-  | Fresh of fresh
-  | Rigid of rigid
-
-(* CONTEXT MAKE *)
-
 let empty = { id = 0; level = 0; freshs = []; rigids = [] }
 
-(* CONTEXT MONAD *)
+(* FREEZE CONTEXT *)
 
-module Monad = Util.Monad.StateMonad(struct
-  type s = ctx
-end)
+let freeze_fresh (fresh: fresh) =
+  { bind = fresh.bind; lower = fresh.lower; upper = fresh.upper }
 
-open Monad
+let freeze ctx =
+  let freshs = List.map freeze_fresh ctx.freshs in
+  (* TODO: SUS AF *)
+  { id = 0; level = 0; freshs = []; rigids = ctx.rigids @ freshs }
+
+let with_freeze f ctx =
+  let frozen = freeze ctx in
+  let x, _ = Global.with_flag_off Global.show_constrain (fun () -> f frozen) in
+  x, ctx
+
+(* PRINT CONTEXT *)
+
+let show cond string ctx =
+  if cond then
+    Util.string_indent (List.length ctx.rigids + List.length ctx.freshs + !isa_nesting) string
+    |> print_endline;
+  (), ctx
+
+let show_ctx cond ctx =
+  if cond then (
+    List.mapi (fun i (var: rigid) -> Util.string_indent i (var.bind.name) ^ ": " ^ Display.display var.lower ^ " .. " ^ Display.display var.upper ^ "\n") (List.rev ctx.rigids)
+    |> String.concat ""
+    |> print_string;
+    let rigids_length = List.length ctx.rigids in
+    List.mapi (fun i (var: fresh) -> Util.string_indent (rigids_length + i) (var.bind.name) ^ "~: " ^ Display.display var.lower ^ " .. " ^ Display.display var.upper ^ "\n") (List.rev ctx.freshs)
+    |> String.concat ""
+    |> print_string
+  );
+  (), ctx
+
+(* ACCESS TYPE VARIABLES *)
 
 let rec collect_freshs ctx =
   let fresh = List.nth_opt ctx.freshs 0 in
   match fresh with
   | Some fresh when fresh.level >= ctx.level ->
     let ctx = { ctx with freshs = List.tl ctx.freshs } in
+    let _ = show !Global.show_constrain ("constrain_collect " ^ fresh.bind.name) ctx in
     collect_freshs ctx
   | _ ->
     ctx
 
+let update_fresh (var: fresh) ctx =
+  let freshs = List.map (fun (old: fresh) -> if old.bind == var.bind then var else old) ctx.freshs in
+  (), { ctx with freshs }
+
 let with_param_fresh (param: Node.param) type' f ctx =
   let bind = { Abt.name = "'" ^ string_of_int ctx.id } in
+  let _ = show !Global.show_constrain ("constrain_fresh " ^ bind.name) ctx in
   let var = { bind = bind; level = ctx.level + 1; lower = param.lower; upper = param.upper } in
   let ctx = { ctx with id = ctx.id + 1; level = ctx.level + 1; freshs = var :: ctx.freshs } in
   let type' = Rename.rename param.bind bind type' in
@@ -60,32 +91,31 @@ let with_param_fresh (param: Node.param) type' f ctx =
   let ctx = { ctx with level = ctx.level - 1 } in
   x, ctx
 
-let with_param_rigid (param: Node.param) f =
+let with_param_rigid (param: Node.param) f ctx =
   let var = { bind = param.bind; lower = param.lower; upper = param.upper } in
-  let* () = modify (fun ctx -> { ctx with rigids = var :: ctx.rigids }) in
-  let* x = f in
-  let* () = modify (fun ctx -> { ctx with rigids = List.tl ctx.rigids }) in
-  return x
+  let ctx = { ctx with rigids = var :: ctx.rigids } in
+  let x, ctx = f ctx in
+  let ctx = { ctx with rigids = List.tl ctx.rigids } in
+  x, ctx
+
+(** Type variable, either fresh or rigid. *)
+type var =
+| Fresh of fresh
+| Rigid of rigid
 
 (** Returns the fresh or rigid variable corresponding to a given bind in the context. *)
-let get_var bind =
-  let* ctx = get in
+let get_var bind ctx =
   let fresh = List.find_opt (fun (var: fresh) -> var.bind == bind) ctx.freshs in
   let rigid = List.find_opt (fun (var: rigid) -> var.bind == bind) ctx.rigids in
   match fresh, rigid with
   | Some _, Some _ ->
     failwith ("Type variable `" ^ bind.name ^ "` found twice in the type context.")
   | Some var, None ->
-    return (Fresh var)
+    Fresh var, ctx
   | None, Some var ->
-    return (Rigid var)
+    Rigid var, ctx
   | None, None ->
     failwith ("Type variable `" ^ bind.name ^ "` not found in the type context.")
-
-let update_fresh (var: fresh) =
-  modify (fun ctx -> { ctx with
-    freshs = List.map (fun (old: fresh) -> if old.bind == var.bind then var else old) ctx.freshs
-  })
 
 (* REORDER FRESH VARIABLES *)
 
@@ -130,3 +160,30 @@ let rec reorder bind other (vars: fresh list) =
 let reorder bind other ctx =
   let freshs = reorder bind other ctx.freshs in
   (), { ctx with freshs }
+
+(* DISPLAY CONTEXT *)
+
+let display_fresh (var: fresh) =
+  var.bind.name
+  ^ ": "
+  ^ Display.display var.lower
+  ^ " .. "
+  ^ Display.display var.upper
+
+let display_rigid (var: rigid) =
+  var.bind.name
+  ^ ": "
+  ^ Display.display var.lower
+  ^ " .. "
+  ^ Display.display var.upper
+
+let display ctx =
+  let rigids = List.map display_rigid (List.rev ctx.rigids) |> String.concat ", " in
+  let freshs = List.map display_fresh (List.rev ctx.freshs) |> String.concat ", " in
+  rigids ^ "\n" ^ freshs, ctx
+
+(* MONAD *)
+
+module Monad = Util.Monad.StateMonad(struct
+  type s = ctx
+end)

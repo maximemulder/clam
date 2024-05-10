@@ -1,6 +1,6 @@
 (library
-  (name infer)
-  (libraries abt global str type))
+  (name infer_old)
+  (libraries abt global str type type2))
 
 (env
   (dev

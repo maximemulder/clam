@@ -1,14 +1,14 @@
-open Type2.Build
-open Type2.Build.Default
+open Type.Build
+open Type.Build.Default
 open Util.Func
 
 let test ctx type' bind other (_: unit) =
-  Type2.System.substitute bind other type' ctx |> fst
+  Type.System.substitute bind other type' ctx |> fst
 
 let name name' other type' expect =
-  let other  = Type2.display other  in
-  let type'  = Type2.display type'  in
-  let expect = Type2.display expect in
+  let other  = Type.display other  in
+  let type'  = Type.display type'  in
+  let expect = Type.display expect in
   "app [`" ^  name' ^ "` --> `" ^ other ^ "`] `" ^ type' ^ "` `" ^ expect ^ "`"
 
 let case name' other type' expect =

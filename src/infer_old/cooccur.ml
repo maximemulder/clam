@@ -1,7 +1,7 @@
-(** The algorithm to remove cooccurrences in a type. It is honestly not very good *)
+(** The algorithm to remove cooccurrences in a type. It is honestly not bery good *)
 
 open Polar
-open Type
+
 
 (** The polarities at which a type variable occurs or cooccurs. *)
 type cooccs = {
@@ -42,38 +42,14 @@ let merge_cooccs left right =
   let pos = Util.option_join left.pos right.pos (&&) in
   { neg; pos }
 
-let rec occurs bind type' =
-  match type' with
-  | Var var ->
-    var.bind == bind
-  | Union union ->
-    (occurs bind union.left) || (occurs bind union.right)
-  | Inter inter ->
-    (occurs bind inter.left) || (occurs bind inter.right)
-  | _ ->
-    false
+let occurs bind type' =
+  List.exists (List.exists ((=) (Type.Var { bind }))) type'.Type.dnf
 
-let rec occurs_neg bind type' =
-  match type' with
-  | Var var ->
-    var.bind == bind
-  | Union union ->
-    (occurs_neg bind union.left) && (occurs_neg bind union.right)
-  | Inter inter ->
-    (occurs_neg bind inter.left) || (occurs_neg bind inter.right)
-  | _ ->
-    false
+let occurs_neg bind type' =
+  List.for_all (List.exists ((=) (Type.Var { bind }))) type'.Type.dnf
 
-let rec occurs_pos bind type' =
-  match type' with
-  | Var var ->
-    var.bind == bind
-  | Union union ->
-    (occurs_pos bind union.left) || (occurs_pos bind union.right)
-  | Inter inter ->
-    (occurs_pos bind inter.left) && (occurs_pos bind inter.right)
-  | _ ->
-    false
+let occurs_pos bind type' =
+  List.exists (List.for_all ((=) (Type.Var { bind }))) type'.Type.dnf
 
 let rec cooccurs bind other pol type' =
   if occurs bind type' then
@@ -83,6 +59,11 @@ let rec cooccurs bind other pol type' =
     | Pos ->
       cooccs_pol Pos (occurs_pos bind type' && occurs_pos other type')
   else
+    List.map (List.map (cooccurs_base bind other pol)) type'.Type.dnf
+    |> List.flatten
+    |> List.fold_left merge_cooccs cooccs_none
+
+and cooccurs_base bind other pol type' =
   match type' with
   | Top | Bot | Unit | Bool | Int | String | Var _ ->
     cooccs_none
@@ -110,10 +91,6 @@ let rec cooccurs bind other pol type' =
     let abs = cooccurs bind other pol app.abs in
     let arg = cooccurs bind other pol app.arg in
     merge_cooccs abs arg
-  | Union union ->
-    merge_cooccs (cooccurs bind other pol union.left) (cooccurs bind other pol union.right)
-  | Inter inter ->
-    merge_cooccs (cooccurs bind other pol inter.left) (cooccurs bind other pol inter.right)
 
 and cooccurs_attr bind other pol attr =
   cooccurs bind other pol attr.type'
@@ -126,9 +103,22 @@ and cooccurs_param bind other param =
   let upper = cooccurs bind other Neg param.upper in
   merge_cooccs lower upper
 
+let cooccurs bind other pol type' =
+  let res = cooccurs bind other pol type' in
+  (*print_endline("coocurs " ^ bind.name ^ " with " ^ other.name ^ " in " ^ Type.display type' ^
+    " pol " ^ (match pol with Pos -> "pos" | Neg -> "neg") ^
+    " neg: " ^ (match res.neg with Some true -> "true" | Some false -> "false" | None -> "none") ^
+    " pos: " ^ (match res.pos with Some true -> "true" | Some false -> "false" | None -> "none"));
+  *)res
+
 let join_coocc a b = Util.option_join a b (fun a _ -> a)
 
 let rec get_coocc bind orig pol type' =
+  List.map (List.map (get_coocc_base bind orig pol)) type'.Type.dnf
+  |> List.flatten
+  |> List.fold_left join_coocc None
+
+and get_coocc_base bind orig pol type' =
   match type' with
   | Top | Bot | Unit | Bool | Int | String | Var _ ->
     None
@@ -161,14 +151,6 @@ let rec get_coocc bind orig pol type' =
     let abs = get_coocc bind orig pol app.abs in
     let arg = get_coocc bind orig pol app.arg in
     join_coocc abs arg
-  | Union union ->
-    let left  = get_coocc bind orig pol union.left  in
-    let right = get_coocc bind orig pol union.right in
-    join_coocc left right
-  | Inter inter ->
-    let left  = get_coocc bind orig pol inter.left  in
-    let right = get_coocc bind orig pol inter.right in
-    join_coocc left right
 
 and get_coocc_attr bind orig pol attr =
   get_coocc bind orig pol attr.type'
@@ -186,42 +168,40 @@ open Type.Context.Monad
 open Type.System
 
 let rec simplify_2 (fresh: fresh) orig pol type' =
-  Type.System.map (simplify_base fresh orig pol) type'
+  Type.System.map_type (simplify_base fresh orig pol) type'
 
 and simplify_base fresh orig pol type' =
   match type' with
   | Top | Bot | Unit | Bool | Int | String | Var _ ->
-    return type'
+    return (Type.base type')
   | Tuple tuple ->
     let* elems = list_map (simplify_2 fresh orig pol) tuple.elems in
-    return (Tuple { elems })
+    return (Type.tuple elems)
   | Record record ->
     let* attrs = map_map (simplify_attr fresh orig pol) record.attrs in
-    return (Record { attrs })
+    return (Type.record attrs)
   | Lam lam ->
     let* param = simplify_2 fresh orig (inv pol) lam.param in
     let* ret   = simplify_2 fresh orig pol lam.ret in
-    return (Lam { param; ret })
+    return (Type.lam param ret)
   | Univ univ ->
     let* param = simplify_param fresh orig univ.param in
     with_param_rigid param (
       let* ret = simplify_2 fresh orig pol univ.ret in
       let* cond = simplify_univ_cond fresh orig univ in
       if cond then
-        substitute param.bind (Var { bind = fresh.bind }) ret
+        substitute param.bind (Type.var fresh.bind) ret
       else
-        return (Univ { param; ret })
+        return (Type.univ param ret)
     )
   | Abs abs ->
     let* param = simplify_param fresh orig abs.param in
     let* body  = simplify_2 fresh orig pol abs.body in
-    return (Abs { param; body })
+    return (Type.abs param body)
   | App app ->
     let* abs = simplify_2 fresh orig pol app.abs in
     let* arg = simplify_2 fresh orig pol app.arg in
-    return (App { abs; arg })
-  | _ ->
-    failwith "Unreachable `simplify_base`."
+    return (Type.app abs arg)
 
 and simplify_attr fresh orig pol attr =
   let* type' = simplify_2 fresh orig pol attr.type' in
@@ -235,14 +215,20 @@ and simplify_param fresh orig param =
 and simplify_univ_cond fresh orig univ =
   let* lower = with_freeze (is univ.param.lower fresh.lower) in
   let* upper = with_freeze (is univ.param.upper fresh.upper) in
-  let* sub = with_freeze (is (Var { bind = fresh.bind }) univ.param.lower) in
-  let* sup = with_freeze (is univ.param.upper (Var { bind = fresh.bind })) in
-  if not (sub || lower) || not (sup || upper) then
+  let* sub = with_freeze (is (Type.var fresh.bind) univ.param.lower) in
+  let* sup = with_freeze (is univ.param.upper (Type.var fresh.bind)) in
+  (*print_endline ("lower" ^ fresh.bind.name ^ " " ^ univ.param.bind.name ^ " " ^ string_of_bool lower);
+  print_endline ("upper" ^ fresh.bind.name ^ " " ^ univ.param.bind.name ^ " " ^ string_of_bool upper);
+  print_endline ("sub" ^ fresh.bind.name ^ " " ^ univ.param.bind.name ^ " " ^ string_of_bool sub);
+  print_endline ("sup" ^ fresh.bind.name ^ " " ^ univ.param.bind.name ^ " " ^ string_of_bool sup);
+  *)if not (sub || lower) || not (sup || upper) then
     return false
   else
   let fresh_param = cooccurs fresh.bind univ.param.bind Pos orig in
   let param_fresh = cooccurs univ.param.bind fresh.bind Pos orig in
-  let param_fresh = {
+  (*print_endline ("coocc" ^ fresh.bind.name ^ " " ^ univ.param.bind.name ^ " " ^ cooccs_display fresh_param);
+  print_endline ("coocc" ^ fresh.bind.name ^ " " ^ univ.param.bind.name ^ " " ^ cooccs_display param_fresh);
+  *)let param_fresh = {
     neg = if sup then Some true else param_fresh.neg;
     pos = if sub then Some true else param_fresh.pos;
   } in

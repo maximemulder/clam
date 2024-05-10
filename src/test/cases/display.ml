@@ -1,9 +1,9 @@
-open Type2.Build
-open Type2.Build.Default
+open Type.Build
+open Type.Build.Default
 open Util.Func
 
 let test type' (_: unit) =
-  Type2.display type'
+  Type.display type'
 
 let case name type' =
   Case.make_case Case.string name (test type') name

@@ -1,14 +1,14 @@
-open Type2
-open Type2.Build
-open Type2.Build.Default
+open Type
+open Type.Build
+open Type.Build.Default
 open Util.Func
 
 let test ctx sub sup (_: unit) =
   System.isa sub sup ctx |> fst
 
 let name sub sup expect =
-  let sub = Type2.display sub in
-  let sup = Type2.display sup in
+  let sub = Type.display sub in
+  let sup = Type.display sup in
   let suffix = if expect then "" else "!" in
   "isa" ^ suffix ^ " `" ^ sub ^ "` `" ^ sup ^ "`"
 
