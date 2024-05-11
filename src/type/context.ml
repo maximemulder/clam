@@ -55,9 +55,12 @@ let freeze ctx =
 let with_freeze f =
   let* ctx = get in
   let* () = modify (fun ctx -> freeze ctx) in
-  let* x = Global.with_flag_off Global.show_constrain (fun () -> f) in
+  let show_constrain = !Global.show_constrain in
+  Global.show_constrain := false;
+  let* res = f in
+  Global.show_constrain := show_constrain;
   let* () = put ctx in
-  return x
+  return res
 
 (* CONTEXT VARIABLES *)
 
@@ -158,12 +161,10 @@ let reorder bind other =
 
 (* CONTEXT SHOW *)
 
-let isa_nesting = ref 0
-
 let show cond string =
   let* ctx = get in
   if cond then
-    Util.string_indent (List.length ctx.rigids + List.length ctx.freshs + !isa_nesting) string
+    Util.string_indent (List.length ctx.rigids + List.length ctx.freshs + !Global.nesting) string
     |> print_endline;
   return ()
 

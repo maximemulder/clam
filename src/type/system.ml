@@ -53,6 +53,20 @@ and is_param (left: param) (right: param) =
 (* CONSTRAIN SUBTYPE *)
 
 and isa sub sup =
+  let* () = show
+    !Global.show_constrain
+    ("constrain " ^ Display.display sub ^ " < " ^ Display.display sup)
+  in
+  Global.nesting := !Global.nesting + 1;
+  let* res = isa_base sub sup in
+  Global.nesting := !Global.nesting - 1;
+  let* () = show
+    !Global.show_constrain
+    ("= " ^ string_of_bool res)
+  in
+  return res
+
+and isa_base sub sup =
   let* fresh_sub = get_type_fresh sub in
   let* fresh_sup = get_type_fresh sup in
   match fresh_sub, fresh_sup with
@@ -67,39 +81,26 @@ and isa sub sup =
   | Univ sup ->
     with_param_rigid sup.param (isa sub sup.ret)
   | _ ->
+  match split_inter sup with
+  | Some (left, right) ->
+    isa_inter_sup sub left right
+  | None ->
+  match split_inter sub with
+  | Some (left, right) ->
+    isa_inter_sub left right sup
+  | None ->
+  match split_union sub with
+  | Some (left, right) ->
+    isa_union_sub left right sup
+  | None ->
+  match split_union sup with
+  | Some (left, right) ->
+    isa_union_sup sub left right
+  | None ->
   match sub with
   | Univ sub ->
     with_param_fresh sub.param sub.ret (fun ret -> isa ret sup)
   | _ ->
-  match split_inter sup with
-  | Some (left, right) ->
-    let* left  = isa sub left  in
-    let* right = isa sub right in
-    return (left && right)
-  | None ->
-  match split_inter sub with
-  | Some (left, right) ->
-    let* sub = meet_merge left right in (
-    match sub with
-    | Some sub ->
-      isa sub sup
-    | None ->
-      let* left  = isa left  sup in
-      let* right = isa right sup in
-      return (left || right))
-  | None ->
-  match split_union sub with
-  | Some (left, right) ->
-    let* left  = isa left  sup in
-    let* right = isa right sup in
-    return (left && right)
-  | None ->
-  match split_union sup with
-  | Some (left, right) ->
-    let* left  = isa sub left  in
-    let* right = isa sub right in
-    return (left || right)
-  | None ->
   let* rigid_sub = get_type_rigid sub in
   let* rigid_sup = get_type_rigid sup in
   match rigid_sub, rigid_sup with
@@ -169,6 +170,31 @@ and isa_fresh_sup fresh_sup sub =
   let* () = levelize fresh_sup sub in
   let* () = update_fresh fresh_sup in
   return true
+
+and isa_inter_sup sub left right =
+  let* left  = isa sub left  in
+  let* right = isa sub right in
+  return (left && right)
+
+and isa_inter_sub left right sup =
+  let* sub = meet_merge left right in
+  match sub with
+  | Some sub ->
+    isa sub sup
+  | None ->
+    let* left  = isa left  sup in
+    let* right = isa right sup in
+    return (left || right)
+
+and isa_union_sub left right sup =
+  let* left  = isa left  sup in
+  let* right = isa right sup in
+  return (left && right)
+
+and isa_union_sup sub left right =
+  let* left  = isa sub left  in
+  let* right = isa sub right in
+  return (left || right)
 
 and isa_rigid rigid_sub rigid_sup =
   if rigid_sub.bind == rigid_sup.bind then
@@ -363,12 +389,15 @@ and compute_base abs arg =
 (* TYPE JOIN *)
 
 and join left right =
-  let* type' = with_freeze (join_freeze left right) in
+  let* type' = join_base left right in
   let* () = show
     !Global.show_join
     ("join " ^ Display.display left ^ " " ^ Display.display right ^  " = " ^ Display.display type')
   in
   return type'
+
+and join_base left right =
+  with_freeze (join_freeze left right)
 
 and join_freeze left right =
   let* type' = join_merge left right in
@@ -395,12 +424,15 @@ and join_merge left right =
 (* TYPE MEET *)
 
 and meet left right =
-  let* type' = with_freeze (meet_freeze left right) in
+  let* type' = meet_base left right in
   let* () = show
     !Global.show_meet
     ("meet " ^ Display.display left ^ " " ^ Display.display right ^  " = " ^ Display.display type')
   in
   return type'
+
+and meet_base left right =
+  with_freeze (meet_freeze left right)
 
 and meet_freeze left right =
   let* type' = meet_merge left right in

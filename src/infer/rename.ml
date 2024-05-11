@@ -54,7 +54,7 @@ let rec rename type' =
   | Inter inter ->
     let* left  = rename inter.left  in
     let* right = rename inter.right in
-    return (Union { left; right })
+    return (Inter { left; right })
 
 and rename_attr attr =
   let* type' = rename attr.type' in

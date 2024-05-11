@@ -20,7 +20,7 @@ let rec rename entry type' =
   | Inter inter ->
     let left  = rename entry inter.left  in
     let right = rename entry inter.right in
-    Union { left; right }
+    Inter { left; right }
   | Tuple tuple ->
     let elems = List.map (rename entry) tuple.elems in
     Tuple { elems }
