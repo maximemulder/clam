@@ -1,9 +1,4 @@
-type type' = {
-  (* Disjunctive normal form *)
-  dnf: base list list;
-}
-
-and base =
+type type' =
   | Top
   | Bot
   | Unit
@@ -17,6 +12,8 @@ and base =
   | Univ   of univ
   | Abs    of abs
   | App    of app
+  | Union  of union
+  | Inter  of inter
 
 and var = {
   bind: Abt.bind_type;
@@ -61,18 +58,12 @@ and param = {
   upper: type';
 }
 
-let base base = { dnf = [[base]] }
+and union = {
+  left:  type';
+  right: type';
+}
 
-let top               = base Top
-let bot               = base Bot
-let unit              = base Unit
-let bool              = base Bool
-let int               = base Int
-let string            = base String
-let var    bind       = base (Var { bind })
-let tuple  elems      = base (Tuple { elems })
-let record attrs      = base (Record { attrs })
-let lam    param ret  = base (Lam { param; ret })
-let univ   param ret  = base (Univ { param; ret })
-let abs    param body = base (Abs { param; body })
-let app    abs arg    = base (App { abs; arg })
+and inter = {
+  left:  type';
+  right: type';
+}

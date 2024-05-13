@@ -21,10 +21,6 @@ open Util.Monad.StateMonad(struct
 end)
 
 let rec rename type' =
-  let* types = (list_map (list_map rename_base)) type'.dnf in
-  return { dnf = types }
-
-and rename_base type' =
   match type' with
   | Top | Bot | Unit | Bool | Int | String | Var _ ->
     return type'
@@ -51,6 +47,14 @@ and rename_base type' =
     let* abs = rename app.abs in
     let* arg = rename app.arg in
     return (App { abs; arg })
+  | Union union ->
+    let* left  = rename union.left  in
+    let* right = rename union.right in
+    return (Union { left; right })
+  | Inter inter ->
+    let* left  = rename inter.left  in
+    let* right = rename inter.right in
+    return (Inter { left; right })
 
 and rename_attr attr =
   let* type' = rename attr.type' in

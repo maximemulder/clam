@@ -1,11 +1,12 @@
-open Vars
+open Type.Build
+open Type.Build.Default
 
 let test ctx type' (_: unit) =
-  System.promote_upper type' ctx |> fst
+  Type.System.promote_upper type' ctx |> fst
 
 let name type' expect =
-  let type'  = display type'  in
-  let expect = display expect in
+  let type'  = Type.display type'  in
+  let expect = Type.display expect in
   "prom `" ^ type' ^ "` `" ^ expect ^ "`"
 
 let case type' expect ctx =
@@ -13,7 +14,7 @@ let case type' expect ctx =
 
 let case_var name bound case ctx =
   let bind = { Abt.name } in
-  let ctx = { ctx with Context.rigids = { bind; lower = Type.bot; upper = bound } :: ctx.Context.rigids } in
+  let ctx = { ctx with Type.Context.rigids = { bind; lower = bot; upper = bound } :: ctx.Type.Context.rigids } in
   let var = var bind in
   case var ctx
 
@@ -30,4 +31,4 @@ let tests = [
   case_var "T" int (fun t -> case_var "U" t (fun u -> case u int));
   case_var "T" (record ["foo", int]) (fun t -> case_var "U" t (fun u -> case u (record ["foo", int])));
 ]
-|> List.map (Util.apply ctx)
+|> List.map (Util.Func.apply ctx)

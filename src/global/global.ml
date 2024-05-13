@@ -2,6 +2,9 @@
   variables are used here to avoid cluttering the algorithms with additional
   parameters unrelated to their inputs and outputs. *)
 
+(** Nesting level of the algorithms. *)
+let nesting = ref 0
+
 (** Show the type inference steps. *)
 let show_infer = ref false
 
@@ -17,10 +20,9 @@ let show_join = ref false
 (** Show the meet operations. *)
 let show_meet = ref false
 
-(** Temporarily turn off a given flag. *)
-let with_flag_off flag f =
-  let old = !flag in
-  flag := false;
-  let res = f () in
-  flag := old;
-  res
+(** Show the split operations *)
+let show_split = ref false
+
+let print string =
+  Util.string_indent !nesting string
+  |> print_endline;

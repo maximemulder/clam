@@ -1,3 +1,4 @@
+open Type
 open Type.Context
 open Type.Context.Monad
 
@@ -32,14 +33,7 @@ let merge_occs left right =
   let pos = left.pos || right.pos in
   return { neg; pos }
 
-let rec occurs bind pol type' =
-  let* types = list_map (fun types ->
-    let* types = list_map (occurs_base bind pol) types in
-    list_fold merge_occs occs_none types
-  ) type'.Type.dnf in
-  list_fold merge_occs occs_none types
-
-and occurs_base bind pol type'  =
+let rec occurs bind pol type'  =
   match type' with
   | Top | Bot | Unit | Bool | Int | String ->
     return occs_none
@@ -72,6 +66,14 @@ and occurs_base bind pol type'  =
     let* abs = occurs bind pol app.abs in
     let* arg = occurs bind pol app.arg in
     merge_occs abs arg
+  | Union union ->
+    let* left  = occurs bind pol union.left  in
+    let* right = occurs bind pol union.right in
+    merge_occs left right
+  | Inter inter ->
+    let* left  = occurs bind pol inter.left  in
+    let* right = occurs bind pol inter.right in
+    merge_occs left right
 
 and occurs_attr bind pol attr =
   occurs bind pol attr.type'

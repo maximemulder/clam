@@ -2,15 +2,8 @@ include Namemap
 
 type writer = string -> unit
 
+module Func  = Func
 module Monad = Monad
-
-let id x = x
-
-let flip f x y = f y x
-
-let uncurry f (x, y) = f x y
-
-let apply x f = f x
 
 (**
   Returns both the index and the value of the leftmost element that satisfies

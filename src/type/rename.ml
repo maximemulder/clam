@@ -1,44 +1,56 @@
 open Node
 
-let rec rename bind other type' =
-  { dnf = List.map (List.map (rename_base bind other)) type'.dnf }
+type entry = {
+  (* The original binding to substitute *)
+  bind:  Abt.bind_type;
+  (* The binding replacing the original binding *)
+  other: Abt.bind_type;
+}
 
-and rename_base bind other type' =
+let rec rename entry type' =
   match type' with
-  | Top | Bot | Unit | Bool | Int | String ->
+  | Var var when var.bind == entry.bind ->
+    Var { bind = entry.other }
+  | Top | Bot | Unit | Bool | Int | String | Var _ ->
     type'
-  | Var var ->
-    if var.bind == bind then
-      Var { bind = other }
-    else
-      Var var
+  | Union union ->
+    let left  = rename entry union.left  in
+    let right = rename entry union.right in
+    Union { left; right }
+  | Inter inter ->
+    let left  = rename entry inter.left  in
+    let right = rename entry inter.right in
+    Inter { left; right }
   | Tuple tuple ->
-    let elems = List.map (rename bind other) tuple.elems in
+    let elems = List.map (rename entry) tuple.elems in
     Tuple { elems }
   | Record record ->
-    let attrs = Util.NameMap.map (rename_attr bind other) record.attrs in
+    let attrs = Util.NameMap.map (rename_attr entry) record.attrs in
     Record { attrs }
   | Lam lam ->
-    let param = rename bind other lam.param in
-    let ret = rename bind other lam.ret in
+    let param = rename entry lam.param in
+    let ret   = rename entry lam.ret   in
     Lam { param; ret }
   | Univ univ ->
-    let param = rename_param bind other univ.param in
-    let ret = rename bind other univ.ret in
+    let param = rename_param entry univ.param in
+    let ret   = rename       entry univ.ret   in
     Univ { param; ret }
   | Abs abs ->
-    let param = rename_param bind other abs.param in
-    let body = rename bind other abs.body in
+    let param = rename_param entry abs.param in
+    let body  = rename       entry abs.body  in
     Abs { param; body }
   | App app ->
-    let abs = rename bind other app.abs in
-    let arg = rename bind other app.arg in
+    let abs = rename entry app.abs in
+    let arg = rename entry app.arg in
     App { abs; arg }
 
-and rename_attr bind other attr =
-  { attr with type' = rename bind other attr.type' }
+and rename_attr entry attr =
+  { attr with type' = rename entry attr.type' }
 
-and rename_param bind other param =
-  let lower = rename bind other param.lower in
-  let upper = rename bind other param.upper in
+and rename_param entry param =
+  let lower = rename entry param.lower in
+  let upper = rename entry param.upper in
   { param with lower; upper }
+
+let rename bind other type' =
+  rename { bind; other } type'

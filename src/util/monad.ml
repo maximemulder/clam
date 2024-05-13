@@ -109,6 +109,10 @@ module Monad (M: MONAD) = struct
       let* r2 = list_all f xs in
       return (r && r2)
 
+  let list_all2 f xs ys =
+    let zs = List.combine xs ys in
+    list_all (fun (x, y) -> f x y) zs
+
   let rec list_any f xs =
     match xs with
     | [] ->
@@ -232,6 +236,8 @@ module StateMonad (S: STATE) = struct
   let get s = s, s
 
   let put s _ = (), s
+
+  let modify f s = (), f s
 end
 
 module type READER = sig

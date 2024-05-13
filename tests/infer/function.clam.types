@@ -2,7 +2,7 @@ main: Unit
 a: (Top) -> Int
 b: (Int) -> Int
 c: (Int) -> Int
-d: (Bot) -> (Int | String)
+d: (Int & String) -> (Int | String)
 e: ['A] -> ((Int) -> 'A) -> 'A
 f: ((Int) -> Int) -> Int
 g: ((Int | String) -> Int) -> Int

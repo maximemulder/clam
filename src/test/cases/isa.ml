@@ -1,11 +1,14 @@
-open Vars
+open Type
+open Type.Build
+open Type.Build.Default
+open Util.Func
 
 let test ctx sub sup (_: unit) =
   System.isa sub sup ctx |> fst
 
 let name sub sup expect =
-  let sub = display sub in
-  let sup = display sup in
+  let sub = Type.display sub in
+  let sup = Type.display sup in
   let suffix = if expect then "" else "!" in
   "isa" ^ suffix ^ " `" ^ sub ^ "` `" ^ sup ^ "`"
 
@@ -14,7 +17,7 @@ let case sub sup expect ctx =
 
 let case_var name bound case expect ctx =
   let bind = { Abt.name } in
-  let ctx = { ctx with Context.rigids = { bind; lower = Type.bot; upper = bound } :: ctx.Context.rigids } in
+  let ctx = { ctx with Context.rigids = { bind; lower = bot; upper = bound } :: ctx.Context.rigids } in
   let var = var bind in
   case var expect ctx
 
@@ -33,51 +36,51 @@ let tests = [
 
   (* variables *)
   case a a;
-  case ea a;
+  case a1 a;
   case_var "A" top (fun a -> case a top);
   case_var "A" unit (fun a -> case a top);
   case_var "A" unit (fun a -> case a unit);
 
   (* unions *)
-  case a (union [a; b]);
-  case a (union [b; a]);
-  case (union [a; a]) (union [a; a]);
-  case (union [a; b]) (union [a; b]);
-  case (union [a; b]) (union [b; a]);
+  case a (union a b);
+  case a (union b a);
+  case (union a a) (union a a);
+  case (union a b) (union a b);
+  case (union a b) (union b a);
 
   (* intersections *)
-  case (inter [a; b]) a;
-  case (inter [b; a]) b;
-  case (inter [a; a]) (inter [a; a]);
-  case (inter [a; b]) (inter [a; b]);
-  case (inter [a; b]) (inter [b; a]);
+  case (inter a b) a;
+  case (inter b a) b;
+  case (inter a a) (inter a a);
+  case (inter a b) (inter a b);
+  case (inter a b) (inter b a);
 
   (* distributivity *)
-  case (union [inter [a; b]; inter [a; c]]) (inter [a; union [b; c]]);
-  case (inter [a; union [b; c]]) (union [inter [a; b]; inter [a; c]]);
+  case (union (inter a b) (inter a c)) (inter a (union b c));
+  case (inter a (union b c)) (union (inter a b) (inter a c));
 
   (* meets *)
-  case (inter [lam a b; lam a c]) (lam a (inter [b; c]));
-  case (lam (union [a; b]) c) (inter [lam a c; lam b c]);
-  case (inter [lam a b; lam a c]) (lam a (inter [b; c]));
-  case (lam a (inter [b; c])) (inter [lam a b; lam a c]);
-  case (lam (union [a; b]) (inter [c; d])) (inter [lam a c; lam b d]);
+  case (inter (lam a b) (lam a c)) (lam a (inter b c));
+  case (lam (union a b) c) (inter (lam a c) (lam b c));
+  case (inter (lam a b) (lam a c)) (lam a (inter b c));
+  case (lam a (inter b c)) (inter (lam a b) (lam a c));
+  case (lam (union a b) (inter c d)) (inter (lam a c) (lam b d));
 
   (* universal abstractions *)
-  case (univ "T" top id) (univ "T" top id);
-  case (univ "T" top id) (univ "X" top id);
-  case (univ "T" top (inline a)) (univ "T" top (inline a));
-  case (univ "T" top (inline a)) (univ "X" top (inline a));
+  case (univ_0 "T" id) (univ_0 "T" id);
+  case (univ_0 "T" id) (univ_0 "X" id);
+  case (univ_0 "T" (const a)) (univ_0 "T" (const a));
+  case (univ_0 "T" (const a)) (univ_0 "X" (const a));
 
   (* type abstractions *)
-  case (abs "T" top id) (abs "T" top id);
-  case (abs "T" top id) (abs "T" top (inline top));
-  case (abs "T" top (inline a)) (abs "T" top (inline a));
-  case (abs "T" top (inline a)) (abs "T" top (inline top));
+  case (abs_0 "T" id) (abs_0 "T" id);
+  case (abs_0 "T" id) (abs_0 "T" (const top));
+  case (abs_0 "T" (const a)) (abs_0 "T" (const a));
+  case (abs_0 "T" (const a)) (abs_0 "T" (const top));
 
   (* type applications *)
   (* case_var "T" (abs "T" top id) (fun t -> case (app t top) top);
-  case_var "T" (abs "T" top (inline top)) (fun t -> case (app t top) top); *)
+  case_var "T" (abs "T" top (const top)) (fun t -> case (app t top) top); *)
 ]
 |> List.map (fun case -> case true ctx)
 
@@ -103,27 +106,27 @@ let tests_not = [
   case (record ["foo", top]) (record ["foo", a]);
 
   (* meets *)
-  case (inter [lam a c; lam b d]) (lam (union [a; b]) (inter [c; d]));
+  case (inter (lam a c) (lam b d)) (lam (union a b) (inter c d));
 
   (* type abstractions*)
-  case (abs "T" top (inline a)) (abs "T" top (inline b));
-  case (abs "T" top (inline top)) (abs "T" top (inline b));
-  case (abs "T" a (inline c)) (abs "T" b (inline c));
-  case (abs "T" top (inline b)) (abs "T" a (inline b));
-  case (abs "T" a (inline b)) (abs "T" top (inline b));
+  case (abs_0 "T" (const a)) (abs_0 "T" (const b));
+  case (abs_0 "T" (const top)) (abs_0 "T" (const b));
+  case (abs "T" bot a (const c)) (abs "T" bot b (const c));
+  case (abs_0 "T" (const b)) (abs "T" bot a (const b));
+  case (abs "T" bot a (const b)) (abs_0 "T" (const b));
 
   (* type abstractions and top *)
-  case top (abs "T" top id);
-  case top (abs "T" top (inline top));
-  case (abs "T" top id) top;
-  case (abs "T" top (inline top)) top;
+  case top (abs_0 "T" id);
+  case top (abs_0 "T" (const top));
+  case (abs_0 "T" id) top;
+  case (abs_0 "T" (const top)) top;
 
   (* type abstractions and variables*)
 
-  case_var "T" (abs "X" top id) (fun t1 -> case_var "T" (abs "X" top id) (fun t2 -> case (app t1 top) (app t2 top)));
+  case_var "T" (abs_0 "X" id) (fun t1 -> case_var "T" (abs_0 "X" id) (fun t2 -> case (app t1 top) (app t2 top)));
 
   (* type applications *)
   (* case_var "T" (abs "T" top id) (fun t -> case top (app t top));
-  case_var "T" (abs "T" top (inline top)) (fun t -> case top (app t top)); *)
+  case_var "T" (abs "T" top (const top)) (fun t -> case top (app t top)); *)
 ]
 |> List.map (fun case -> case false ctx)

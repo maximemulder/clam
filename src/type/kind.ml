@@ -1,22 +1,23 @@
-open Node
 open Context
 open Context.Monad
+open Node
 
 type kind =
-  | Type
-  | Abs of abs
+  | Proper
+  | Higher of higher
 
-and abs = {
+and higher = {
   lower: type';
   upper: type';
   body: kind;
 }
 
 let rec get_kind type' =
-  get_kind_base (List.nth (List.nth type'.dnf 0) 0)
-
-and get_kind_base type' =
   match type' with
+  | Union union ->
+    get_kind_union union
+  | Inter inter ->
+    get_kind_inter inter
   | Var var ->
     get_kind_var var
   | Abs abs ->
@@ -24,47 +25,57 @@ and get_kind_base type' =
   | App app ->
     get_kind_app app
   | _ ->
-    return Type
+    return Proper
+
+and get_kind_union union =
+  (* Both left and right have the same kind in a well-formed type. *)
+  get_kind union.left
+
+and get_kind_inter inter =
+  (* Both left and right have the same kind in a well-formed type. *)
+  get_kind inter.left
 
 and get_kind_var var =
   let* var = get_var var.bind in
   match var with
   | Fresh _ ->
-    return Type
+    return Proper
   | Rigid rigid ->
+    (* Both the lower and upper bounds have the same kind in a well-formed
+      type. *)
     get_kind rigid.lower
 
 and get_kind_abs abs =
   let* body = with_param_rigid abs.param (get_kind abs.body) in
-  return (Abs { lower = abs.param.lower; upper = abs.param.upper; body })
+  return (Higher { lower = abs.param.lower; upper = abs.param.upper; body })
 
 and get_kind_app app =
   let* abs = get_kind app.abs in
   match abs with
-  | Abs { body; _ } ->
+  | Higher { body; _ } ->
     return body
-  | Type ->
-    invalid_arg "TypeKind.get_kind"
+  | Proper ->
+    failwith "Ill-formed type application in `Kind.get_kind_app`."
 
 let rec get_kind_min kind =
   match kind with
-  | Type ->
-    Node.bot
-  | Abs { lower; upper; body } ->
+  | Proper ->
+    Bot
+  | Higher { lower; upper; body } ->
     let bind: Abt.bind_type = { name = "_" } in
     let param: Node.param = { bind; lower; upper } in
-    Node.abs param (get_kind_min body)
+    Abs { param; body = get_kind_min body }
 
 let rec get_kind_max kind =
   match kind with
-  | Type ->
-    Node.top
-  | Abs { lower; upper; body } ->
+  | Proper ->
+    Top
+  | Higher { lower; upper; body } ->
     let bind: Abt.bind_type = { name = "_" } in
     let param: Node.param = { bind; lower; upper } in
-    Node.abs param (get_kind_max body)
+    Abs { param; body = get_kind_max body }
 
 let rec display kind =
   match kind with
-  | Type -> "*"
-  | Abs abs -> "[" ^ Display.display abs.lower ^ " .. " ^ Display.display abs.upper ^ "] -> " ^ display abs.body
+  | Proper -> "*"
+  | Higher higher -> "[" ^ Display.display higher.lower ^ " .. " ^ Display.display higher.upper ^ "] -> " ^ display higher.body
