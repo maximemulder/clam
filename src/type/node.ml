@@ -1,6 +1,4 @@
 type type' =
-  | Union  of union
-  | Inter  of inter
   | Top
   | Bot
   | Unit
@@ -14,16 +12,8 @@ type type' =
   | Univ   of univ
   | Abs    of abs
   | App    of app
-
-and union = {
-  left:  type';
-  right: type';
-}
-
-and inter = {
-  left:  type';
-  right: type';
-}
+  | Union  of union
+  | Inter  of inter
 
 and var = {
   bind: Abt.bind_type;
@@ -66,4 +56,14 @@ and param = {
   bind: Abt.bind_type;
   lower: type';
   upper: type';
+}
+
+and union = {
+  left:  type';
+  right: type';
+}
+
+and inter = {
+  left:  type';
+  right: type';
 }

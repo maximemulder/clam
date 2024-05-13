@@ -24,7 +24,7 @@ let rec levelize bind type' =
     map_iter (levelize_attr bind) record.attrs
   | Lam lam ->
     let* () = levelize bind lam.param in
-    let* () = levelize bind lam.ret in
+    let* () = levelize bind lam.ret   in
     return ()
   | Univ univ ->
     let* () = levelize_param bind univ.param in

@@ -34,7 +34,7 @@ let solve (fresh: fresh) type' =
     return type'
 
 let find_recursive span (fresh: fresh) type' =
-  let* recursive = with_ctx (Type.Appear.appears fresh.bind type') in
+  let recursive = Type.appears fresh.bind type' in
   if recursive then
     Error.raise_recursive span fresh.bind type'
   else

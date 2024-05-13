@@ -1,4 +1,3 @@
-module Appear   = Appear
 module Build    = Build
 module Context  = Context
 module Error    = Error
@@ -8,6 +7,7 @@ module Validate = Validate
 
 exception Error = Error.Error
 
+include Appear
 include Compare
 include Display
 include Node

@@ -1,6 +1,16 @@
+open Display
 open Node
 
 let rec split_union type' =
+  let res = split_union_base type' in
+  if !Global.show_split then (
+    match res with
+    | Some (left, right) ->
+      Global.print ("split_union `" ^ display type' ^ "` = `" ^ display left ^ "` | `" ^ display right ^ "`")
+    | _ -> ());
+  res
+
+and split_union_base type' =
   match type' with
   | Union union ->
     split_union_union union
@@ -30,6 +40,15 @@ and split_union_inter inter =
     None
 
 let rec split_inter type' =
+  let res = split_inter_base type' in
+  if !Global.show_split then (
+    match res with
+    | Some (left, right) ->
+      Global.print ("split_inter `" ^ display type' ^ "` = `" ^ display left ^ "` & `" ^ display right ^ "`")
+    | _ -> ());
+  res
+
+and split_inter_base type' =
   match type' with
   | Union union ->
     split_inter_union union

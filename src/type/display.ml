@@ -63,14 +63,6 @@ let curry_app (app: app) =
 
 let rec display type' =
   match type' with
-  | Union union ->
-    let left  = display union.left  L in
-    let right = display union.right R in
-    return B (left ^ " | " ^ right)
-  | Inter inter ->
-    let left  = display inter.left  L in
-    let right = display inter.right R in
-    return B (left ^ " & " ^ right)
   | Top     -> return N "Top"
   | Bot     -> return N "Bot"
   | Unit    -> return N "Unit"
@@ -90,6 +82,10 @@ let rec display type' =
     display_abs abs
   | App app ->
     display_app app
+  | Union union ->
+    display_union union
+  | Inter inter ->
+    display_inter inter
 
 and display_tuple tuple =
   let types = List.map (flip display N) tuple.elems in
@@ -137,6 +133,16 @@ and display_param param =
   (if lower then display param.lower N ^ " " else "") ^
   (if lower || upper then ".." else "") ^
   (if upper then " " ^ display param.upper N else "")
+
+and display_union union =
+  let left  = display union.left  L in
+  let right = display union.right R in
+  return B (left ^ " | " ^ right)
+
+and display_inter inter =
+  let left  = display inter.left  L in
+  let right = display inter.right R in
+  return B (left ^ " & " ^ right)
 
 let display type' =
   display type' N

@@ -67,20 +67,6 @@ and isa sub sup =
   return res
 
 and isa_base sub sup =
-  let* fresh_sub = get_type_fresh sub in
-  let* fresh_sup = get_type_fresh sup in
-  match fresh_sub, fresh_sup with
-  | Some fresh_sub, Some fresh_sup ->
-    isa_fresh fresh_sub fresh_sup
-  | Some fresh_sub, None ->
-    isa_fresh_sub fresh_sub sup
-  | None, Some fresh_sup ->
-    isa_fresh_sup fresh_sup sub
-  | None, None ->
-  match sup with
-  | Univ sup ->
-    with_param_rigid sup.param (isa sub sup.ret)
-  | _ ->
   match split_inter sup with
   | Some (left, right) ->
     isa_inter_sup sub left right
@@ -97,6 +83,20 @@ and isa_base sub sup =
   | Some (left, right) ->
     isa_union_sup sub left right
   | None ->
+  let* fresh_sub = get_type_fresh sub in
+  let* fresh_sup = get_type_fresh sup in
+  match fresh_sub, fresh_sup with
+  | Some fresh_sub, Some fresh_sup ->
+    isa_fresh fresh_sub fresh_sup
+  | Some fresh_sub, None ->
+    isa_fresh_sub fresh_sub sup
+  | None, Some fresh_sup ->
+    isa_fresh_sup fresh_sup sub
+  | None, None ->
+  match sup with
+  | Univ sup ->
+    with_param_rigid sup.param (isa sub sup.ret)
+  | _ ->
   match sub with
   | Univ sub ->
     with_param_fresh sub.param sub.ret (fun ret -> isa ret sup)
@@ -177,14 +177,19 @@ and isa_inter_sup sub left right =
   return (left && right)
 
 and isa_inter_sub left right sup =
-  let* sub = meet_merge left right in
+  let* sub = with_freeze (meet_merge left right) in
   match sub with
   | Some sub ->
     isa sub sup
   | None ->
-    let* left  = isa left  sup in
-    let* right = isa right sup in
-    return (left || right)
+  let* fresh_sup = get_type_fresh sup in
+  match fresh_sup with
+  | Some fresh_sup ->
+    isa_fresh_sup fresh_sup (Inter { left; right })
+  | None ->
+  let* left  = isa left  sup in
+  let* right = isa right sup in
+  return (left || right)
 
 and isa_union_sub left right sup =
   let* left  = isa left  sup in
@@ -192,6 +197,11 @@ and isa_union_sub left right sup =
   return (left && right)
 
 and isa_union_sup sub left right =
+  let* fresh_sub = get_type_fresh sub in
+  match fresh_sub with
+  | Some fresh_sub ->
+    isa_fresh_sub fresh_sub (Union { left; right })
+  | None ->
   let* left  = isa sub left  in
   let* right = isa sub right in
   return (left || right)

@@ -1,2 +1,3 @@
 (library
-  (name global))
+  (name global)
+  (libraries util))

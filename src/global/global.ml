@@ -19,3 +19,10 @@ let show_join = ref false
 
 (** Show the meet operations. *)
 let show_meet = ref false
+
+(** Show the split operations *)
+let show_split = ref false
+
+let print string =
+  Util.string_indent !nesting string
+  |> print_endline;

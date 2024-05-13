@@ -34,13 +34,13 @@ let parse_arg arg config =
   match arg with
   | "-h"   | "--help" ->
     { config with help = true }
-  | "-ast" | "--show-ast" ->
+  | "--show-ast" ->
     { config with show_ast = true }
-  | "-k"   | "--show-kinds" ->
+  | "--show-kinds" ->
     { config with show_kinds = true }
-  | "-t"   | "--show-types" ->
+  | "--show-types" ->
     { config with show_types = true }
-  | "-v"   | "--show-values" ->
+  | "--show-values" ->
     { config with show_values = true }
   | "--show-constrain" ->
     Global.show_constrain := true;
@@ -53,6 +53,9 @@ let parse_arg arg config =
     config
   | "--show-meet" ->
     Global.show_meet := true;
+    config
+  | "--show-split" ->
+    Global.show_split := true;
     config
   | _ ->
     if String.starts_with ~prefix:"-" arg then
