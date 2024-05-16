@@ -252,9 +252,17 @@ module ReaderMonad (R: READER) = struct
 
     let return a _ = a
 
-    let bind r f c =
-      f (r c) c
+    let bind m f r =
+      f (m r) r
   end)
 
   let get s = s
+end
+
+module Identity = struct
+  type 'a t = 'a
+
+  let return a = a
+
+  let bind m f = f m
 end
