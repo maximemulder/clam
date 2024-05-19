@@ -24,3 +24,5 @@ val syn_map : (Node.type' -> Node.type') -> Node.type' -> Node.type'
   argument to handle the other cases where no special treatement is needed.
 *)
 val syn_fold : (Node.type' -> 'a) -> ('a -> 'a -> 'a) -> 'a -> Node.type' -> 'a
+
+val syn_fold_pol : (Polar.pol -> Node.type' -> 'a) -> ('a -> 'a -> 'a) -> 'a -> Polar.pol -> Node.type' -> 'a

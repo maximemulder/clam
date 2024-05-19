@@ -1,6 +1,5 @@
 (** The algorithm to remove cooccurrences in a type. It is honestly not very good *)
 
-open Polar
 open Type
 
 (** The polarities at which a type variable occurs or cooccurs. *)
@@ -84,10 +83,6 @@ let rec cooccurs bind other pol type' =
       cooccs_pol Pos (occurs_pos bind type' && occurs_pos other type')
   else
   match type' with
-  | Lam lam ->
-    let param = cooccurs bind other (inv pol) lam.param in
-    let ret   = cooccurs bind other pol lam.ret in
-    merge_cooccs param ret
   | Univ univ ->
     let param = cooccurs_param bind other univ.param in
     let ret   = cooccurs bind other pol univ.ret in
@@ -97,7 +92,7 @@ let rec cooccurs bind other pol type' =
     let body  = cooccurs bind other pol abs.body in
     merge_cooccs param body
   | type' ->
-    syn_fold (cooccurs bind other pol) merge_cooccs cooccs_none type'
+    syn_fold_pol (cooccurs bind other) merge_cooccs cooccs_none pol type'
 
 and cooccurs_param bind other param =
   if param.bind == other then
@@ -111,10 +106,6 @@ let join_coocc a b = Util.option_join a b (fun a _ -> a)
 
 let rec fold_coocc bind orig pol type' =
   match type' with
-  | Lam lam ->
-    let param = fold_coocc bind orig (inv pol) lam.param in
-    let ret   = fold_coocc bind orig pol lam.ret in
-    join_coocc param ret
   | Univ univ ->
     let a = cooccurs bind univ.param.bind Pos orig in
     let b = cooccurs univ.param.bind bind Pos orig in
@@ -124,12 +115,8 @@ let rec fold_coocc bind orig pol type' =
     let param = fold_coocc_param bind orig univ.param in
     let ret   = fold_coocc bind orig pol univ.ret in
     join_coocc param ret
-  | Abs abs ->
-    let param = fold_coocc_param bind orig abs.param in
-    let body  = fold_coocc bind orig pol abs.body in
-    join_coocc param body
   | type' ->
-    syn_fold (fold_coocc bind orig pol) join_coocc None type'
+    syn_fold_pol (fold_coocc bind orig) join_coocc None pol type'
 
 and fold_coocc_param bind orig param =
   let lower = fold_coocc bind orig Pos param.lower in
@@ -176,7 +163,7 @@ let rec simplify_2 (fresh: fresh) orig pol type' =
     let* arg = simplify_2 fresh orig pol app.arg in
     return (App { abs; arg })
   | _ ->
-    Type.System.map (simplify_2 fresh orig pol) type'
+    Type.Transform.map (simplify_2 fresh orig pol) type'
 
 and simplify_attr fresh orig pol attr =
   let* type' = simplify_2 fresh orig pol attr.type' in

@@ -1,5 +1,5 @@
 open Node
-open Syn_transform
+open Syn
 
 let rec rename bind other type' =
   match type' with
