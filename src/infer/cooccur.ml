@@ -97,7 +97,7 @@ let rec cooccurs bind other pol type' =
     let body  = cooccurs bind other pol abs.body in
     merge_cooccs param body
   | type' ->
-    fold (cooccurs bind other pol) merge_cooccs cooccs_none type'
+    syn_fold (cooccurs bind other pol) merge_cooccs cooccs_none type'
 
 and cooccurs_param bind other param =
   if param.bind == other then
@@ -129,7 +129,7 @@ let rec fold_coocc bind orig pol type' =
     let body  = fold_coocc bind orig pol abs.body in
     join_coocc param body
   | type' ->
-    fold (fold_coocc bind orig pol) join_coocc None type'
+    syn_fold (fold_coocc bind orig pol) join_coocc None type'
 
 and fold_coocc_param bind orig param =
   let lower = fold_coocc bind orig Pos param.lower in
@@ -144,9 +144,6 @@ open Type.Context.Monad
 open Type.System
 
 let rec simplify_2 (fresh: fresh) orig pol type' =
-  Type.System.map (simplify_base fresh orig pol) type'
-
-and simplify_base fresh orig pol type' =
   match type' with
   | Top | Bot | Unit | Bool | Int | String | Var _ ->
     return type'
@@ -179,7 +176,7 @@ and simplify_base fresh orig pol type' =
     let* arg = simplify_2 fresh orig pol app.arg in
     return (App { abs; arg })
   | _ ->
-    failwith "Unreachable `simplify_base`."
+    Type.System.map (simplify_2 fresh orig pol) type'
 
 and simplify_attr fresh orig pol attr =
   let* type' = simplify_2 fresh orig pol attr.type' in

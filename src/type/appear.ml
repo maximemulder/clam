@@ -1,9 +1,9 @@
 open Node
-open Transform
+open Syn_transform
 
 let rec appears bind type' =
   match type' with
   | Var var when var.bind == bind ->
     true
   | type' ->
-    fold (appears bind) (||) false type'
+    syn_fold (appears bind) (||) false type'

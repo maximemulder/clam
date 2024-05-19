@@ -12,4 +12,4 @@ include Compare
 include Display
 include Node
 include Rename
-include Transform
+include Syn_transform
