@@ -2,15 +2,6 @@ open Type
 open Type.Context
 open Type.Context.Monad
 
-(** Polarity of a type position. *)
-type polarity = Neg | Pos
-
-(** Invert a polarity. *)
-let inv pol =
-  match pol with
-  | Neg -> Pos
-  | Pos -> Neg
-
 (** The polarities at which a type variable occurs. *)
 type occs = {
   neg: bool;

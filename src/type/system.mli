@@ -24,9 +24,6 @@ val map_set : (Node.type' -> Node.type' Context.Monad.t) -> Node.type' -> Node.t
 
   Requirements:
   - [other] should be a valid substitute for [bind].
-
-  Examples:
-  - [substitute A Int (A | Int) = Int]
 *)
 val substitute : Abt.bind_type -> Node.type' -> Node.type' -> Node.type' Context.Monad.t
 
@@ -39,10 +36,6 @@ val substitute : Abt.bind_type -> Node.type' -> Node.type' -> Node.type' Context
   Requirements:
   - [abs] must be a valid type abstraction.
   - [arg] should be a valid type argument for [abs].
-
-  Examples:
-  - [compute ([T] => {T, T}) Int = {Int, Int}]
-  - [T < [T] => {T, T} |- compute T Int = T[Int]]
 *)
 val compute : Node.type' -> Node.type' -> Node.type' Context.Monad.t
 
@@ -50,9 +43,6 @@ val compute : Node.type' -> Node.type' -> Node.type' Context.Monad.t
   [promote_lower type']
 
   Return the highest subtype of [type'] whose shape is not a type variable.
-
-  Examples:
-  - [T > Int |- promote_lower T = Int]
 *)
 val promote_lower : Node.type' -> Node.type' Context.Monad.t
 
@@ -60,9 +50,6 @@ val promote_lower : Node.type' -> Node.type' Context.Monad.t
   [promote_lower type']
 
   Return the lowest supertype of [type'] whose shape is not a type variable.
-
-  Examples:
-  - [T > Int |- promote_lower T = Int]
 *)
 val promote_upper : Node.type' -> Node.type' Context.Monad.t
 
@@ -72,11 +59,6 @@ val promote_upper : Node.type' -> Node.type' Context.Monad.t
   Constrain the typing context such that, if possible, the type [left] is
   equivalent of [right]. Two types are equivalent when they are subtype of
   each other.
-
-  Examples:
-  - [is Int Int = true]
-  - [is Int Top = false]
-  - [^A |- is A Int = true >> ^A = Int]
 *)
 val is : Node.type' -> Node.type' -> bool Context.Monad.t
 
@@ -85,11 +67,6 @@ val is : Node.type' -> Node.type' -> bool Context.Monad.t
 
   Constrain the typing context such that, if possible, the type [sub] is a
   subtype of [sup].
-
-  Examples:
-  - [isa Int Top = true]
-  - [isa Int String = false]
-  - [^A |- isa A Int = true >> ^A < Int]
 *)
 val isa : Node.type' -> Node.type' -> bool Context.Monad.t
 
@@ -101,10 +78,6 @@ val isa : Node.type' -> Node.type' -> bool Context.Monad.t
 
   Requirements:
   - [left] and [right] should be of the same kind.
-
-  Examples:
-  - [join Int String = Int | String]
-  - [join Bot Int = Int]
 *)
 val join : Node.type' -> Node.type' -> Node.type' Context.Monad.t
 
@@ -119,10 +92,6 @@ val join : Node.type' -> Node.type' -> Node.type' Context.Monad.t
 
   Notes:
   - Incompatible type constructors are not coerced into [Bot] in Clam.
-
-  Examples:
-  - [meet Int String = Int & String]
-  - [meet Int Top = Int]
 *)
 val meet : Node.type' -> Node.type' -> Node.type' Context.Monad.t
 

@@ -132,18 +132,6 @@ open Type.System
 
 let rec simplify_2 (fresh: fresh) orig pol type' =
   match type' with
-  | Top | Bot | Unit | Bool | Int | String | Var _ ->
-    return type'
-  | Tuple tuple ->
-    let* elems = list_map (simplify_2 fresh orig pol) tuple.elems in
-    return (Tuple { elems })
-  | Record record ->
-    let* attrs = map_map (simplify_attr fresh orig pol) record.attrs in
-    return (Record { attrs })
-  | Lam lam ->
-    let* param = simplify_2 fresh orig (inv pol) lam.param in
-    let* ret   = simplify_2 fresh orig pol lam.ret in
-    return (Lam { param; ret })
   | Univ univ ->
     let* param = simplify_param fresh orig univ.param in
     with_param_rigid param (
@@ -154,20 +142,8 @@ let rec simplify_2 (fresh: fresh) orig pol type' =
       else
         return (Univ { param; ret })
     )
-  | Abs abs ->
-    let* param = simplify_param fresh orig abs.param in
-    let* body  = simplify_2 fresh orig pol abs.body in
-    return (Abs { param; body })
-  | App app ->
-    let* abs = simplify_2 fresh orig pol app.abs in
-    let* arg = simplify_2 fresh orig pol app.arg in
-    return (App { abs; arg })
   | _ ->
-    Type.Transform.map (simplify_2 fresh orig pol) type'
-
-and simplify_attr fresh orig pol attr =
-  let* type' = simplify_2 fresh orig pol attr.type' in
-  return { attr with type' }
+    Type.Transform.map_pol (simplify_2 fresh orig) pol type'
 
 and simplify_param fresh orig param =
   let* lower = simplify_2 fresh orig Pos param.lower in
