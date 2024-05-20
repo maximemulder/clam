@@ -5,12 +5,7 @@ open Level
 open Node
 open Rename
 open Split
-
-(** Type substitution entry *)
-type entry = {
-  bind: Abt.bind_type;
-  other: type';
-}
+open Trans_ctx
 
 (* FIND TYPE VARIABLE *)
 
@@ -38,14 +33,99 @@ let get_type_rigid type' =
   | _ ->
     return None
 
+(* TYPE MAP SET *)
+
+let rec map_set f type' =
+  match type' with
+  | Union union ->
+    let* left  = f union.left  in
+    let* right = f union.right in
+    join left right
+  | Inter inter ->
+    let* left  = f inter.left  in
+    let* right = f inter.right in
+    meet left right
+  | type' ->
+    f type'
+
+(* TYPE SUBSTITUTION *)
+
+and substitute bind other type' =
+  map_set (substitute_base bind other) type'
+
+and substitute_base bind other type' =
+  match type' with
+  | Var var when var.bind == bind ->
+    return other
+  | App app ->
+    let* abs = substitute bind other app.abs in
+    let* arg = substitute bind other app.arg in
+    compute abs arg
+  | type' ->
+    map (substitute bind other) type'
+
+(* TYPE COMPUTATION *)
+
+and compute abs arg =
+  map_set (compute_base arg) abs
+
+and compute_base arg abs =
+  match abs with
+  | Abs abs ->
+    substitute abs.param.bind arg abs.body
+  | Var var ->
+    return (App { abs = Var var; arg })
+  | _ ->
+    failwith "Ill-formed type application in `compute`."
+
+(* TYPE PROMOTION LOWER *)
+
+and promote_lower type' =
+  map_set promote_lower_base type'
+
+and promote_lower_base type' =
+  match type' with
+  | Var var ->
+    promote_lower_var var
+  | type' ->
+    return type'
+
+and promote_lower_var var =
+  let* var = get_var var.bind in
+  match var with
+  | Rigid rigid ->
+    promote_lower rigid.lower
+  | Fresh _ ->
+    failwith "Fresh type variable in `promote_lower_var`."
+
+(* TYPE PROMOTE UPPER *)
+
+and promote_upper type' =
+  map_set promote_upper_base type'
+
+and promote_upper_base type' =
+  match type' with
+  | Var var ->
+    promote_upper_var var
+  | type' ->
+    return type'
+
+and promote_upper_var var =
+  let* var = get_var var.bind in
+  match var with
+  | Rigid rigid ->
+    promote_upper rigid.upper
+  | Fresh _ ->
+    failwith "Fresh type variable in `promote_upper_var`."
+
 (* CONSTRAIN EQUIVALENCE *)
 
-let rec is left right =
+and is left right =
   let* sub = isa left right in
   let* sup = isa right left in
   return (sub && sup)
 
-and is_param (left: param) (right: param) =
+and is_param left right =
   let* sub = is left.lower right.lower in
   let* sup = is left.upper right.upper in
   return (sub && sup)
@@ -261,140 +341,6 @@ and isa_app_sup app sub =
   let* abs = promote_lower app.abs in
   let* sup = compute abs app.arg in
   isa sub sup
-
-(* TYPE MAP *)
-
-and map f type' =
-  match type' with
-  | Union union ->
-    let* left  = map f union.left  in
-    let* right = map f union.right in
-    join left right
-  | Inter inter ->
-    let* left  = map f inter.left  in
-    let* right = map f inter.right in
-    meet left right
-  | type' ->
-    f type'
-
-(* TYPE SUBSTITUTION *)
-
-and substitute bind other type' =
-  substitute_entry { bind; other } type'
-
-and substitute_entry entry type' =
-  map (substitute_base entry) type'
-
-and substitute_base entry type' =
-  match type' with
-  | Top | Bot | Unit | Bool | Int | String ->
-    return type'
-  | Var var ->
-    substitute_var entry var
-  | Tuple tuple ->
-    substitute_tuple entry tuple
-  | Record record ->
-    substitute_record entry record
-  | Lam lam ->
-    substitute_lam entry lam
-  | Univ univ ->
-    substitute_univ entry univ
-  | Abs abs ->
-    substitute_abs entry abs
-  | App app ->
-    substitute_app entry app
-  | _ ->
-    failwith "Unreachable `System.substitute_base`."
-
-and substitute_var entry var =
-  if var.bind == entry.bind then
-    return entry.other
-  else
-    return (Var var)
-
-and substitute_tuple entry tuple =
-  let* elems = list_map (substitute_entry entry) tuple.elems in
-  return (Tuple { elems })
-
-and substitute_record entry record =
-  let* attrs = map_map (substitute_attr entry) record.attrs in
-  return (Record { attrs })
-
-and substitute_lam entry lam =
-  let* param = substitute_entry entry lam.param in
-  let* ret   = substitute_entry entry lam.ret   in
-  return (Lam { param; ret })
-
-and substitute_univ entry univ =
-  let* param = substitute_param entry univ.param in
-  let* ret = with_param_rigid param (substitute_entry entry univ.ret) in
-  return (Univ { param; ret })
-
-and substitute_param entry param =
-  let* lower = substitute_entry entry param.lower in
-  let* upper = substitute_entry entry param.upper in
-  return { param with lower; upper }
-
-and substitute_abs entry abs =
-  let* param = substitute_param entry abs.param in
-  let* body = with_param_rigid param (substitute_entry entry abs.body) in
-  return (Abs { param; body })
-
-and substitute_app entry app =
-  let* abs = substitute_entry entry app.abs in
-  let* arg = substitute_entry entry app.arg in
-  compute abs arg
-
-and substitute_attr entry attr =
-  let* type' = substitute_entry entry attr.type' in
-  return { attr with type' }
-
-(* TYPE PROMOTION *)
-
-and promote_lower type' =
-  map promote_lower_base type'
-
-and promote_lower_base type' =
-  match type' with
-  | Var var ->
-    let* var = get_var var.bind in (
-    match var with
-    | Fresh fresh ->
-      promote_lower fresh.lower
-    | Rigid rigid ->
-      promote_lower rigid.lower)
-  | type' ->
-    return type'
-
-and promote_upper type' =
-  map promote_upper_base type'
-
-and promote_upper_base type' =
-  match type' with
-  | Var var ->
-    let* var = get_var var.bind in (
-    (match var with
-    | Fresh fresh ->
-      promote_upper fresh.upper
-    | Rigid rigid ->
-      promote_upper rigid.upper)
-    )
-  | type' ->
-    return type'
-
-(* TYPE COMPUTATION *)
-
-and compute abs arg =
-  map (fun abs -> compute_base abs arg) abs
-
-and compute_base abs arg =
-  match abs with
-  | Abs abs ->
-    substitute abs.param.bind arg abs.body
-  | Var var ->
-    return (App { abs = Var var; arg })
-  | _ ->
-    failwith "Ill-formed type application in `System.compute_base`."
 
 (* TYPE JOIN *)
 

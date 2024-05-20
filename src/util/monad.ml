@@ -252,8 +252,8 @@ module ReaderMonad (R: READER) = struct
 
     let return a _ = a
 
-    let bind r f c =
-      f (r c) c
+    let bind m f r =
+      f (m r) r
   end)
 
   let get s = s

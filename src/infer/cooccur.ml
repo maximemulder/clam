@@ -1,7 +1,7 @@
 (** The algorithm to remove cooccurrences in a type. It is honestly not very good *)
 
-open Polar
 open Type
+open Type.Trans_syn
 
 (** The polarities at which a type variable occurs or cooccurs. *)
 type cooccs = {
@@ -84,20 +84,6 @@ let rec cooccurs bind other pol type' =
       cooccs_pol Pos (occurs_pos bind type' && occurs_pos other type')
   else
   match type' with
-  | Top | Bot | Unit | Bool | Int | String | Var _ ->
-    cooccs_none
-  | Tuple tuple ->
-    List.map (cooccurs bind other pol) tuple.elems
-    |> List.fold_left merge_cooccs cooccs_none
-  | Record record ->
-    Util.NameMap.to_list record.attrs
-    |> List.map snd
-    |> List.map (cooccurs_attr bind other pol)
-    |> List.fold_left merge_cooccs cooccs_none
-  | Lam lam ->
-    let param = cooccurs bind other (inv pol) lam.param in
-    let ret   = cooccurs bind other pol lam.ret in
-    merge_cooccs param ret
   | Univ univ ->
     let param = cooccurs_param bind other univ.param in
     let ret   = cooccurs bind other pol univ.ret in
@@ -106,17 +92,8 @@ let rec cooccurs bind other pol type' =
     let param = cooccurs_param bind other abs.param in
     let body  = cooccurs bind other pol abs.body in
     merge_cooccs param body
-  | App app ->
-    let abs = cooccurs bind other pol app.abs in
-    let arg = cooccurs bind other pol app.arg in
-    merge_cooccs abs arg
-  | Union union ->
-    merge_cooccs (cooccurs bind other pol union.left) (cooccurs bind other pol union.right)
-  | Inter inter ->
-    merge_cooccs (cooccurs bind other pol inter.left) (cooccurs bind other pol inter.right)
-
-and cooccurs_attr bind other pol attr =
-  cooccurs bind other pol attr.type'
+  | type' ->
+    fold_pol (cooccurs bind other) merge_cooccs cooccs_none pol type'
 
 and cooccurs_param bind other param =
   if param.bind == other then
@@ -128,80 +105,35 @@ and cooccurs_param bind other param =
 
 let join_coocc a b = Util.option_join a b (fun a _ -> a)
 
-let rec get_coocc bind orig pol type' =
+let rec fold_coocc bind orig pol type' =
   match type' with
-  | Top | Bot | Unit | Bool | Int | String | Var _ ->
-    None
-  | Tuple tuple ->
-    List.map (get_coocc bind orig pol) tuple.elems
-    |> List.fold_left join_coocc None
-  | Record record ->
-    Util.NameMap.to_list record.attrs
-    |> List.map snd
-    |> List.map (get_coocc_attr bind orig pol)
-    |> List.fold_left join_coocc None
-  | Lam lam ->
-    let param = get_coocc bind orig (inv pol) lam.param in
-    let ret   = get_coocc bind orig pol lam.ret in
-    join_coocc param ret
   | Univ univ ->
     let a = cooccurs bind univ.param.bind Pos orig in
     let b = cooccurs univ.param.bind bind Pos orig in
     if (cooccs_cmp a.neg b.neg) || (cooccs_cmp a.pos b.pos) then
       Some univ.param.bind
     else
-    let param = get_coocc_param bind orig univ.param in
-    let ret   = get_coocc bind orig pol univ.ret in
+    let param = fold_coocc_param bind orig univ.param in
+    let ret   = fold_coocc bind orig pol univ.ret in
     join_coocc param ret
-  | Abs abs ->
-    let param = get_coocc_param bind orig abs.param in
-    let body  = get_coocc bind orig pol abs.body in
-    join_coocc param body
-  | App app ->
-    let abs = get_coocc bind orig pol app.abs in
-    let arg = get_coocc bind orig pol app.arg in
-    join_coocc abs arg
-  | Union union ->
-    let left  = get_coocc bind orig pol union.left  in
-    let right = get_coocc bind orig pol union.right in
-    join_coocc left right
-  | Inter inter ->
-    let left  = get_coocc bind orig pol inter.left  in
-    let right = get_coocc bind orig pol inter.right in
-    join_coocc left right
+  | type' ->
+    fold_pol (fold_coocc bind orig) join_coocc None pol type'
 
-and get_coocc_attr bind orig pol attr =
-  get_coocc bind orig pol attr.type'
-
-and get_coocc_param bind orig param =
-  let lower = get_coocc bind orig Pos param.lower in
-  let upper = get_coocc bind orig Neg param.upper in
+and fold_coocc_param bind orig param =
+  let lower = fold_coocc bind orig Pos param.lower in
+  let upper = fold_coocc bind orig Neg param.upper in
   join_coocc lower upper
 
 let get_coocc bind pol type' =
-  get_coocc bind type' pol type'
+  fold_coocc bind type' pol type'
 
 open Type.Context
 open Type.Context.Monad
+open Type.Trans_ctx
 open Type.System
 
 let rec simplify_2 (fresh: fresh) orig pol type' =
-  Type.System.map (simplify_base fresh orig pol) type'
-
-and simplify_base fresh orig pol type' =
   match type' with
-  | Top | Bot | Unit | Bool | Int | String | Var _ ->
-    return type'
-  | Tuple tuple ->
-    let* elems = list_map (simplify_2 fresh orig pol) tuple.elems in
-    return (Tuple { elems })
-  | Record record ->
-    let* attrs = map_map (simplify_attr fresh orig pol) record.attrs in
-    return (Record { attrs })
-  | Lam lam ->
-    let* param = simplify_2 fresh orig (inv pol) lam.param in
-    let* ret   = simplify_2 fresh orig pol lam.ret in
-    return (Lam { param; ret })
   | Univ univ ->
     let* param = simplify_param fresh orig univ.param in
     with_param_rigid param (
@@ -212,20 +144,8 @@ and simplify_base fresh orig pol type' =
       else
         return (Univ { param; ret })
     )
-  | Abs abs ->
-    let* param = simplify_param fresh orig abs.param in
-    let* body  = simplify_2 fresh orig pol abs.body in
-    return (Abs { param; body })
-  | App app ->
-    let* abs = simplify_2 fresh orig pol app.abs in
-    let* arg = simplify_2 fresh orig pol app.arg in
-    return (App { abs; arg })
   | _ ->
-    failwith "Unreachable `simplify_base`."
-
-and simplify_attr fresh orig pol attr =
-  let* type' = simplify_2 fresh orig pol attr.type' in
-  return { attr with type' }
+    map_pol (simplify_2 fresh orig) pol type'
 
 and simplify_param fresh orig param =
   let* lower = simplify_2 fresh orig Pos param.lower in
