@@ -24,4 +24,4 @@ val map : (Node.type' -> Node.type' Context.Monad.t) -> Node.type' -> Node.type'
   special cases and calls [map_pol] with itself, possibly partially applied, as
   an argument to handle the other cases where no special treatement is needed.
 *)
-val map_pol : (Polar.pol -> Node.type' -> Node.type' Context.Monad.t) -> Polar.pol -> Node.type' -> Node.type' Context.Monad.t
+val map_pol : (Pol.pol -> Node.type' -> Node.type' Context.Monad.t) -> Pol.pol -> Node.type' -> Node.type' Context.Monad.t

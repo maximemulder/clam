@@ -1,6 +1,7 @@
 (** The algorithm to remove cooccurrences in a type. It is honestly not very good *)
 
 open Type
+open Type.Trans_syn
 
 (** The polarities at which a type variable occurs or cooccurs. *)
 type cooccs = {
@@ -92,7 +93,7 @@ let rec cooccurs bind other pol type' =
     let body  = cooccurs bind other pol abs.body in
     merge_cooccs param body
   | type' ->
-    syn_fold_pol (cooccurs bind other) merge_cooccs cooccs_none pol type'
+    fold_pol (cooccurs bind other) merge_cooccs cooccs_none pol type'
 
 and cooccurs_param bind other param =
   if param.bind == other then
@@ -116,7 +117,7 @@ let rec fold_coocc bind orig pol type' =
     let ret   = fold_coocc bind orig pol univ.ret in
     join_coocc param ret
   | type' ->
-    syn_fold_pol (fold_coocc bind orig) join_coocc None pol type'
+    fold_pol (fold_coocc bind orig) join_coocc None pol type'
 
 and fold_coocc_param bind orig param =
   let lower = fold_coocc bind orig Pos param.lower in
@@ -128,6 +129,7 @@ let get_coocc bind pol type' =
 
 open Type.Context
 open Type.Context.Monad
+open Type.Trans_ctx
 open Type.System
 
 let rec simplify_2 (fresh: fresh) orig pol type' =
@@ -143,7 +145,7 @@ let rec simplify_2 (fresh: fresh) orig pol type' =
         return (Univ { param; ret })
     )
   | _ ->
-    Type.Transform.map_pol (simplify_2 fresh orig) pol type'
+    map_pol (simplify_2 fresh orig) pol type'
 
 and simplify_param fresh orig param =
   let* lower = simplify_2 fresh orig Pos param.lower in

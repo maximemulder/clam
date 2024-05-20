@@ -2,8 +2,6 @@
   (name type)
   (libraries abt code global util))
 
-(include_subdirs unqualified)
-
 (env
   (dev
     (flags (:standard -warn-error -A  -w -30))))

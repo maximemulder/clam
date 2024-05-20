@@ -5,7 +5,7 @@ open Level
 open Node
 open Rename
 open Split
-open Transform
+open Trans_ctx
 
 (* FIND TYPE VARIABLE *)
 

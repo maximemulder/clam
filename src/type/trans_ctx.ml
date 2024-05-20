@@ -1,7 +1,6 @@
 open Context
 open Context.Monad
 open Node
-open Polar
 
 (* TYPE MAP *)
 
@@ -49,7 +48,9 @@ and map_param f param =
   let* upper = f param.upper in
   return { param with lower; upper }
 
-(* TYPE MAP POLAR *)
+(* POLAR TYPE MAP *)
+
+open Pol
 
 let rec map_pol f pol type' =
   match type' with
