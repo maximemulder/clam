@@ -8,4 +8,11 @@ def main =
 
 def gen = (i, u) ->
     var i = i + 1;
-    {i, gen(i)}
+    {i = i, gen = gen(i)}
+
+def rec = (gen) ->
+    var pair = gen(unit);
+    print(pair.i);
+    rec(pair.gen)
+
+def main = rec(gen(0))

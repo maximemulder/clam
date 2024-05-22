@@ -62,7 +62,6 @@ and levelize_param bind param =
   return ()
 
 let levelize (fresh: fresh) type' =
-  let* () = show_ctx true in
   let* () = levelize fresh.bind type' in
   let* () = levelize fresh.bind fresh.lower in
   let* () = levelize fresh.bind fresh.upper in

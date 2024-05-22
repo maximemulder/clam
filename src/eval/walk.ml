@@ -63,7 +63,7 @@ let rec eval (expr: Abt.expr) =
     eval ascr.expr
   | ExprIf if' ->
     let* cond = eval if'.cond in
-    if value_bool cond then eval if'.then' else eval if'.else'
+    if value_bool if'.cond cond then eval if'.then' else eval if'.else'
   | ExprLamAbs abs ->
     let* frame = get_frame in
     return (VLam (VCode { abs; frame }))
@@ -97,25 +97,25 @@ and eval_tuple expr =
   let* value = eval expr in
   match value with
   | VTuple values -> return values
-  | _ -> Error.raise_value "tuple"
+  | _ -> Error.raise_tuple expr
 
 and eval_record expr =
   let* value = eval expr in
   match value with
   | VRecord attrs -> return attrs
-  | _ -> Error.raise_value "record"
+  | _ -> Error.raise_record expr
 
 and eval_lam_app app context =
   let value = eval app.abs context in
   match value with
   | VLam abs -> eval_lam_app_abs abs app.arg context
-  | _ -> Error.raise_value "function"
+  | _ -> Error.raise_lam app.abs
 
 and eval_lam_app_abs abs arg context =
   let value = eval arg context in
   match abs with
   | VPrim prim ->
-    prim { value; out = context.out }
+    prim { expr = arg; value; out = context.out }
   | VCode abs ->
     let binds = BindMap.singleton abs.abs.param.bind value in
     let context = new_frame context abs.frame binds in

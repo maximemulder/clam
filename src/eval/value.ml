@@ -26,7 +26,7 @@ and lam_code = {
   frame: frame
 }
 
-and context = { value: value; out: Util.writer }
+and context = { expr: Abt.expr; value: value; out: Util.writer }
 
 and frame = {
   parent: frame option;
@@ -53,17 +53,17 @@ let rec compare left right =
     left.abs = right.abs
   | _ -> false
 
-let value_bool value =
+let value_bool expr value =
   match value with
   | VBool bool -> bool
-  | _ -> Error.raise_value "bool"
+  | _ -> Error.raise_bool expr
 
-let value_int value =
+let value_int expr value =
   match value with
   | VInt int -> int
-  | _ -> Error.raise_value "int"
+  | _ -> Error.raise_int expr
 
-let value_string value =
+let value_string expr value =
   match value with
   | VString string -> string
-  | _ -> Error.raise_value "string"
+  | _ -> Error.raise_string expr

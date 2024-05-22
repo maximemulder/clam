@@ -3,12 +3,6 @@ open Rename
 
 let rec compare left right =
   match left, right with
-  | Union left, Union right ->
-    compare left.left  right.left &&
-    compare left.right right.right
-  | Inter left, Inter right ->
-    compare left.left  right.left &&
-    compare left.right right.right
   | Top    , Top    -> true
   | Bot    , Bot    -> true
   | Unit   , Unit   -> true
@@ -35,6 +29,15 @@ let rec compare left right =
   | App left, App right ->
     compare left.abs right.abs &&
     compare left.arg right.arg
+  | Rec left, Rec right ->
+    let right_body = rename right.bind left.bind right.body in
+    compare left.body right_body
+  | Union left, Union right ->
+    compare left.left  right.left &&
+    compare left.right right.right
+  | Inter left, Inter right ->
+    compare left.left  right.left &&
+    compare left.right right.right
   | _ -> false
 
 and compare_param left_param right_param =

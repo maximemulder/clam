@@ -10,6 +10,9 @@
   ```
   (p) -> p[T]
   ```
+
+  This file is bugged and needs a rewrite, but this requires determining the appropriate semantics
+  for tuples and explicit type applications, if we choose to keep them.
 *)
 
 open Type
@@ -34,9 +37,9 @@ module Searcher(S: SEARCHER) = struct
       let* var = get_var var.bind in
       match var with
       | Rigid rigid ->
-        search f rigid.lower
+        search f rigid.upper
       | Fresh fresh ->
-        search f fresh.lower
+        search f fresh.lower (* This line is bugged *)
       )
     | App app ->
       let* abs = System.promote_lower app.abs     in
