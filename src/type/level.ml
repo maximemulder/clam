@@ -4,11 +4,15 @@ open Node
 
 (* TYPE LEVELING *)
 
+(* TODO: Factorize *)
 let rec levelize bind type' =
   match type' with
   | Top | Bot | Unit | Bool | Int | String ->
     return ()
   | Var var ->
+    if var.bind == bind then
+      return ()
+    else
     let* var = get_var var.bind in
     (match var with
     | Fresh fresh ->
@@ -38,6 +42,8 @@ let rec levelize bind type' =
     let* () = levelize bind app.abs in
     let* () = levelize bind app.arg in
     return ()
+  | Rec rec' ->
+    with_rec_rigid rec' (levelize bind rec'.body)
   | Union union ->
     let* () = levelize bind union.left  in
     let* () = levelize bind union.right in
@@ -56,6 +62,7 @@ and levelize_param bind param =
   return ()
 
 let levelize (fresh: fresh) type' =
+  let* () = show_ctx true in
   let* () = levelize fresh.bind type' in
   let* () = levelize fresh.bind fresh.lower in
   let* () = levelize fresh.bind fresh.upper in

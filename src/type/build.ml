@@ -3,10 +3,6 @@ open Context
 
 let bind name = { Abt.name }
 
-let union left right = Union { left; right }
-
-let inter left right = Inter { left; right }
-
 let top = Top
 
 let bot = Bot
@@ -49,6 +45,15 @@ let abs name lower upper body =
 let abs_0 name body = abs name bot top body
 
 let app abs arg = App { abs; arg }
+
+let rec' name body =
+  let bind = bind name in
+  let body = body (var bind) in
+  Rec { bind; body }
+
+let union left right = Union { left; right }
+
+let inter left right = Inter { left; right }
 
 let ctx = empty
 

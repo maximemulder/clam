@@ -24,6 +24,7 @@ let merge_occs left right =
   let pos = left.pos || right.pos in
   return { neg; pos }
 
+(* TODO: Factorize *)
 let rec occurs bind pol type'  =
   match type' with
   | Top | Bot | Unit | Bool | Int | String ->
@@ -57,6 +58,8 @@ let rec occurs bind pol type'  =
     let* abs = occurs bind pol app.abs in
     let* arg = occurs bind pol app.arg in
     merge_occs abs arg
+  | Rec rec' ->
+    with_rec_rigid rec' (occurs bind pol rec'.body)
   | Union union ->
     let* left  = occurs bind pol union.left  in
     let* right = occurs bind pol union.right in

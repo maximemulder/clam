@@ -23,6 +23,7 @@ type ctx = {
   level: int;
   freshs: fresh list;
   rigids: rigid list;
+  recs: (Node.type' * Node.type') list;
 }
 
 (* TODO: Factorize the enumeration inside the type context. *)
@@ -33,7 +34,7 @@ type var =
 
 (* CONTEXT EMPTY *)
 
-let empty = { id = 0; level = 0; freshs = []; rigids = [] }
+let empty = { id = 0; level = 0; freshs = []; rigids = []; recs = [] }
 
 (* CONTEXT MONAD *)
 
@@ -50,7 +51,7 @@ let freeze_fresh (fresh: fresh) =
 
 let freeze ctx =
   let freshs = List.map freeze_fresh ctx.freshs in
-  { id = 0; level = 0; freshs = []; rigids = ctx.rigids @ freshs }
+  { id = 0; level = 0; freshs = []; rigids = ctx.rigids @ freshs; recs = ctx.recs }
 
 let with_freeze f =
   let* ctx = get in
@@ -96,6 +97,24 @@ let with_param_rigid (param: Node.param) f =
   let* x = f in
   let* () = modify (fun ctx -> { ctx with rigids = List.tl ctx.rigids }) in
   return x
+
+let with_rec (rec': Node.rec') sub sup f =
+  let var = { bind = rec'.bind; lower = rec'.body; upper = rec'.body } in
+  let* () = modify (fun ctx -> { ctx with rigids = var :: ctx.rigids; recs = (sub, sup) :: ctx.recs }) in
+  let* x = f in
+  let* () = modify (fun ctx -> { ctx with rigids = List.tl ctx.rigids; recs = List.tl ctx.recs }) in
+  return x
+
+let with_rec_rigid (rec': Node.rec') f =
+  let var = { bind = rec'.bind; lower = rec'.body; upper = rec'.body } in
+  let* () = modify (fun ctx -> { ctx with rigids = var :: ctx.rigids }) in
+  let* x = f in
+  let* () = modify (fun ctx -> { ctx with rigids = List.tl ctx.rigids }) in
+  return x
+
+let is_rec sub sup =
+  let* ctx = get in
+  return (List.exists (fun (sub_rec, sup_rec) -> Compare.compare sub sub_rec && Compare.compare sup sup_rec) ctx.recs)
 
 (** Returns the fresh or rigid variable corresponding to a given bind in the context. *)
 let get_var bind =

@@ -82,6 +82,8 @@ let rec display type' =
     display_abs abs
   | App app ->
     display_app app
+  | Rec rec' ->
+    display_rec rec'
   | Union union ->
     display_union union
   | Inter inter ->
@@ -125,14 +127,9 @@ and display_app app =
   let type' = (display abs L) ^ "[" ^ (String.concat ", " args) ^ "]" in
   return L type'
 
-and display_param param =
-  param.bind.name ^
-  let lower = compare param.lower Bot |> not in
-  let upper = compare param.upper Top |> not in
-  (if lower || upper then ": " else "") ^
-  (if lower then display param.lower N ^ " " else "") ^
-  (if lower || upper then ".." else "") ^
-  (if upper then " " ^ display param.upper N else "")
+and display_rec rec' =
+  let body = display rec'.body R in
+  return R (rec'.bind.name ^ ". " ^ body)
 
 and display_union union =
   let left  = display union.left  L in
@@ -143,6 +140,15 @@ and display_inter inter =
   let left  = display inter.left  L in
   let right = display inter.right R in
   return B (left ^ " & " ^ right)
+
+and display_param param =
+  param.bind.name ^
+  let lower = compare param.lower Bot |> not in
+  let upper = compare param.upper Top |> not in
+  (if lower || upper then ": " else "") ^
+  (if lower then display param.lower N ^ " " else "") ^
+  (if lower || upper then ".." else "") ^
+  (if upper then " " ^ display param.upper N else "")
 
 let display type' =
   display type' N

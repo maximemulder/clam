@@ -147,6 +147,24 @@ and isa sub sup =
   return res
 
 and isa_base sub sup =
+  let* rec' = is_rec sub sup in
+  if rec' then
+    return true
+  else
+  match sub with
+  | Rec rec' ->
+    with_rec rec' sub sup (
+      let* body = substitute rec'.bind sub rec'.body in
+      isa body sup
+    )
+  | _ ->
+  match sup with
+  | Rec rec' ->
+    with_rec rec' sub sup (
+      let* body = substitute rec'.bind sup rec'.body in
+      isa sub body
+    )
+  | _ ->
   match split_inter sup with
   | Some (left, right) ->
     isa_inter_sup sub left right

@@ -36,20 +36,20 @@ let solve (fresh: fresh) type' =
 let find_recursive span (fresh: fresh) type' =
   let recursive = Type.appears fresh.bind type' in
   if recursive then
-    Error.raise_recursive span fresh.bind type'
+    return (Type.Rec { bind = fresh.bind; body = type' })
   else
-    return ()
+    return type'
 
 let solve_type span fresh type' =
   let* type' = solve fresh type' in
-  let* () = find_recursive span fresh type' in
+  let* type' = find_recursive span fresh type' in
   let* () = show !Global.show_infer ("= " ^ Type.display type') in
   return type'
 
 let solve_expr (fresh: fresh) (var_expr: entry_expr) =
   let* type' = solve fresh var_expr.type' in
+  let* type' = find_recursive var_expr.span fresh type' in
   let* () = update_expr_type var_expr.bind type' in
-  let* () = find_recursive var_expr.span fresh type' in
   let* () = show !Global.show_infer (var_expr.bind.name ^ ": " ^ Type.display type') in
   (* let* level = Level.get_level type' in
   match level with

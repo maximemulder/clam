@@ -30,6 +30,9 @@ let rec map f type' =
     let* abs = f app.abs in
     let* arg = f app.arg in
     return (App { abs; arg })
+  | Rec rec' ->
+    let* body = f rec'.body in
+    return (Rec { bind = rec'.bind; body })
   | Union union ->
     let* left  = f union.left  in
     let* right = f union.right in

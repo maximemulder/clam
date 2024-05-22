@@ -12,6 +12,7 @@ type type' =
   | Univ   of univ
   | Abs    of abs
   | App    of app
+  | Rec    of rec'
   | Union  of union
   | Inter  of inter
 
@@ -56,6 +57,11 @@ and param = {
   bind: Abt.bind_type;
   lower: type';
   upper: type';
+}
+
+and rec' = {
+  bind: Abt.bind_type;
+  body: type';
 }
 
 and union = {

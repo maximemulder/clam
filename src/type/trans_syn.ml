@@ -28,6 +28,9 @@ let rec map f type' =
     let abs = f app.abs in
     let arg = f app.arg in
     App { abs; arg }
+  | Rec rec' ->
+    let body = f rec'.body in
+    Rec { bind = rec'.bind; body }
   | Union union ->
     let left  = f union.left  in
     let right = f union.right in
@@ -76,6 +79,8 @@ let rec fold f1 f2 acc type' =
     let abs = f1 app.abs in
     let arg = f1 app.arg in
     f2 abs arg
+  | Rec rec' ->
+    f1 rec'.body
   | Union union ->
     let left  = f1 union.left  in
     let right = f1 union.right in

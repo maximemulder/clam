@@ -1,1 +1,11 @@
-def main = print("Hello world !")
+def j = (p) ->
+    print(p);
+    j
+
+def main =
+    j("Hello")("World")("!");
+    unit
+
+def gen = (i, u) ->
+    var i = i + 1;
+    {i, gen(i)}

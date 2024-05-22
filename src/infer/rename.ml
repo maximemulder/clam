@@ -20,6 +20,7 @@ open Util.Monad.StateMonad(struct
   type s = int
 end)
 
+(* TODO: Factorize *)
 let rec rename type' =
   match type' with
   | Top | Bot | Unit | Bool | Int | String | Var _ ->
@@ -35,7 +36,8 @@ let rec rename type' =
     let* ret = rename lam.ret in
     return (Lam { param; ret })
   | Univ univ ->
-    let* univ: univ = rename_infer univ in
+    let* bind, ret = rename_infer univ.param.bind univ.ret in
+    let univ = { param = { univ.param with bind }; ret } in
     let* param = rename_param univ.param in
     let* ret = rename univ.ret in
     return (Univ { param; ret })
@@ -47,6 +49,11 @@ let rec rename type' =
     let* abs = rename app.abs in
     let* arg = rename app.arg in
     return (App { abs; arg })
+  | Rec rec' ->
+    let* bind, body = rename_infer rec'.bind rec'.body in
+    let rec' = { bind; body } in
+    let* body = rename rec'.body in
+    return (Rec { bind = rec'.bind; body })
   | Union union ->
     let* left  = rename union.left  in
     let* right = rename union.right in
@@ -65,14 +72,13 @@ and rename_param param =
   let* upper = rename param.upper in
   return { param with lower; upper }
 
-and rename_infer univ i =
-  if Str.string_match pattern univ.param.bind.name 0 then
-    let bind = { Abt.name = index_to_name i } in
-    let param = { univ.param with bind } in
-    let ret = Type.rename univ.param.bind bind univ.ret in
-    { param; ret }, i + 1
+and rename_infer bind type' i =
+  if Str.string_match pattern bind.name 0 then
+    let pretty = { Abt.name = index_to_name i } in
+    let type' = Type.rename bind pretty type' in
+    (pretty, type'), i + 1
   else
-    univ, i
+    (bind, type'), i
 
 let rename type' =
   rename type' 0 |> fst
