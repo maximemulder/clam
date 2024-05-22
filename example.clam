@@ -7,12 +7,11 @@ def main =
     unit
 
 def gen = (i, u) ->
-    var i = i + 1;
-    {i = i, gen = gen(i)}
+    {i, gen(i + 1)}
 
 def rec = (gen) ->
     var pair = gen(unit);
-    print(pair.i);
-    rec(pair.gen)
+    print(pair.0);
+    rec(pair.1)
 
-def main = rec(gen(0))
+// def main = rec(gen(0))
