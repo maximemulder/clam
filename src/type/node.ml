@@ -48,17 +48,6 @@ and app = {
   arg: type';
 }
 
-and attr = {
-  label: String.t;
-  type': type';
-}
-
-and param = {
-  bind: Abt.bind_type;
-  lower: type';
-  upper: type';
-}
-
 and rec' = {
   bind: Abt.bind_type;
   body: type';
@@ -72,4 +61,15 @@ and union = {
 and inter = {
   left:  type';
   right: type';
+}
+
+and attr = {
+  label: String.t;
+  type': type';
+}
+
+and param = {
+  bind: Abt.bind_type;
+  lower: type';
+  upper: type';
 }

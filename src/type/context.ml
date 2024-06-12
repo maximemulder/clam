@@ -112,6 +112,13 @@ let with_rec_rigid (rec': Node.rec') f =
   let* () = modify (fun ctx -> { ctx with rigids = List.tl ctx.rigids }) in
   return x
 
+let with_def bind body f =
+  let var = { bind; lower = body; upper = body } in
+  let* () = modify (fun ctx -> { ctx with rigids = var :: ctx.rigids }) in
+  let* x = f in
+  let* () = modify (fun ctx -> { ctx with rigids = List.tl ctx.rigids }) in
+  return x
+
 let is_rec sub sup =
   let* ctx = get in
   return (List.exists (fun (sub_rec, sup_rec) -> Compare.compare sub sub_rec && Compare.compare sup sup_rec) ctx.recs)

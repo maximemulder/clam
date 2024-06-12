@@ -2,9 +2,9 @@ open Util
 open Abt
 open State
 
-open Monad.Monad(Monad.StateMonad(struct
+open Monad.StateMonad(struct
   type s = state
-end))
+end)
 
 let make_attrs attrs =
   List.fold_left (fun map (attr: Abt.attr_type) ->
@@ -28,7 +28,11 @@ let rec desugar_type (type': Ast.type') =
 and desugar_name type' state =
   let name = type'.name in
   match find_current name state with
-  | Some _ -> Errors.raise_type_recursive type'
+  | Some (bind, _) ->
+    let state = { state with scope = {
+      state.scope with currents = NameMap.add type'.name (bind, true) state.scope.currents
+    }} in
+    (TypeVar { span = type'.span; bind }, state)
   | None   ->
   match find_type name state with
   | Some type' -> (type', state)
@@ -45,9 +49,12 @@ and desugar_name type' state =
     Errors.raise_type_bound type'
 
 and desugar_def id def state =
-  let currents = NameMap.add def.name def.type' state.scope.currents in
+  let bind = { name = def.name } in
+  let currents = NameMap.add def.name (bind, false) state.scope.currents in
   let state = { state with scope = { state.scope with currents} } in
   let (type', state) = desugar_type def.type' state in
+  let current = NameMap.find def.name state.scope.currents in
+  let type' = if snd current then (TypeRec { span = def.span; bind = fst current; body = type' }) else type' in
   let currents = NameMap.remove def.name state.scope.currents in
   let types = NameMap.add def.name type' state.scope.types in
   let abt_def = { span = def.span; name = def.name; type' } in

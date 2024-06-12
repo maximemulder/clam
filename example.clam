@@ -14,4 +14,6 @@ def rec = (gen) ->
     print(pair.0);
     rec(pair.1)
 
+type List = [T] => { element: T, next: List[T] } | Unit
+
 // def main = rec(gen(0))

@@ -2,7 +2,7 @@ open Util
 
 type scope = {
   parent: scope option;
-  currents: Ast.type' NameMap.t;
+  currents: (Abt.bind_type * bool) NameMap.t;
   types: Abt.type' NameMap.t;
   exprs: Abt.bind_expr NameMap.t;
 }

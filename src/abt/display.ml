@@ -1,5 +1,5 @@
-open Node
 open Util.Func
+open Type
 
 (**
   Direction in which the syntax of a type is recursive.
@@ -25,28 +25,28 @@ let return self string parent =
 
 (* CURRY *)
 
-let rec curry_lam (lam: type_lam) =
+let rec curry_lam (lam: lam) =
   let param = lam.param in
   match lam.ret with
-  | TypeLam lam ->
+  | Lam lam ->
     let params, ret = curry_lam lam in
     param :: params, ret
   | _ ->
     [lam.param], lam.ret
 
-let rec curry_univ (univ: type_univ) =
+let rec curry_univ (univ: univ) =
   let param = univ.param in
   match univ.ret with
-  | TypeUniv abs ->
+  | Univ abs ->
     let params, ret = curry_univ abs in
     param :: params, ret
   | _ ->
     [univ.param], univ.ret
 
-let rec curry_abs (abs: type_abs) =
+let rec curry_abs (abs: abs) =
   let param = abs.param in
   match abs.body with
-  | TypeAbs abs ->
+  | Abs abs ->
     let params, ret = curry_abs abs in
     param :: params, ret
   | _ ->
@@ -54,41 +54,34 @@ let rec curry_abs (abs: type_abs) =
 
 let rec curry_app abs args =
   match abs with
-  | TypeApp app ->
+  | App app ->
     curry_app app.abs (app.arg :: args)
   | _ ->
     abs, args
 
-let curry_app (app: type_app) =
+let curry_app (app: app) =
   curry_app app.abs [app.arg]
 
 (* DISPLAY *)
 
 let rec display type' =
   match type' with
-  | TypeTop _    -> return N "Top"
-  | TypeBot _    -> return N "Bot"
-  | TypeUnit _   -> return N "Unit"
-  | TypeBool _   -> return N "Bool"
-  | TypeInt _    -> return N "Int"
-  | TypeString _ -> return N "String"
-  | TypeVar var  -> return N var.bind.name
-  | TypeTuple tuple ->
-    display_tuple tuple
-  | TypeRecord record ->
-    display_record record
-  | TypeLam lam ->
-    display_lam lam
-  | TypeUniv univ ->
-    display_univ univ
-  | TypeAbs abs ->
-    display_abs abs
-  | TypeApp app ->
-    display_app app
-  | TypeUnion union ->
-    display_inter union
-  | TypeInter inter ->
-    display_union inter
+  | Top _         -> return N "Top"
+  | Bot _         -> return N "Bot"
+  | Unit _        -> return N "Unit"
+  | Bool _        -> return N "Bool"
+  | Int _         -> return N "Int"
+  | String _      -> return N "String"
+  | Var var       -> return N var.bind.name
+  | Tuple tuple   -> display_tuple tuple
+  | Record record -> display_record record
+  | Lam lam       -> display_lam lam
+  | Univ univ     -> display_univ univ
+  | Abs abs       -> display_abs abs
+  | App app       -> display_app app
+  | Rec rec'      -> display_rec rec'
+  | Union union   -> display_inter union
+  | Inter inter   -> display_union inter
 
 and display_tuple tuple =
   let types = List.map (flip display N) tuple.elems in
@@ -128,6 +121,10 @@ and display_app app =
   let type' = (display abs L) ^ "[" ^ (String.concat ", " args) ^ "]" in
   return L type'
 
+and display_rec rec' =
+  let body = display rec'.body R in
+  return R (rec'.bind.name ^ ". " ^ body)
+
 and display_union union =
   let type' = (display union.left L) ^ "|" ^ (display union.right R) in
   return B type'
@@ -137,21 +134,13 @@ and display_inter inter =
   return B type'
 
 and display_param param =
-  let lower = (
-    match param.interval.lower with
-    | Some(type') -> display type' N
-    | None -> "")
-  in
-  let upper = (
-    match param.interval.upper with
-    | Some(type') -> display type' N
-    | None -> "")
-  in
   param.bind.name ^
-  (if lower != "" || upper != "" then ": " else "") ^
-  lower ^
-  (if lower != "" || upper != "" then ".." else "") ^
-  upper
+  let lower = match param.lower with Bot _ -> false | _ -> true in
+  let upper = match param.upper with Top _ -> false | _ -> true in
+  (if lower || upper then ": " else "") ^
+  (if lower then display param.lower N ^ " " else "") ^
+  (if lower || upper then ".." else "") ^
+  (if upper then " " ^ display param.upper N else "")
 
 let display type' =
   display type' N

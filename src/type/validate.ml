@@ -12,6 +12,7 @@ let rec validate_proper type' =
     return type''
 
 and validate (type': Abt.type') =
+  print_endline ("AAA " ^ Abt.display type');
   match type' with
   | TypeTop    _ ->
     return Top
@@ -39,6 +40,11 @@ and validate (type': Abt.type') =
     validate_abs abs
   | TypeApp app ->
     validate_app app
+  | TypeRec rec' ->
+    print_endline "AA";
+    let* a = validate_rec rec' in
+    print_endline "BB";
+    return a
   | TypeUnion union ->
     validate_union union
   | TypeInter inter ->
@@ -79,6 +85,9 @@ and validate_app app =
     Error.validate_app_arg app lower upper arg
   else
   System.compute abs arg
+
+and validate_rec rec' =
+  with_def rec'.bind ((Var { bind = rec'.bind })) (validate rec'.body)
 
 and validate_union union =
   let* left  = validate union.left  in

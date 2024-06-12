@@ -1,7 +1,7 @@
 module BindKey = struct
-  type t = Abt.bind_expr
+  type t = Abt.Bind.bind_expr
 
-  let compare x y = Stdlib.compare x.Abt.id y.Abt.id
+  let compare x y = Stdlib.compare x.Abt.Bind.id y.Abt.Bind.id
 end
 
 module BindMap = Map.Make(BindKey)
@@ -22,11 +22,11 @@ and lam =
 and lam_prim = context -> value
 
 and lam_code = {
-  abs: Abt.expr_lam_abs;
+  abs: Abt.Expr.lam_abs;
   frame: frame
 }
 
-and context = { expr: Abt.expr; value: value; out: Util.writer }
+and context = { expr: Abt.Expr.expr; value: value; out: Util.writer }
 
 and frame = {
   parent: frame option;

@@ -1,10 +1,10 @@
-open Abt
+open Abt.Program
 open Value
 
 type context = {
   out: Util.writer;
   defs: def_expr BindMap.t;
-  primitives: (bind_expr * value) list;
+  primitives: (Abt.Bind.bind_expr * value) list;
   frame: frame;
 }
 
@@ -32,46 +32,46 @@ open Util.Monad.ReaderMonad(struct
   type r = context
 end)
 
-let rec eval (expr: Abt.expr) =
+let rec eval (expr: Abt.Expr.expr) =
   match expr with
-  | ExprUnit unit ->
+  | Unit unit ->
     eval_unit unit
-  | ExprBool bool ->
+  | Bool bool ->
     eval_bool bool
-  | ExprInt int ->
+  | Int int ->
     eval_int int
-  | ExprString string ->
+  | String string ->
     eval_string string
-  | ExprBind bind ->
+  | Bind bind ->
     eval_bind bind
-  | ExprTuple tuple ->
+  | Tuple tuple ->
     let* values = list_map eval tuple.elems in
     return (VTuple values)
-  | ExprRecord record ->
-    let* attrs = fold_list (fun map (attr: attr_expr) ->
+  | Record record ->
+    let* attrs = fold_list (fun map (attr: Abt.Expr.attr_expr) ->
       let* value = (eval attr.expr) in
       return (Util.NameMap.add attr.label value map)
     ) Util.NameMap.empty record.attrs in
     return (VRecord attrs)
-  | ExprElem elem ->
+  | Elem elem ->
     let* elems = eval_tuple elem.tuple in
     return (List.nth elems elem.index)
-  | ExprAttr attr ->
+  | Attr attr ->
     let* attrs = eval_record attr.record in
     return (Util.NameMap.find attr.label attrs)
-  | ExprAscr ascr ->
+  | Ascr ascr ->
     eval ascr.expr
-  | ExprIf if' ->
+  | If if' ->
     let* cond = eval if'.cond in
     if value_bool if'.cond cond then eval if'.then' else eval if'.else'
-  | ExprLamAbs abs ->
+  | LamAbs abs ->
     let* frame = get_frame in
     return (VLam (VCode { abs; frame }))
-  | ExprLamApp app ->
+  | LamApp app ->
     eval_lam_app app
-  | ExprUnivAbs abs ->
+  | UnivAbs abs ->
     eval_univ_abs abs
-  | ExprUnivApp app ->
+  | UnivApp app ->
     eval_univ_app app
 
 and eval_unit _ =
@@ -128,6 +128,6 @@ and eval_univ_app app =
   eval app.abs
 
 let eval_def def defs primitives stdout =
-  let defs = List.map (fun (def: Abt.def_expr) -> def.bind, def) defs in
+  let defs = List.map (fun (def: def_expr) -> def.bind, def) defs in
   let defs = BindMap.of_list defs in
-  eval (def: Abt.def_expr).expr (new_empty defs primitives stdout)
+  eval (def: def_expr).expr (new_empty defs primitives stdout)
