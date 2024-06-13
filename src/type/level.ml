@@ -1,13 +1,13 @@
+open Abt.Type
 open Context
 open Context.Monad
-open Node
 
 (* TYPE LEVELING *)
 
 (* TODO: Factorize *)
 let rec levelize bind type' =
   match type' with
-  | Top | Bot | Unit | Bool | Int | String ->
+  | Top _ | Bot _ | Unit _ | Bool _ | Int _ | String _ ->
     return ()
   | Var var ->
     if var.bind == bind then

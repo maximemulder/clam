@@ -1,4 +1,3 @@
-open Abt
 open Ast
 
 type error = {
@@ -28,7 +27,7 @@ let raise_type_bound (type': type_name) =
 let raise_type_recursive (type': type_name) =
   raise ("recursive type `" ^ type'.name ^ "`") type'.span
 
-let raise_type_duplicate_attribute (attr: Abt.attr_type) =
+let raise_type_duplicate_attribute (attr: Abt.Type.attr) =
   raise ("duplicate attribute `" ^ attr.label ^ "`") attr.span
 
 let raise_type_product (type': type_product) =

@@ -1,20 +1,21 @@
-open Display
+open Abt.Display
+open Abt.Type
 
 (* CONTEXT TYPES *)
 
 (** Fresh type variable, whose bounds can be tightened, and which can be reordered in the context. *)
 type fresh = {
-  bind: Abt.bind_type;
+  bind: bind_type;
   level: int;
-  lower: Node.type';
-  upper: Node.type';
+  lower: type';
+  upper: type';
 }
 
 (** Rigid type variable, which have fixed bounds and order in the context. *)
 type rigid = {
-  bind: Abt.bind_type;
-  lower: Node.type';
-  upper: Node.type';
+  bind: bind_type;
+  lower: type';
+  upper: type';
 }
 
 (** Typing context, which contains both fresh and rigid type variables. *)
@@ -23,7 +24,7 @@ type ctx = {
   level: int;
   freshs: fresh list;
   rigids: rigid list;
-  recs: (Node.type' * Node.type') list;
+  recs: (type' * type') list;
 }
 
 (* TODO: Factorize the enumeration inside the type context. *)
@@ -79,9 +80,9 @@ let rec collect_freshs ctx =
   | _ ->
     (), ctx
 
-let with_param_fresh (param: Node.param) type' f =
+let with_param_fresh (param: param) type' f =
   let* ctx = get in
-  let bind = { Abt.name = "'" ^ string_of_int ctx.id } in
+  let bind = { name = "'" ^ string_of_int ctx.id } in
   let var = { bind = bind; level = ctx.level + 1; lower = param.lower; upper = param.upper } in
   let ctx = { ctx with id = ctx.id + 1; level = ctx.level + 1; freshs = var :: ctx.freshs } in
   let* () = put ctx in
@@ -91,21 +92,21 @@ let with_param_fresh (param: Node.param) type' f =
   let* () = modify (fun ctx -> { ctx with level = ctx.level - 1 }) in
   return x
 
-let with_param_rigid (param: Node.param) f =
+let with_param_rigid (param: param) f =
   let var = { bind = param.bind; lower = param.lower; upper = param.upper } in
   let* () = modify (fun ctx -> { ctx with rigids = var :: ctx.rigids }) in
   let* x = f in
   let* () = modify (fun ctx -> { ctx with rigids = List.tl ctx.rigids }) in
   return x
 
-let with_rec (rec': Node.rec') sub sup f =
+let with_rec (rec': rec') sub sup f =
   let var = { bind = rec'.bind; lower = rec'.body; upper = rec'.body } in
   let* () = modify (fun ctx -> { ctx with rigids = var :: ctx.rigids; recs = (sub, sup) :: ctx.recs }) in
   let* x = f in
   let* () = modify (fun ctx -> { ctx with rigids = List.tl ctx.rigids; recs = List.tl ctx.recs }) in
   return x
 
-let with_rec_rigid (rec': Node.rec') f =
+let with_rec_rigid (rec': rec') f =
   let var = { bind = rec'.bind; lower = rec'.body; upper = rec'.body } in
   let* () = modify (fun ctx -> { ctx with rigids = var :: ctx.rigids }) in
   let* x = f in
@@ -140,7 +141,7 @@ let get_var bind =
 
 (* COMPARE VARIABLES *)
 
-let rec cmp_level (left: Abt.bind_type) (right: Abt.bind_type) (vars: fresh list) =
+let rec cmp_level (left: bind_type) (right: bind_type) (vars: fresh list) =
   match vars with
   | [] ->
     failwith ("Fresh type variables `" ^ left.name ^ "` and `" ^ right.name ^ "` not found in the type context.")

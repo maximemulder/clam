@@ -2,27 +2,27 @@ open Util
 
 type scope = {
   parent: scope option;
-  currents: (Abt.bind_type * bool) NameMap.t;
-  types: Abt.type' NameMap.t;
-  exprs: Abt.bind_expr NameMap.t;
+  currents: (Abt.Type.bind_type * bool) NameMap.t;
+  types: Abt.Type.type' NameMap.t;
+  exprs: Abt.Expr.bind_expr NameMap.t;
 }
 
 type state = {
   id: int;
   scope: scope;
   ast_types: Ast.def_type list;
-  abt_types: Abt.def_type IntMap.t;
+  abt_types: Abt.Program.def_type IntMap.t;
   ast_exprs: Ast.def_expr list;
-  abt_exprs: Abt.def_expr IntMap.t;
+  abt_exprs: Abt.Program.def_expr IntMap.t;
 }
 
 let types = [
-  "Top",    Abt.TypeTop    { span = Code.span_primitive };
-  "Bot",    Abt.TypeBot    { span = Code.span_primitive };
-  "Unit",   Abt.TypeUnit   { span = Code.span_primitive };
-  "Bool",   Abt.TypeBool   { span = Code.span_primitive };
-  "Int",    Abt.TypeInt    { span = Code.span_primitive };
-  "String", Abt.TypeString { span = Code.span_primitive };
+  "Top",    Abt.Type.Top    { span = Code.span_primitive };
+  "Bot",    Abt.Type.Bot    { span = Code.span_primitive };
+  "Unit",   Abt.Type.Unit   { span = Code.span_primitive };
+  "Bool",   Abt.Type.Bool   { span = Code.span_primitive };
+  "Int",    Abt.Type.Int    { span = Code.span_primitive };
+  "String", Abt.Type.String { span = Code.span_primitive };
 ]
 
 let make_state ast primitives =

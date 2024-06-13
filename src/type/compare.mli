@@ -3,4 +3,4 @@
   identical. Two equivalent types may not be syntactically identical, and may
   therefore be considered different by this function.
 *)
-val compare : Node.type' -> Node.type' -> bool
+val compare : Abt.Type.type' -> Abt.Type.type' -> bool

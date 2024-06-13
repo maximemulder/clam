@@ -6,18 +6,18 @@
 open Type.Context
 
 let cmp_bind a b =
-  a.Abt.id = b.Abt.id
+  a.Abt.Expr.id = b.Abt.Expr.id
 
 type entry_def = {
-  bind: Abt.bind_expr;
-  def: Abt.def_expr;
+  bind: Abt.Expr.bind_expr;
+  def: Abt.Program.def_expr;
 }
 
 type entry_expr = {
   span: Code.span;
-  bind: Abt.bind_expr;
+  bind: Abt.Expr.bind_expr;
   level: int;
-  type': Type.type';
+  type': Abt.Type.type';
 }
 
 (* STATE *)
@@ -37,7 +37,7 @@ open Monad
 (* FUNCTIONS *)
 
 let make_state defs exprs =
-  let defs = List.map (fun (def: Abt.def_expr) -> { bind = def.bind; def }) defs in
+  let defs = List.map (fun (def: Abt.Program.def_expr) -> { bind = def.bind; def }) defs in
   { defs; exprs; ctx = empty }
 
 (* Adapter functions to directly use the type context monadic functions. *)
@@ -76,7 +76,7 @@ let join left right =
 let meet left right =
   with_ctx (Type.System.meet left right)
 
-let with_param_rigid (param: Type.param) f state =
+let with_param_rigid (param: Abt.Type.param) f state =
   let var = { bind = param.bind; lower = param.lower; upper = param.upper } in
   let ctx = { state.ctx with rigids = var :: state.ctx.rigids } in
   let state = { state with ctx } in

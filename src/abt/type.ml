@@ -1,6 +1,8 @@
-open Bind
-
 type span = Code.span
+
+type bind_type = {
+  name: string;
+}
 
 type type' =
   | Top    of top
@@ -56,7 +58,7 @@ and tuple = {
 
 and record = {
   span: span;
-  attrs: attr_type Util.NameMap.t;
+  attrs: attr Util.NameMap.t;
 }
 
 and lam = {
@@ -67,13 +69,13 @@ and lam = {
 
 and univ = {
   span: span;
-  param: param_type;
+  param: param;
   ret: type';
 }
 
 and abs = {
   span: span;
-  param: param_type;
+  param: param;
   body: type';
 }
 
@@ -103,13 +105,14 @@ and inter = {
 
 (* AUXILIARIES *)
 
-and attr_type = {
+and attr = {
   span: span;
   label: string;
   type': type';
 }
 
-and param_type = {
+and param = {
+  span: span;
   bind: bind_type;
   lower: type';
   upper: type';

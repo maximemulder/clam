@@ -7,8 +7,8 @@ let test ctx sub sup (_: unit) =
   System.isa sub sup ctx |> fst
 
 let name sub sup expect =
-  let sub = Type.display sub in
-  let sup = Type.display sup in
+  let sub = Abt.Display.display sub in
+  let sup = Abt.Display.display sup in
   let suffix = if expect then "" else "!" in
   "isa" ^ suffix ^ " `" ^ sub ^ "` `" ^ sup ^ "`"
 
@@ -16,7 +16,7 @@ let case sub sup expect ctx =
   Case.make_case Case.bool (name sub sup expect) (test ctx sub sup) expect
 
 let case_var name bound case expect ctx =
-  let bind = { Abt.name } in
+  let bind = { Abt.Type.name } in
   let ctx = { ctx with Context.rigids = { bind; lower = bot; upper = bound } :: ctx.Context.rigids } in
   let var = var bind in
   case var expect ctx

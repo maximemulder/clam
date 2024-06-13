@@ -4,4 +4,4 @@
   bound-checking or simplification performed, and should generally only be
   performed when the bindings are equivalent.
 *)
-val rename: Abt.bind_type -> Abt.bind_type -> Node.type' -> Node.type'
+val rename: Abt.Type.bind_type -> Abt.Type.bind_type -> Abt.Type.type' -> Abt.Type.type'

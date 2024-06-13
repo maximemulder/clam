@@ -3,7 +3,7 @@
   Union-splittable types include unions, and intersections whose at least one
   operand is union-splittable.
 *)
-val split_union : Node.type' -> (Node.type' * Node.type') option
+val split_union : Abt.Type.type' -> (Abt.Type.type' * Abt.Type.type') option
 
 (**
   Split a type into two intersection components if this type is
@@ -12,4 +12,4 @@ val split_union : Node.type' -> (Node.type' * Node.type') option
   least one operand is intersection-splittable. Other intersection-splittable
   types such as lambdas, records... are not split by this function.
 *)
-val split_inter : Node.type' -> (Node.type' * Node.type') option
+val split_inter : Abt.Type.type' -> (Abt.Type.type' * Abt.Type.type') option

@@ -1,8 +1,10 @@
+open Abt.Display
+open Abt.Span
+open Abt.Type
 open Context
 open Context.Monad
 open Kind
 open Level
-open Node
 open Rename
 open Split
 open Trans_ctx
@@ -74,7 +76,8 @@ and compute_base arg abs =
   | Abs abs ->
     substitute abs.param.bind arg abs.body
   | Var var ->
-    return (App { abs = Var var; arg })
+    let span = Code.merge_span var.span (type_span arg) in
+    return (App { span; abs = Var var; arg })
   | _ ->
     failwith "Ill-formed type application in `compute`."
 
@@ -125,7 +128,7 @@ and is left right =
   let* sup = isa right left in
   return (sub && sup)
 
-and is_param left right =
+and is_param (left: param) (right: param) =
   let* sub = is left.lower right.lower in
   let* sup = is left.upper right.upper in
   return (sub && sup)
@@ -135,7 +138,7 @@ and is_param left right =
 and isa sub sup =
   let* () = show
     !Global.show_constrain
-    ("constrain " ^ Display.display sub ^ " < " ^ Display.display sup)
+    ("constrain " ^ display sub ^ " < " ^ display sup)
   in
   Global.nesting := !Global.nesting + 1;
   let* res = isa_base sub sup in
@@ -185,7 +188,7 @@ and isa_base sub sup =
   let* fresh_sup = get_type_fresh sup in
   match fresh_sub, fresh_sup with
   | Some fresh_sub, Some fresh_sup ->
-    isa_fresh fresh_sub fresh_sup
+    isa_fresh fresh_sub fresh_sup (type_span sub) (type_span sup)
   | Some fresh_sub, None ->
     isa_fresh_sub fresh_sub sup
   | None, Some fresh_sup ->
@@ -203,22 +206,22 @@ and isa_base sub sup =
   let* rigid_sup = get_type_rigid sup in
   match rigid_sub, rigid_sup with
   | Some rigid_sub, Some rigid_sup ->
-    isa_rigid rigid_sub rigid_sup
+    isa_rigid rigid_sub rigid_sup (type_span sub) (type_span sup)
   | Some rigid_sub, None ->
     isa_rigid_sub rigid_sub sup
   | None, Some rigid_sup ->
     isa_rigid_sup rigid_sup sub
   | None, None ->
   match sub with
-  | Bot ->
+  | Bot _ ->
     is_proper sup
   | sub ->
   match sup with
-  | Top ->
+  | Top _ ->
     is_proper sub
   | sup ->
   match sub, sup with
-  | Unit, Unit | Bool, Bool | Int, Int | String, String ->
+  | Unit _, Unit _ | Bool _, Bool _ | Int _, Int _ | String _, String _ ->
     return true
   | Tuple sub, Tuple sup ->
     isa_tuple sub sup
@@ -237,15 +240,15 @@ and isa_base sub sup =
   | _, _ ->
     return false
 
-and isa_fresh fresh_sub fresh_sup =
+and isa_fresh fresh_sub fresh_sup span_sub span_sup =
   if fresh_sub.bind == fresh_sup.bind then
     return true
   else
   let* level = cmp_level fresh_sub.bind fresh_sup.bind in
   if level then
-    isa_fresh_sub fresh_sub (Var { bind = fresh_sup.bind })
+    isa_fresh_sub fresh_sub (Var { span = span_sub; bind = fresh_sup.bind })
   else
-    isa_fresh_sup fresh_sup (Var { bind = fresh_sub.bind })
+    isa_fresh_sup fresh_sup (Var { span = span_sup; bind = fresh_sub.bind })
 
 and isa_fresh_sub fresh_sub sup =
   let* cond = isa fresh_sub.lower sup in
@@ -283,7 +286,8 @@ and isa_inter_sub left right sup =
   let* fresh_sup = get_type_fresh sup in
   match fresh_sup with
   | Some fresh_sup ->
-    isa_fresh_sup fresh_sup (Inter { left; right })
+    let span = Code.merge_span (type_span left) (type_span right) in
+    isa_fresh_sup fresh_sup (Inter { span; left; right })
   | None ->
   let* left  = isa left  sup in
   let* right = isa right sup in
@@ -298,18 +302,19 @@ and isa_union_sup sub left right =
   let* fresh_sub = get_type_fresh sub in
   match fresh_sub with
   | Some fresh_sub ->
-    isa_fresh_sub fresh_sub (Union { left; right })
+    let span = Code.merge_span (type_span left) (type_span right) in
+    isa_fresh_sub fresh_sub (Union { span; left; right })
   | None ->
   let* left  = isa sub left  in
   let* right = isa sub right in
   return (left || right)
 
-and isa_rigid rigid_sub rigid_sup =
+and isa_rigid rigid_sub rigid_sup span_sub span_sup =
   if rigid_sub.bind == rigid_sup.bind then
     return true
   else
-  let* lower = isa (Var { bind = rigid_sub.bind }) rigid_sup.lower in
-  let* upper = isa rigid_sub.upper (Var { bind = rigid_sup.bind }) in
+  let* lower = isa (Var { span = span_sub; bind = rigid_sub.bind }) rigid_sup.lower in
+  let* upper = isa rigid_sub.upper (Var { span = span_sup; bind = rigid_sup.bind }) in
   return (lower || upper)
 
 and isa_rigid_sub rigid_sub sup =
@@ -366,7 +371,7 @@ and join left right =
   let* type' = join_base left right in
   let* () = show
     !Global.show_join
-    ("join " ^ Display.display left ^ " " ^ Display.display right ^  " = " ^ Display.display type')
+    ("join " ^ display left ^ " " ^ display right ^  " = " ^ display type')
   in
   return type'
 
@@ -379,7 +384,8 @@ and join_freeze left right =
   | Some type' ->
     return type'
   | None ->
-    return (Union { left; right })
+    let span = Code.merge_span (type_span left) (type_span right) in
+    return (Union { span; left; right })
 
 and join_merge left right =
   let* sub = isa left right in
@@ -401,7 +407,7 @@ and meet left right =
   let* type' = meet_base left right in
   let* () = show
     !Global.show_meet
-    ("meet " ^ Display.display left ^ " " ^ Display.display right ^  " = " ^ Display.display type')
+    ("meet " ^ display left ^ " " ^ display right ^  " = " ^ display type')
   in
   return type'
 
@@ -414,7 +420,8 @@ and meet_freeze left right =
   | Some type' ->
     return type'
   | None ->
-    return (Inter { left; right })
+    let span = Code.merge_span (type_span left) (type_span right) in
+    return (Inter { span; left; right })
 
 and meet_merge left right =
   let* sub = isa left right in
@@ -447,12 +454,14 @@ and meet_merge_tuple left right =
   if List.compare_lengths left.elems right.elems != 0 then
     return None
   else
+  let span = Code.merge_span left.span right.span in
   let* elems = list_map2 meet left.elems right.elems in
-  return (Some (Tuple { elems }))
+  return (Some (Tuple { span; elems }))
 
 and meet_merge_record left right =
+  let span = Code.merge_span left.span right.span in
   let* attrs = map_join meet_merge_record_attr left.attrs right.attrs in
-  return (Some (Record { attrs }))
+  return (Some (Record { span; attrs }))
 
 and meet_merge_record_attr left right =
   let* type' = meet left.type' right.type' in
@@ -465,18 +474,20 @@ and meet_merge_lam left right =
   | false, false ->
     return None
   | _, _ ->
+    let span = Code.merge_span left.span right.span in
     let* param = join left.param right.param in
     let* ret   = meet left.ret   right.ret   in
-    return (Some (Lam { param; ret }))
+    return (Some (Lam { span; param; ret }))
 
 and meet_merge_abs left right =
   let* param = is_param left.param right.param in
   if not param then
     return None
   else
+  let span = Code.merge_span left.span right.span in
   let right_body = rename right.param.bind left.param.bind right.body in
   let* body = with_param_rigid left.param (meet left.body right_body) in
-  return (Some (Abs { param = left.param; body }))
+  return (Some (Abs { span; param = left.param; body }))
 
 (* TYPE KIND *)
 

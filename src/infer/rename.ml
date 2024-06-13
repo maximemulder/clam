@@ -1,4 +1,4 @@
-open Type
+open Abt.Type
 
 let pattern = Str.regexp "'[0-9]+"
 
@@ -23,45 +23,45 @@ end)
 (* TODO: Factorize *)
 let rec rename type' =
   match type' with
-  | Top | Bot | Unit | Bool | Int | String | Var _ ->
+  | Top _ | Bot _ | Unit _ | Bool _ | Int _ | String _ | Var _ ->
     return type'
   | Tuple tuple ->
     let* elems = list_map rename tuple.elems in
-    return (Tuple { elems })
+    return (Tuple { tuple with elems })
   | Record record ->
     let* attrs = map_map rename_attr record.attrs in
-    return (Record { attrs })
+    return (Record { record with attrs })
   | Lam lam ->
     let* param = rename lam.param in
     let* ret = rename lam.ret in
-    return (Lam { param; ret })
+    return (Lam { lam with param; ret })
   | Univ univ ->
     let* bind, ret = rename_infer univ.param.bind univ.ret in
-    let univ = { param = { univ.param with bind }; ret } in
+    let univ = { univ with param = { univ.param with bind }; ret } in
     let* param = rename_param univ.param in
     let* ret = rename univ.ret in
-    return (Univ { param; ret })
+    return (Univ { univ with param; ret })
   | Abs abs ->
     let* param = rename_param abs.param in
     let* body = rename abs.body in
-    return (Abs { param; body })
+    return (Abs { abs with param; body })
   | App app ->
     let* abs = rename app.abs in
     let* arg = rename app.arg in
-    return (App { abs; arg })
+    return (App { app with abs; arg })
   | Rec rec' ->
     let* bind, body = rename_infer rec'.bind rec'.body in
-    let rec' = { bind; body } in
+    let rec' = { rec' with bind; body } in
     let* body = rename rec'.body in
-    return (Rec { bind = rec'.bind; body })
+    return (Rec { rec' with body })
   | Union union ->
     let* left  = rename union.left  in
     let* right = rename union.right in
-    return (Union { left; right })
+    return (Union { union with left; right })
   | Inter inter ->
     let* left  = rename inter.left  in
     let* right = rename inter.right in
-    return (Inter { left; right })
+    return (Inter { inter with left; right })
 
 and rename_attr attr =
   let* type' = rename attr.type' in
@@ -74,8 +74,8 @@ and rename_param param =
 
 and rename_infer bind type' i =
   if Str.string_match pattern bind.name 0 then
-    let pretty = { Abt.name = index_to_name i } in
-    let type' = Type.rename bind pretty type' in
+    let pretty = { name = index_to_name i } in
+    let type' = Type.Rename.rename bind pretty type' in
     (pretty, type'), i + 1
   else
     (bind, type'), i

@@ -35,7 +35,7 @@ let new_id state =
 
 let new_bind name =
   let* id = new_id in
-  return { Abt.id; name }
+  return { Abt.Expr.id; name }
 
 let parse_int span value =
   match int_of_string_opt value with
@@ -66,13 +66,13 @@ and desugar_def id def state =
   let state = { state with scope = { state.scope with exprs } } in
   let type' = Option.map (fun type' -> fst (Types.desugar_type type' state)) def.type' in
   let (expr, state) = desugar_expr def.expr state in
-  let def = { Abt.span = def.span; bind; type'; expr } in
-  let abt_def = { Abt.bind; Abt.type'; Abt.expr; span = def.span } in
+  let def = { Abt.Program.span = def.span; bind; type'; expr } in
+  let abt_def = { Abt.Program.bind; type'; expr; span = def.span } in
   let abt_exprs = IntMap.add id abt_def state.abt_exprs in
   let state = { state with abt_exprs } in
   (bind, state)
 
-and desugar_expr (expr: Ast.expr): state -> Abt.expr * state =
+and desugar_expr (expr: Ast.expr): state -> Abt.Expr.expr * state =
   match expr with
   | ExprUnit    expr -> desugar_unit     expr
   | ExprTrue    expr -> desugar_true     expr
@@ -94,37 +94,37 @@ and desugar_expr (expr: Ast.expr): state -> Abt.expr * state =
   | ExprUnivApp expr -> desugar_univ_app expr
 
 and desugar_unit expr =
-  return (Abt.ExprUnit { span = expr.span })
+  return (Abt.Expr.Unit { span = expr.span })
 
 and desugar_true expr =
-  return (Abt.ExprBool { span = expr.span; value = true })
+  return (Abt.Expr.Bool { span = expr.span; value = true })
 
 and desugar_false expr =
-  return (Abt.ExprBool { span = expr.span; value = false })
+  return (Abt.Expr.Bool { span = expr.span; value = false })
 
 and desugar_int expr =
   let value = parse_int expr.span expr.value in
-  return (Abt.ExprInt { span = expr.span; value })
+  return (Abt.Expr.Int { span = expr.span; value })
 
 and desugar_string expr =
   let value = parse_string expr.value in
-  return (Abt.ExprString { span = expr.span; value })
+  return (Abt.Expr.String { span = expr.span; value })
 
 and desugar_name span name =
   let* bind = desugar_bind span name in
-  return (Abt.ExprBind { span = span; bind })
+  return (Abt.Expr.Bind { span = span; bind })
 
 and desugar_product expr =
   let fields = List.partition_map partition_field expr.fields in
   match fields with
   | ([], []) ->
-    return (Abt.ExprRecord { span = expr.span; attrs = [] })
+    return (Abt.Expr.Record { span = expr.span; attrs = [] })
   | (fields, []) ->
     let* elems = list_map desugar_tuple_elem fields in
-    return (Abt.ExprTuple { span = expr.span; elems })
+    return (Abt.Expr.Tuple { span = expr.span; elems })
   | ([], fields) ->
     let* attrs = list_map desugar_record_attr fields in
-    return (Abt.ExprRecord { span = expr.span; attrs })
+    return (Abt.Expr.Record { span = expr.span; attrs })
   | _ ->
     Errors.raise_expr_product expr
 
@@ -138,58 +138,58 @@ and desugar_tuple_elem field =
 
 and desugar_record_attr field =
   let* expr = desugar_expr field.expr in
-  return { Abt.span = field.span; Abt.label = field.Ast.label; Abt.expr = expr }
+  return { Abt.Expr.span = field.span; label = field.Ast.label; expr = expr }
 
 and desugar_elem expr =
   let* tuple = desugar_expr expr.tuple in
   let index = parse_int expr.span expr.index in
-  return (Abt.ExprElem { span = expr.span; tuple; index })
+  return (Abt.Expr.Elem { span = expr.span; tuple; index })
 
 and desugar_attr expr =
   let* record = desugar_expr expr.record in
-  return (Abt.ExprAttr { span = expr.span; record; label = expr.label })
+  return (Abt.Expr.Attr { span = expr.span; record; label = expr.label })
 
 and desugar_preop expr =
   let* arg = desugar_expr expr.expr in
   let name = get_preop_name expr.span expr.op in
   let* abs = desugar_name expr.span name in
-  return (Abt.ExprLamApp { span = expr.span; abs; arg })
+  return (Abt.Expr.LamApp { span = expr.span; abs; arg })
 
 and desugar_binop expr =
   let* left  = desugar_expr expr.left  in
   let* right = desugar_expr expr.right in
   let name = get_binop_name expr.span expr.op in
   let* abs = desugar_name expr.span name in
-  return (Abt.ExprLamApp { span = expr.span; abs = (Abt.ExprLamApp { span = expr.span; abs; arg = left }); arg = right })
+  return (Abt.Expr.LamApp { span = expr.span; abs = (Abt.Expr.LamApp { span = expr.span; abs; arg = left }); arg = right })
 
 and desugar_ascr ascr =
   let* expr  = desugar_expr ascr.expr  in
   let* type' = Types.desugar_type ascr.type' in
-  return (Abt.ExprAscr { span = ascr.span; expr; type' })
+  return (Abt.Expr.Ascr { span = ascr.span; expr; type' })
 
 and desugar_stmt stmt =
   match stmt.stmt with
   | StmtVar { span; name; type'; expr } ->
     let* bind = new_bind name in
     let* type' = option_map Types.desugar_type type' in
-    let param = { Abt.span = span; bind; type' } in
+    let param = { Abt.Expr.span = span; bind; type' } in
     let* body = with_scope_expr name bind (desugar_expr stmt.expr) in
-    let abs = Abt.ExprLamAbs { span = span; param; body } in
+    let abs = Abt.Expr.LamAbs { span = span; param; body } in
     let* arg = desugar_expr expr in
-    return (Abt.ExprLamApp { span = span; abs; arg})
+    return (Abt.Expr.LamApp { span = span; abs; arg})
   | StmtExpr { span; expr } ->
     let* bind = new_bind "_" in
-    let param = { Abt.span = span; bind; type' = None } in
+    let param = { Abt.Expr.span = span; bind; type' = None } in
     let* body = desugar_expr stmt.expr in
-    let abs = Abt.ExprLamAbs { span = span; param; body } in
+    let abs = Abt.Expr.LamAbs { span = span; param; body } in
     let* arg = desugar_expr expr in
-    return (Abt.ExprLamApp { span = span; abs; arg })
+    return (Abt.Expr.LamApp { span = span; abs; arg })
 
 and desugar_if if' =
   let* cond  = desugar_expr if'.cond in
   let* then' = desugar_expr if'.then' in
   let* else' = desugar_expr if'.else' in
-  return (Abt.ExprIf { span = if'.span; cond; then'; else' })
+  return (Abt.Expr.If { span = if'.span; cond; then'; else' })
 
 and desugar_lam_abs abs =
   desugar_lam_abs_curry abs.span abs.params abs.body
@@ -201,7 +201,7 @@ and desugar_lam_abs_curry span params body =
   | (param :: params) ->
     let* param = desugar_param param in
     let* body = with_scope_expr param.bind.name param.bind (desugar_lam_abs_curry span params body) in
-    return (Abt.ExprLamAbs { span = span; param; body })
+    return (Abt.Expr.LamAbs { span = span; param; body })
 
 and desugar_lam_app app =
   let* abs = desugar_expr app.abs in
@@ -213,7 +213,7 @@ and desugar_lam_app_curry span abs args =
     return abs
   | (arg :: args) ->
     let* arg = desugar_expr arg in
-    let app = (Abt.ExprLamApp { span = span; abs; arg }) in
+    let app = (Abt.Expr.LamApp { span = span; abs; arg }) in
     desugar_lam_app_curry span app args
 
 and desugar_univ_abs abs =
@@ -225,9 +225,9 @@ and desugar_univ_abs_curry span params body =
     desugar_expr body
   | (param :: params) ->
     let* param = Types.desugar_param param in
-    let var = Abt.TypeVar { span = param.interval.span; bind = param.bind } in
+    let var = Abt.Type.Var { span = param.span; bind = param.bind } in
     let* body = with_scope_type param.bind.name var (desugar_univ_abs_curry span params body) in
-    return (Abt.ExprUnivAbs { span; param; body })
+    return (Abt.Expr.UnivAbs { span; param; body })
 
 and desugar_univ_app app =
   let* abs = desugar_expr app.abs in
@@ -239,13 +239,13 @@ and desugar_univ_app_curry span abs args =
     return abs
   | (arg :: args) ->
     let* arg = Types.desugar_type arg in
-    let app = (Abt.ExprUnivApp { span; abs; arg }) in
+    let app = (Abt.Expr.UnivApp { span; abs; arg }) in
     desugar_univ_app_curry span app args
 
-and desugar_param (param: Ast.param_expr): Abt.param_expr t =
+and desugar_param (param: Ast.param_expr): Abt.Expr.param_expr t =
   let* type' = option_map Types.desugar_type param.type' in
   let* bind = new_bind param.name in
-  return { Abt.span = param.span; bind; type' }
+  return { Abt.Expr.span = param.span; bind; type' }
 
 let desugar_defs state =
   List.fold_left (fun state (def: Ast.def_expr) ->

@@ -22,18 +22,18 @@ let type_check abt config =
   (match config.show_kinds with
   | Some show_kinds ->
     List.iter (fun (name, kind) ->
-      show_kinds(name ^ " :: " ^ Type.Kind.display kind)
+      show_kinds(name ^ " :: " ^ Type.Kind.display_kind kind)
     ) kinds
   | None -> ());
   match config.show_types with
   | Some show_types ->
     List.iter (fun (def, type') ->
-      show_types((def: Abt.bind_expr).name ^ ": " ^ Type.display type')
+      show_types((def: Abt.Expr.bind_expr).name ^ ": " ^ Abt.Display.display type')
     ) types
   | None -> ()
 
 let eval abt config =
-  match List.find_opt (fun (def: Abt.def_expr) -> def.bind.name = "main") abt.Abt.exprs with
+  match List.find_opt (fun (def: Abt.Program.def_expr) -> def.bind.name = "main") abt.Abt.Program.exprs with
   | Some main ->
     Eval.eval main abt.exprs Prim.values config.print_out; true
   | None ->

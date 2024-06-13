@@ -1,4 +1,4 @@
-open Abt
+open Abt.Program
 
 exception Error = Errors.Error
 

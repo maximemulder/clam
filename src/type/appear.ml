@@ -1,4 +1,4 @@
-open Node
+open Abt.Type
 open Trans_syn
 
 let rec appears bind type' =

@@ -6,13 +6,13 @@ let test ctx type' bind other (_: unit) =
   Type.System.substitute bind other type' ctx |> fst
 
 let name name' other type' expect =
-  let other  = Type.display other  in
-  let type'  = Type.display type'  in
-  let expect = Type.display expect in
+  let other  = Abt.Display.display other  in
+  let type'  = Abt.Display.display type'  in
+  let expect = Abt.Display.display expect in
   "app [`" ^  name' ^ "` --> `" ^ other ^ "`] `" ^ type' ^ "` `" ^ expect ^ "`"
 
 let case name' other type' expect =
-  let bind = { Abt.name = name' } in
+  let bind = { Abt.Type.name = name' } in
   let var = var bind in
   let type' = type' var in
   Case.make_case Case.type' (name name' other type' expect) (test ctx type' bind other) expect

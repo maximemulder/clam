@@ -3,7 +3,7 @@ open Type.Build.Default
 open Util.Func
 
 let test type' (_: unit) =
-  Type.display type'
+  Abt.Display.display type'
 
 let case name type' =
   Case.make_case Case.string name (test type') name

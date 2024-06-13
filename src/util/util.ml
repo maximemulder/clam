@@ -74,14 +74,14 @@ let list_group f xs =
   ) [] |>
   List.rev
 
-let option_join x y f =
+let option_join f x y =
   match x, y with
   | Some x, Some y -> Some (f x y)
   | Some x, None -> Some x
   | None, Some y -> Some y
   | _ -> None
 
-let option_meet x y f =
+let option_meet f x y =
   match x, y with
   | Some x, Some y -> Some (f x y)
   | _ -> None
@@ -100,7 +100,7 @@ let rec list_option_meet xs f =
   | [x] ->
     x
   | x :: xs ->
-    option_meet x (list_option_meet xs f) f
+    option_meet f x (list_option_meet xs f)
   | _ ->
     invalid_arg "list_option_meet"
 
@@ -109,7 +109,7 @@ let rec list_option_join xs f =
   | [x] ->
     x
   | x :: xs ->
-    option_join x (list_option_join xs f) f
+    option_join f x (list_option_join xs f)
   | _ ->
     invalid_arg "list_option_join"
 

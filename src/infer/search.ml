@@ -15,9 +15,11 @@
   for tuples and explicit type applications, if we choose to keep them.
 *)
 
-open Type
-open Context
-open Context.Monad
+open Abt.Type
+open Type.Context
+open Type.Context.Monad
+open Type.Rename
+open Type.System
 
 type 'a s = 'a t
 
@@ -31,7 +33,7 @@ end
 module Searcher(S: SEARCHER) = struct
   let rec search f type' =
     match type' with
-    | Bot ->
+    | Bot _ ->
       return (Some S.bot)
     | Var var -> (
       let* var = get_var var.bind in
@@ -42,8 +44,8 @@ module Searcher(S: SEARCHER) = struct
         search f fresh.lower (* This line is bugged *)
       )
     | App app ->
-      let* abs = System.promote_lower app.abs     in
-      let* arg = System.compute abs app.arg in
+      let* abs = promote_lower app.abs     in
+      let* arg = compute abs app.arg in
       search f arg
     | Union union ->
       let* left  = search f union.left  in
@@ -62,18 +64,18 @@ end
 
 module SearcherProj = struct
   type t   = type'
-  let bot  = Bot
-  let join = System.join
-  let meet = System.meet
+  let bot  = Type.Build.bot
+  let join = join
+  let meet = meet
 end
 
 let make_param bound: param =
-  { bind = { name = "_" }; lower = Bot; upper = bound } (* TODO lower *)
+  { span = Code.span_primitive; bind = { name = "_" }; lower = Type.Build.bot; upper = bound } (* TODO lower *)
 
 module SearcherAppType = struct
   type t = { param: param; ret: type' }
 
-  let bot = { param = make_param Top; ret = Bot }
+  let bot = { param = make_param Type.Build.top; ret = Type.Build.bot }
 
   let with_merge_param bound left right f =
     let param = make_param bound in
@@ -83,12 +85,12 @@ module SearcherAppType = struct
     return { param; ret }
 
   let join left right =
-    let* upper = System.meet left.param.upper right.param.upper in
-    with_merge_param upper left right System.join
+    let* upper = Type.System.meet left.param.upper right.param.upper in
+    with_merge_param upper left right Type.System.join
 
   let meet left right =
-    let* upper = System.join left.param.upper right.param.upper in
-    with_merge_param upper left right System.meet
+    let* upper = Type.System.join left.param.upper right.param.upper in
+    with_merge_param upper left right Type.System.meet
 end
 
 module SearchProj    = Searcher(SearcherProj)

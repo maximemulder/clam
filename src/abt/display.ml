@@ -80,8 +80,8 @@ let rec display type' =
   | Abs abs       -> display_abs abs
   | App app       -> display_app app
   | Rec rec'      -> display_rec rec'
-  | Union union   -> display_inter union
-  | Inter inter   -> display_union inter
+  | Union union   -> display_union union
+  | Inter inter   -> display_inter inter
 
 and display_tuple tuple =
   let types = List.map (flip display N) tuple.elems in
@@ -126,12 +126,14 @@ and display_rec rec' =
   return R (rec'.bind.name ^ ". " ^ body)
 
 and display_union union =
-  let type' = (display union.left L) ^ "|" ^ (display union.right R) in
-  return B type'
+  let left  = display union.left  L in
+  let right = display union.right R in
+  return B (left ^ " | " ^ right)
 
 and display_inter inter =
-  let type' = (display inter.left L) ^ "|" ^ (display inter.right R) in
-  return B type'
+  let left  = display inter.left  L in
+  let right = display inter.right R in
+  return B (left ^ " & " ^ right)
 
 and display_param param =
   param.bind.name ^

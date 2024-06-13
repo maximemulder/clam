@@ -1,7 +1,7 @@
 module BindKey = struct
-  type t = Abt.Bind.bind_expr
+  type t = Abt.Expr.bind_expr
 
-  let compare x y = Stdlib.compare x.Abt.Bind.id y.Abt.Bind.id
+  let compare x y = Stdlib.compare x.Abt.Expr.id y.Abt.Expr.id
 end
 
 module BindMap = Map.Make(BindKey)

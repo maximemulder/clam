@@ -1,5 +1,5 @@
-open Display
-open Node
+open Abt.Display
+open Abt.Type
 
 let rec split_union type' =
   let res = split_union_base type' in

@@ -11,7 +11,7 @@
   special cases and calls [map] with itself, possibly partially applied, as an
   argument to handle the other cases where no special treatement is needed.
 *)
-val map : (Node.type' -> Node.type') -> Node.type' -> Node.type'
+val map : (Abt.Type.type' -> Abt.Type.type') -> Abt.Type.type' -> Abt.Type.type'
 
 (**
   [fold f1 f2 acc type']
@@ -23,7 +23,7 @@ val map : (Node.type' -> Node.type') -> Node.type' -> Node.type'
   special cases and calls [fold] with itself, possibly partially applied, as an
   argument to handle the other cases where no special treatement is needed.
 *)
-val fold : (Node.type' -> 'a) -> ('a -> 'a -> 'a) -> 'a -> Node.type' -> 'a
+val fold : (Abt.Type.type' -> 'a) -> ('a -> 'a -> 'a) -> 'a -> Abt.Type.type' -> 'a
 
 (**
   [fold f1 f2 acc type']
@@ -36,4 +36,4 @@ val fold : (Node.type' -> 'a) -> ('a -> 'a -> 'a) -> 'a -> Node.type' -> 'a
   special cases and calls [fold] with itself, possibly partially applied, as an
   argument to handle the other cases where no special treatement is needed.
 *)
-val fold_pol : (Pol.pol -> Node.type' -> 'a) -> ('a -> 'a -> 'a) -> 'a -> Pol.pol -> Node.type' -> 'a
+val fold_pol : (Pol.pol -> Abt.Type.type' -> 'a) -> ('a -> 'a -> 'a) -> 'a -> Pol.pol -> Abt.Type.type' -> 'a

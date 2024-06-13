@@ -1,4 +1,4 @@
 (**
   Convert a type to its string representation.
 *)
-val display : Node.type' -> string
+val display : Type.type' -> string

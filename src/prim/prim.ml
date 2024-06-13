@@ -1,8 +1,9 @@
-open Type
+open Abt.Type
 open Eval.Value
+module T = Type.Build
 
 type primitive = {
-  bind: Abt.bind_expr;
+  bind: Abt.Expr.bind_expr;
   name: string;
   type': type';
   value: value;
@@ -17,14 +18,14 @@ let make_primitives primitives =
 let unary name param ret prim =
   (
     name,
-    Lam { param; ret },
+    T.lam param ret,
     VLam (VPrim (fun { expr; value; out } -> prim expr value out))
   )
 
 let binary name left right ret prim =
   (
     name,
-    Lam { param = left; ret = Lam { param = right; ret }},
+    T.lam left (T.lam right ret),
     VLam (VPrim (fun { value; _ } ->
       let left = value in
       VLam (VPrim (fun { expr; value; _ } ->
@@ -35,68 +36,68 @@ let binary name left right ret prim =
   )
 
 let primitives = make_primitives [
-  unary "print" Top Unit (fun _ value out ->
+  unary "print" T.top T.unit (fun _ value out ->
     let string = Eval.Display.display value in
     let _ = out string in
     VUnit);
-  unary "__pos__" Int Int (fun e value _ ->
+  unary "__pos__" T.int T.int (fun e value _ ->
     let int = value_int e value in
     (VInt int));
-  unary "__neg__" Int Int (fun e value _ ->
+  unary "__neg__" T.int T.int (fun e value _ ->
     let int = value_int e value in
     (VInt (-int)));
-  unary "__not__" Bool Bool (fun e value _ ->
+  unary "__not__" T.bool T.bool (fun e value _ ->
     let bool = value_bool e value in
     (VBool (not bool)));
-  binary "__add__" Int Int Int (fun e left right ->
+  binary "__add__" T.int T.int T.int (fun e left right ->
     let left  = value_int e left  in
     let right = value_int e right in
     VInt (left + right));
-  binary "__sub__" Int Int Int (fun e left right ->
+  binary "__sub__" T.int T.int T.int (fun e left right ->
     let left  = value_int e left  in
     let right = value_int e right in
     VInt (left - right));
-  binary "__mul__" Int Int Int (fun e left right ->
+  binary "__mul__" T.int T.int T.int (fun e left right ->
     let left  = value_int e left  in
     let right = value_int e right in
     VInt (left * right));
-  binary "__div__" Int Int Int (fun e left right ->
+  binary "__div__" T.int T.int T.int (fun e left right ->
     let left  = value_int e left  in
     let right = value_int e right in
     VInt (left / right));
-  binary "__mod__" Int Int Int (fun e left right ->
+  binary "__mod__" T.int T.int T.int (fun e left right ->
     let left  = value_int e left  in
     let right = value_int e right in
     VInt (left mod right));
-  binary "__concat__" String String String (fun e left right ->
+  binary "__concat__" T.string T.string T.string (fun e left right ->
     let left  = value_string e left  in
     let right = value_string e right in
     VString (left ^ right));
-  binary "__eq__" Top Top Bool (fun _ left right ->
+  binary "__eq__" T.top T.top T.bool (fun _ left right ->
     VBool (compare left right));
-  binary "__ne__" Top Top Bool (fun _ left right ->
+  binary "__ne__" T.top T.top T.bool (fun _ left right ->
     VBool (not (compare left right)));
-  binary "__lt__" Int Int Bool (fun e left right ->
+  binary "__lt__" T.int T.int T.bool (fun e left right ->
     let left  = value_int e left  in
     let right = value_int e right in
     VBool (left < right));
-  binary "__gt__" Int Int Bool (fun e left right ->
+  binary "__gt__" T.int T.int T.bool (fun e left right ->
     let left  = value_int e left  in
     let right = value_int e right in
     VBool (left > right));
-  binary "__le__" Int Int Bool (fun e left right ->
+  binary "__le__" T.int T.int T.bool (fun e left right ->
     let left  = value_int e left  in
     let right = value_int e right in
     VBool (left <= right));
-  binary "__ge__" Int Int Bool (fun e left right ->
+  binary "__ge__" T.int T.int T.bool (fun e left right ->
     let left  = value_int e left  in
     let right = value_int e right in
     VBool (left >= right));
-  binary "__and__" Bool Bool Bool (fun e left right ->
+  binary "__and__" T.bool T.bool T.bool (fun e left right ->
     let left  = value_bool e left  in
     let right = value_bool e right in
     VBool (left && right));
-  binary "__or__" Bool Bool Bool (fun e left right ->
+  binary "__or__" T.bool T.bool T.bool (fun e left right ->
     let left  = value_bool e left  in
     let right = value_bool e right in
     VBool (left || right));

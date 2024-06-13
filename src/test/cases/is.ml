@@ -6,8 +6,8 @@ let test ctx left right (_: unit) =
   Type.System.is left right ctx |> fst
 
 let name left right expect =
-  let left  = Type.display left in
-  let right = Type.display right in
+  let left  = Abt.Display.display left in
+  let right = Abt.Display.display right in
   let suffix = if expect then "" else "!" in
   "is" ^ suffix ^ " `" ^ left ^ "` `" ^ right ^ "`"
 
@@ -15,7 +15,7 @@ let case left right expect ctx =
   Case.make_case Case.bool (name left right expect) (test ctx left right) expect
 
 let case_var name bound case expect ctx =
-  let bind = { Abt.name } in
+  let bind = { Abt.Type.name } in
   let ctx = { ctx with Type.Context.rigids = { bind; lower = bot; upper = bound } :: ctx.Type.Context.rigids } in
   let var = var bind in
   case var expect ctx

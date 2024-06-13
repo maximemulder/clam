@@ -5,9 +5,9 @@ let test ctx left right (_: unit) =
   Type.System.join left right ctx |> fst
 
 let name left right expect =
-  let left   = Type.display left   in
-  let right  = Type.display right  in
-  let expect = Type.display expect in
+  let left   = Abt.Display.display left   in
+  let right  = Abt.Display.display right  in
+  let expect = Abt.Display.display expect in
   "join `" ^ left ^ "` `" ^ right ^ "` `" ^ expect ^ "`"
 
 let case left right expect ctx =

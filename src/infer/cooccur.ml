@@ -1,7 +1,9 @@
 (** The algorithm to remove cooccurrences in a type. It is honestly not very good *)
 
-open Type
+open Abt.Type
+open Type.Pol
 open Type.Trans_syn
+open Util.Func
 
 (** The polarities at which a type variable occurs or cooccurs. *)
 type cooccs = {
@@ -38,8 +40,8 @@ let cooccs_display cooccs =
   "neg:" ^ f cooccs.neg ^ " pos: " ^ f cooccs.pos
 
 let merge_cooccs left right =
-  let neg = Util.option_join left.neg right.neg (&&) in
-  let pos = Util.option_join left.pos right.pos (&&) in
+  let neg = Util.option_join (&&) left.neg right.neg in
+  let pos = Util.option_join (&&) left.pos right.pos in
   { neg; pos }
 
 let rec occurs bind type' =
@@ -103,7 +105,7 @@ and cooccurs_param bind other param =
   let upper = cooccurs bind other Neg param.upper in
   merge_cooccs lower upper
 
-let join_coocc a b = Util.option_join a b (fun a _ -> a)
+let join_coocc a b = Util.option_join const a b
 
 let rec fold_coocc bind orig pol type' =
   match type' with
@@ -140,9 +142,9 @@ let rec simplify_2 (fresh: fresh) orig pol type' =
       let* ret = simplify_2 fresh orig pol univ.ret in
       let* cond = simplify_univ_cond fresh orig univ in
       if cond then
-        substitute param.bind (Var { bind = fresh.bind }) ret
+        substitute param.bind (Var { span = univ.param.span; bind = fresh.bind }) ret
       else
-        return (Univ { param; ret })
+        return (Univ { univ with param; ret })
     )
   | _ ->
     map_pol (simplify_2 fresh orig) pol type'
@@ -155,8 +157,8 @@ and simplify_param fresh orig param =
 and simplify_univ_cond fresh orig univ =
   let* lower = with_freeze (is univ.param.lower fresh.lower) in
   let* upper = with_freeze (is univ.param.upper fresh.upper) in
-  let* sub = with_freeze (is (Var { bind = fresh.bind }) univ.param.lower) in
-  let* sup = with_freeze (is univ.param.upper (Var { bind = fresh.bind })) in
+  let* sub = with_freeze (is (Var { span = univ.param.span; bind = fresh.bind }) univ.param.lower) in
+  let* sup = with_freeze (is univ.param.upper (Var { span = univ.param.span; bind = fresh.bind })) in
   if not (sub || lower) || not (sup || upper) then
     return false
   else

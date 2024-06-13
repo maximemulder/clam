@@ -21,6 +21,16 @@ let span_primitive = {
   end' = 0;
 }
 
+let merge_span span_1 span_2 =
+  if span_1.code.name <> span_2.code.name then
+    (* If the two spans come from different files, do not try to merge them and
+      return one of the parameter spans. *)
+    span_1
+  else if span_1.start <= span_2.start then
+    { code = span_1.code; start = span_1.start; end' = span_2.end' }
+  else
+    { code = span_1.code; start = span_2.start; end' = span_1.end' }
+
 let rec fold_until_pos text pos n f acc =
   if n = pos then
     acc

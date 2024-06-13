@@ -1,6 +1,7 @@
-open Type
+open Abt.Type
 open Type.Context
 open Type.Context.Monad
+open Type.Pol
 
 (** The polarities at which a type variable occurs. *)
 type occs = {
@@ -27,7 +28,7 @@ let merge_occs left right =
 (* TODO: Factorize *)
 let rec occurs bind pol type'  =
   match type' with
-  | Top | Bot | Unit | Bool | Int | String ->
+  | Top _ | Bot _ | Unit _ | Bool _ | Int _ | String _ ->
     return occs_none
   | Var var ->
     if var.bind == bind then
@@ -40,7 +41,7 @@ let rec occurs bind pol type'  =
   | Record record ->
     let attrs = Util.NameMap.to_list record.attrs
     |> List.map snd in
-    let* attrs = list_map (fun (attr: Type.attr) -> occurs_attr bind pol attr) attrs in
+    let* attrs = list_map (fun (attr: attr) -> occurs_attr bind pol attr) attrs in
     list_fold merge_occs occs_none attrs
   | Lam lam ->
     let* param = occurs bind (inv pol) lam.param in

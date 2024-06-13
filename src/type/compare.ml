@@ -1,14 +1,14 @@
-open Node
+open Abt.Type
 open Rename
 
 let rec compare left right =
   match left, right with
-  | Top    , Top    -> true
-  | Bot    , Bot    -> true
-  | Unit   , Unit   -> true
-  | Bool   , Bool   -> true
-  | Int    , Int    -> true
-  | String , String -> true
+  | Top    _ , Top    _ -> true
+  | Bot    _ , Bot    _ -> true
+  | Unit   _ , Unit   _ -> true
+  | Bool   _ , Bool   _ -> true
+  | Int    _ , Int    _ -> true
+  | String _ , String _ -> true
   | Var left, Var right ->
     left.bind == right.bind
   | Tuple left, Tuple right ->

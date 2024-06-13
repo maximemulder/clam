@@ -5,15 +5,15 @@ let test ctx type' (_: unit) =
   Type.System.promote_upper type' ctx |> fst
 
 let name type' expect =
-  let type'  = Type.display type'  in
-  let expect = Type.display expect in
+  let type'  = Abt.Display.display type'  in
+  let expect = Abt.Display.display expect in
   "prom `" ^ type' ^ "` `" ^ expect ^ "`"
 
 let case type' expect ctx =
   Case.make_case Case.type' (name type' expect) (test ctx type') expect
 
 let case_var name bound case ctx =
-  let bind = { Abt.name } in
+  let bind = { Abt.Type.name } in
   let ctx = { ctx with Type.Context.rigids = { bind; lower = bot; upper = bound } :: ctx.Type.Context.rigids } in
   let var = var bind in
   case var ctx

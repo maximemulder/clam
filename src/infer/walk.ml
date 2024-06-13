@@ -1,13 +1,16 @@
+open Abt.Display
 open Solve
 open State
 open State.Monad
+
+module T = Abt.Type
 
 (* TYPE CONSTRAIN *)
 
 let constrain span sub sup =
   let* () = show
     (!Global.show_infer && not !Global.show_constrain)
-    ("constrain " ^ Type.display sub ^ " < " ^ Type.display sup) in
+    ("constrain " ^ display sub ^ " < " ^ display sup) in
   let* result = isa sub sup in
   let* () = show_ctx !Global.show_infer in
   if result then
@@ -17,71 +20,57 @@ let constrain span sub sup =
 
 (* TYPE INFERENCE *)
 
-let rec infer_parent (expr: Abt.expr) parent =
+let rec infer_parent (expr: Abt.Expr.expr) parent =
   let* type' = infer expr in
-  let span = Abt.expr_span expr in
+  let span = Abt.Span.expr_span expr in
   constrain span type' parent
 
-and infer (expr: Abt.expr) =
+and infer (expr: Abt.Expr.expr) =
+
   match expr with
-  | ExprUnit unit ->
-    infer_unit unit
-  | ExprBool bool ->
-    infer_bool bool
-  | ExprInt int ->
-    infer_int int
-  | ExprString string ->
-    infer_string string
-  | ExprBind bind ->
-    infer_bind bind
-  | ExprTuple tuple ->
-    infer_tuple tuple
-  | ExprRecord record ->
-    infer_record record
-  | ExprElem elem ->
-    infer_elem elem
-  | ExprAttr attr ->
-    infer_attr attr
-  | ExprAscr ascr ->
-    infer_ascr ascr
-  | ExprIf if' ->
-    infer_if if'
-  | ExprLamAbs abs ->
-    infer_lam_abs abs
-  | ExprLamApp app ->
-    infer_lam_app app
-  | ExprUnivAbs abs ->
-    infer_univ_abs abs
-  | ExprUnivApp app ->
-    infer_univ_app app
+  | Unit unit     -> infer_unit unit
+  | Bool bool     -> infer_bool bool
+  | Int int       -> infer_int int
+  | String string -> infer_string string
+  | Bind bind     -> infer_bind bind
+  | Tuple tuple   -> infer_tuple tuple
+  | Record record -> infer_record record
+  | Elem elem     -> infer_elem elem
+  | Attr attr     -> infer_attr attr
+  | Ascr ascr     -> infer_ascr ascr
+  | If if'        -> infer_if if'
+  | LamAbs abs    -> infer_lam_abs abs
+  | LamApp app    -> infer_lam_app app
+  | UnivAbs abs   -> infer_univ_abs abs
+  | UnivApp app   -> infer_univ_app app
 
-and infer_unit _ =
-  return Type.Unit
+and infer_unit expr =
+  return (T.Unit { span = expr.span })
 
-and infer_bool _ =
-  return Type.Bool
+and infer_bool expr =
+  return (T.Bool { span = expr.span })
 
-and infer_int _ =
-  return Type.Int
+and infer_int expr =
+  return (T.Int { span = expr.span })
 
-and infer_string _ =
-  return Type.String
+and infer_string expr =
+  return (T.String { span = expr.span })
 
 and infer_bind expr =
   infer_bind_bis expr.bind
 
 and infer_tuple expr =
   let* elems = list_map infer expr.elems in
-  return (Type.Tuple { elems })
+  return (T.Tuple { span = expr.span; elems })
 
 and infer_record expr =
   let* attrs = list_map infer_record_attr expr.attrs in
-  let attrs = List.fold_left (fun map (attr: Type.attr) -> Util.NameMap.add attr.label attr map) Util.NameMap.empty attrs in
-  return (Type.Record { attrs })
+  let attrs = List.fold_left (fun map (attr: Abt.Type.attr) -> Util.NameMap.add attr.label attr map) Util.NameMap.empty attrs in
+  return (T.Record { span = expr.span; attrs })
 
 and infer_record_attr attr =
   let* type' = infer attr.expr in
-  return { Type.label = attr.label; type' }
+  return { T.span = attr.span; label = attr.label; type' }
 
 and infer_elem expr =
   let* tuple = infer expr.tuple in
@@ -102,7 +91,7 @@ and infer_elem_base index tuple =
 
 and infer_attr expr =
   with_var expr.span (fun ret ->
-    let record = Type.Record { attrs = (Util.NameMap.singleton expr.label { Type.label = expr.label; type' = ret }) } in
+    let record = T.Record { span = expr.span; attrs = (Util.NameMap.singleton expr.label { span = expr.span; T.label = expr.label; type' = ret }) } in
     let* () = infer_parent expr.record record in
     return ret
   )
@@ -110,23 +99,23 @@ and infer_attr expr =
 and infer_lam_abs expr =
   match expr.param.type' with
   | Some type' ->
-    let* type' = validate_proper type' in
+    let* () = validate_proper type' in
     let* ret = with_expr expr.param.span expr.param.bind type'
       (infer expr.body) in
-    return (Type.Lam { param = type'; ret })
+    return (T.Lam { span = expr.span; param = type'; ret })
   | None ->
     with_var expr.span (fun param ->
       with_var expr.span (fun ret ->
         let* () = with_expr expr.param.span expr.param.bind param
           (infer_parent expr.body ret) in
-        return (Type.Lam { param; ret })
+        return (T.Lam { span = expr.span; param; ret })
       )
     )
 
 and infer_lam_app expr =
   with_var expr.span (fun param ->
     with_var expr.span (fun ret ->
-      let abs = Type.Lam { param; ret } in
+      let abs = T.Lam { span = expr.span; param; ret } in
       let* () = infer_parent expr.abs abs in
       let* () = infer_parent expr.arg param in
       return ret
@@ -134,10 +123,10 @@ and infer_lam_app expr =
   )
 
 and infer_univ_abs expr =
-  let* param = validate_param expr.param in
+  let* () = validate_param expr.param in
   with_var expr.span (fun var ->
-    let type' = Type.Univ { param; ret = var } in
-    let* () = with_param_rigid param
+    let type' = T.Univ { span = expr.span; param = expr.param; ret = var } in
+    let* () = with_param_rigid expr.param
       (infer_parent expr.body var) in
     return type'
   )
@@ -148,13 +137,13 @@ and infer_univ_app expr =
   let type' = Search.search_app_type infer_univ_app_base univ state.ctx in
   match type' with
   | Some { param; ret } ->
-    let* arg = validate expr.arg in
-    let* lower = isa param.lower arg in
-    let* upper = isa arg param.upper in
+    let* () = validate expr.arg in
+    let* lower = isa param.lower expr.arg in
+    let* upper = isa expr.arg param.upper in
     if not lower || not upper then
-      Error.raise_univ_type expr arg param.upper
+      Error.raise_univ_type expr expr.arg param.upper
     else
-    substitute param.bind arg ret
+    substitute param.bind expr.arg ret
   | None ->
     Error.raise_univ_kind expr univ
 
@@ -166,12 +155,12 @@ and infer_univ_app_base univ =
     None
 
 and infer_ascr expr =
-  let* type' = validate_proper expr.type' in
-  let* () = infer_parent expr.expr type' in
-  return type'
+  let* () = validate_proper expr.type' in
+  let* () = infer_parent expr.expr expr.type' in
+  return expr.type'
 
 and infer_if expr =
-  let* () = infer_parent expr.cond Type.Bool in
+  let* () = infer_parent expr.cond (T.Bool { span = expr.span }) in
   let* then' = infer expr.then' in
   let* else' = infer expr.else' in
   join then' else'
@@ -179,13 +168,13 @@ and infer_if expr =
 and infer_def def =
   let* type' = infer_def_type def in
   let type' = Rename.rename type' in
-  let* () = add_expr (def: Abt.def_expr).span def.bind type' in
+  let* () = add_expr (def: Abt.Program.def_expr).span def.bind type' in
   return type'
 
 and infer_def_type def =
   match def.type' with
   | Some def_type ->
-    let* def_type = validate_proper def_type in
+    let* () = validate_proper def_type in
     let* () = with_expr def.span def.bind def_type
       (infer_parent def.expr def_type) in
     return def_type
@@ -217,8 +206,8 @@ let check_defs defs primitives =
   List.map (fun (entry: entry_expr) -> entry.bind, entry.type') state.exprs
 
 let check_types defs =
-  List.map (fun (def: Abt.def_type) -> def.name,
+  List.map (fun (def: Abt.Program.def_type) -> def.name,
     let ctx = Type.Context.empty in
-    let type', _ = Type.Validate.validate def.type' ctx in
-    let kind, _ = Type.Kind.get_kind type' ctx in
+    let (), _ = Type.Validate.validate def.type' ctx in
+    let kind, _ = Type.Kind.get_kind def.type' ctx in
   kind) defs

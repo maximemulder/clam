@@ -1,5 +1,5 @@
 let print_type ppf x =
-  let string = Type.display x in
+  let string = Abt.Display.display x in
   Format.pp_print_string ppf string
 
 let bool   = Alcotest.bool

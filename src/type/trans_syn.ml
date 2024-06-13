@@ -1,44 +1,44 @@
-open Node
+open Abt.Type
 
 (* TYPE MAP *)
 
 let rec map f type' =
   match type' with
-  | Top | Bot | Unit | Bool | Int | String | Var _ ->
+  | Top _ | Bot _ | Unit _ | Bool _ | Int _ | String _ | Var _ ->
     type'
   | Tuple tuple ->
     let elems = List.map f tuple.elems in
-    Tuple { elems }
+    Tuple { tuple with elems }
   | Record record ->
     let attrs = Util.NameMap.map (map_attr f) record.attrs in
-    Record { attrs }
+    Record { record with attrs }
   | Lam lam ->
     let param = f lam.param in
     let ret   = f lam.ret   in
-    Lam { param; ret }
+    Lam { lam with param; ret }
   | Univ univ ->
     let param = map_param f univ.param in
     let ret   = f univ.ret   in
-    Univ { param; ret }
+    Univ { univ with param; ret }
   | Abs abs ->
     let param = map_param f abs.param in
     let body  = f abs.body  in
-    Abs { param; body }
+    Abs { abs with param; body }
   | App app ->
     let abs = f app.abs in
     let arg = f app.arg in
-    App { abs; arg }
+    App { app with abs; arg }
   | Rec rec' ->
     let body = f rec'.body in
-    Rec { bind = rec'.bind; body }
+    Rec { rec' with body }
   | Union union ->
     let left  = f union.left  in
     let right = f union.right in
-    Union { left; right }
+    Union { union with left; right }
   | Inter inter ->
     let left  = f inter.left  in
     let right = f inter.right in
-    Inter { left; right }
+    Inter { inter with left; right }
 
 and map_attr f attr =
   let type' = f attr.type' in
@@ -53,7 +53,7 @@ and map_param f param =
 
 let rec fold f1 f2 acc type' =
   match type' with
-  | Top | Bot | Unit | Bool | Int | String | Var _ ->
+  | Top _ | Bot _ | Unit _ | Bool _ | Int _ | String _ | Var _ ->
     acc
   | Tuple tuple ->
     List.map f1 tuple.elems

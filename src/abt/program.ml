@@ -1,4 +1,3 @@
-open Bind
 open Expr
 open Type
 

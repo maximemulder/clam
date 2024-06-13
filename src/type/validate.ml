@@ -1,115 +1,96 @@
+open Abt.Type
+open Check_rec_path
 open Context
 open Context.Monad
-open Node
 open System
 
+(*
+  There is currently a bug when recursive types are incorrectly kinded, but I
+  won't fix it for now since I will probably change the kind system later.
+
+  Example of bugged term: List. [T] => None | List
+*)
+
 let rec validate_proper type' =
-  let* type'' = validate type' in
-  let* cond = is_proper type'' in
+  let* () = validate type' in
+  let* cond = is_proper type' in
   if not cond then
     Error.validate_proper type'
   else
-    return type''
+  return ()
 
-and validate (type': Abt.type') =
-  print_endline ("AAA " ^ Abt.display type');
+and validate (type': type') =
   match type' with
-  | TypeTop    _ ->
-    return Top
-  | TypeBot    _ ->
-    return Bot
-  | TypeUnit   _ ->
-    return Unit
-  | TypeBool   _ ->
-    return Bool
-  | TypeInt    _ ->
-    return Int
-  | TypeString _ ->
-    return String
-  | TypeVar var ->
-    return (Var { bind = var.bind })
-  | TypeTuple tuple ->
-    validate_tuple tuple
-  | TypeRecord record ->
-    validate_record record
-  | TypeLam lam ->
-    validate_lam lam
-  | TypeUniv univ ->
-    validate_univ univ
-  | TypeAbs abs ->
-    validate_abs abs
-  | TypeApp app ->
-    validate_app app
-  | TypeRec rec' ->
-    print_endline "AA";
-    let* a = validate_rec rec' in
-    print_endline "BB";
-    return a
-  | TypeUnion union ->
-    validate_union union
-  | TypeInter inter ->
-    validate_inter inter
+  | Top _ | Bot _ | Unit _ | Bool _ | Int _ | String _ | Var _ -> return ()
+  | Tuple tuple   -> validate_tuple tuple
+  | Record record -> validate_record record
+  | Lam lam       -> validate_lam lam
+  | Univ univ     -> validate_univ univ
+  | Abs abs       -> validate_abs abs
+  | App app       -> validate_app app
+  | Rec rec'      -> validate_rec rec'
+  | Union union   -> validate_union union
+  | Inter inter   -> validate_inter inter
 
 and validate_tuple tuple =
-  let* elems = list_map validate_proper tuple.elems in
-  return (Tuple { elems })
+  let* () = list_iter validate_proper tuple.elems in
+  return ()
 
 and validate_record record =
-  let* attrs = map_map validate_record_attr record.attrs in
-  return (Record { attrs })
+  let* () = map_iter validate_record_attr record.attrs in
+  return ()
 
 and validate_record_attr attr =
-  let* type' = validate_proper attr.type' in
-  return { label = attr.label; type' }
+  let* () = validate_proper attr.type' in
+  return ()
 
 and validate_lam lam =
-  let* param = validate_proper lam.param in
-  let* ret   = validate_proper lam.ret   in
-  return (Lam { param; ret })
+  let* () = validate_proper lam.param in
+  let* () = validate_proper lam.ret   in
+  return ()
 
 and validate_univ univ =
-  let* param, ret = validate_param_with univ.param (validate_proper univ.ret) in
-  return (Univ { param; ret })
+  validate_param_with univ.param (validate_proper univ.ret)
 
 and validate_abs abs =
-  let* param, body = validate_param_with abs.param (validate abs.body) in
-  return (Abs { param; body })
+  validate_param_with abs.param (validate abs.body)
 
 and validate_app app =
-  let* abs = validate app.abs in
-  let* arg = validate app.arg in
-  let* lower, upper = validate_app_param abs in
-  let* lower_cond = System.isa lower arg in
-  let* upper_cond = System.isa arg upper in
+  let* () = validate app.abs in
+  let* () = validate app.arg in
+  let* lower, upper = validate_app_param app.abs in
+  let* lower_cond = System.isa lower app.arg in
+  let* upper_cond = System.isa app.arg upper in
   if not lower_cond || not upper_cond then
-    Error.validate_app_arg app lower upper arg
+    Error.validate_app_arg app lower upper
   else
-  System.compute abs arg
+  return ()
 
 and validate_rec rec' =
-  with_def rec'.bind ((Var { bind = rec'.bind })) (validate rec'.body)
+  if check_rec_path rec'.bind rec'.body then failwith ("TODO: Infinite recursive type.") else
+  with_def rec'.bind ((Var { span = rec'.span; bind = rec'.bind })) (validate rec'.body)
 
 and validate_union union =
-  let* left  = validate union.left  in
-  let* right = validate union.right in
-  let* kind_left  = Kind.get_kind left  in
-  let* kind_right = Kind.get_kind right in
+  let* () = validate union.left  in
+  let* () = validate union.right in
+  let* kind_left  = Kind.get_kind union.left  in
+  let* kind_right = Kind.get_kind union.right in
   let* cond = System.is_kind kind_left kind_right in
   if not cond then
     Error.validate_union_kind union
   else
-  System.join left right
+  return ()
 
 and validate_inter inter =
-  let* left  = validate inter.left  in
-  let* right = validate inter.right in
-  let* kind_left  = Kind.get_kind left  in
-  let* kind_right = Kind.get_kind right in
+  let* () = validate inter.left  in
+  let* () = validate inter.right in
+  let* kind_left  = Kind.get_kind inter.left  in
+  let* kind_right = Kind.get_kind inter.right in
   let* cond = System.is_kind kind_left kind_right in
   if not cond then
     Error.validate_inter_kind inter
   else
-  System.meet left right
+  return ()
 
 and validate_app_param abs =
   match abs with
@@ -133,32 +114,15 @@ and validate_app_param abs =
   | _ ->
     invalid_arg "validate_app_param"
 
-and validate_param (param: Abt.param_type) =
-  let* lower, upper = match param.interval.lower, param.interval.upper with
-  | Some lower, Some upper ->
-    let* lower = validate lower in
-    let* upper = validate upper in
-    return (lower, upper)
-  | Some lower, None ->
-    let* lower = validate lower in
-    let* kind = Kind.get_kind lower in
-    let upper = Kind.get_kind_max kind in
-    return (lower, upper)
-  | None, Some upper ->
-    let* upper = validate upper in
-    let* kind = Kind.get_kind upper in
-    let lower = Kind.get_kind_min kind in
-    return (lower, upper)
-  | None, None ->
-    return (Bot, Top)
-  in
-  let* cond = System.isa lower upper in
+and validate_param (param: param) =
+  let* () = validate param.lower in
+  let* () = validate param.upper in
+  let* cond = System.isa param.lower param.upper in
   if not cond then
-    Error.validate_interval param.interval lower upper
+    Error.validate_param param
   else
-  return { bind = param.bind; lower; upper }
+  return ()
 
 and validate_param_with param f =
-  let* param = validate_param param in
-  let* type' = with_param_rigid param f in
-  return (param, type')
+  let* () = validate_param param in
+  with_param_rigid param f

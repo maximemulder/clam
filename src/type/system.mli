@@ -14,7 +14,7 @@
   Apply [f] to [type'], or to its components if [type'] is an union or
   intersection, and simplify the result.
 *)
-val map_set : (Node.type' -> Node.type' Context.Monad.t) -> Node.type' -> Node.type' Context.Monad.t
+val map_set : (Abt.Type.type' -> Abt.Type.type' Context.Monad.t) -> Abt.Type.type' -> Abt.Type.type' Context.Monad.t
 
 (**
   [substitute bind other type']
@@ -25,7 +25,7 @@ val map_set : (Node.type' -> Node.type' Context.Monad.t) -> Node.type' -> Node.t
   Requirements:
   - [other] should be a valid substitute for [bind].
 *)
-val substitute : Abt.bind_type -> Node.type' -> Node.type' -> Node.type' Context.Monad.t
+val substitute : Abt.Type.bind_type -> Abt.Type.type' -> Abt.Type.type' -> Abt.Type.type' Context.Monad.t
 
 (**
   [compute abs arg]
@@ -37,21 +37,21 @@ val substitute : Abt.bind_type -> Node.type' -> Node.type' -> Node.type' Context
   - [abs] must be a valid type abstraction.
   - [arg] should be a valid type argument for [abs].
 *)
-val compute : Node.type' -> Node.type' -> Node.type' Context.Monad.t
+val compute : Abt.Type.type' -> Abt.Type.type' -> Abt.Type.type' Context.Monad.t
 
 (**
   [promote_lower type']
 
   Return the highest subtype of [type'] whose shape is not a type variable.
 *)
-val promote_lower : Node.type' -> Node.type' Context.Monad.t
+val promote_lower : Abt.Type.type' -> Abt.Type.type' Context.Monad.t
 
 (**
   [promote_lower type']
 
   Return the lowest supertype of [type'] whose shape is not a type variable.
 *)
-val promote_upper : Node.type' -> Node.type' Context.Monad.t
+val promote_upper : Abt.Type.type' -> Abt.Type.type' Context.Monad.t
 
 (**
   [is left right]
@@ -60,7 +60,7 @@ val promote_upper : Node.type' -> Node.type' Context.Monad.t
   equivalent of [right]. Two types are equivalent when they are subtype of
   each other.
 *)
-val is : Node.type' -> Node.type' -> bool Context.Monad.t
+val is : Abt.Type.type' -> Abt.Type.type' -> bool Context.Monad.t
 
 (**
   [isa sub sup]
@@ -68,7 +68,7 @@ val is : Node.type' -> Node.type' -> bool Context.Monad.t
   Constrain the typing context such that, if possible, the type [sub] is a
   subtype of [sup].
 *)
-val isa : Node.type' -> Node.type' -> bool Context.Monad.t
+val isa : Abt.Type.type' -> Abt.Type.type' -> bool Context.Monad.t
 
 (**
   [join left right]
@@ -79,7 +79,7 @@ val isa : Node.type' -> Node.type' -> bool Context.Monad.t
   Requirements:
   - [left] and [right] should be of the same kind.
 *)
-val join : Node.type' -> Node.type' -> Node.type' Context.Monad.t
+val join : Abt.Type.type' -> Abt.Type.type' -> Abt.Type.type' Context.Monad.t
 
 (**
   [meet left right]
@@ -93,7 +93,7 @@ val join : Node.type' -> Node.type' -> Node.type' Context.Monad.t
   Notes:
   - Incompatible type constructors are not coerced into [Bot] in Clam.
 *)
-val meet : Node.type' -> Node.type' -> Node.type' Context.Monad.t
+val meet : Abt.Type.type' -> Abt.Type.type' -> Abt.Type.type' Context.Monad.t
 
 (**
   [is_kind left right]
@@ -107,4 +107,4 @@ val is_kind : Kind.kind -> Kind.kind -> bool Context.Monad.t
 
   Check whether [type'] is a proper type or not.
 *)
-val is_proper : Node.type' -> bool Context.Monad.t
+val is_proper : Abt.Type.type' -> bool Context.Monad.t

@@ -1,59 +1,56 @@
-open Node
+open Abt.Type
 open Context
 
-let bind name = { Abt.name }
+let span = Code.span_primitive
 
-let top = Top
+let bind name = { name }
 
-let bot = Bot
+let top    = Top    { span }
+let bot    = Bot    { span }
+let unit   = Unit   { span }
+let bool   = Bool   { span }
+let int    = Int    { span }
+let string = String { span }
 
-let unit = Unit
+let var bind = Var { span; bind }
 
-let bool = Bool
-
-let int = Int
-
-let string = String
-
-let var bind = Var { bind }
-
-let tuple elems = Tuple { elems }
+let tuple elems = Tuple { span; elems }
 
 let record attrs =
   let attrs = attrs
-    |> List.map (fun (label, type') -> label, { label; type' })
+    |> List.map (fun (label, type') -> label, { span; label; type' })
     |> List.to_seq
     |> Util.NameMap.of_seq in
-  Record { attrs }
+  Record { span; attrs }
 
-let lam param ret = Lam { param; ret }
+let lam param ret = Lam { span; param; ret }
 
 let univ name lower upper ret =
   let bind = bind name in
-  let param: param = { bind; lower; upper } in
+  let param: param = { span; bind; lower; upper } in
   let ret = ret (var bind) in
-  Univ { param; ret }
+  Univ { span; param; ret }
 
 let univ_0 name ret = univ name bot top ret
 
 let abs name lower upper body =
   let bind = bind name in
-  let param: param = { bind; lower; upper } in
+  let param: param = { span; bind; lower; upper } in
   let body = body (var bind) in
-  Abs { param; body }
+  Abs { span; param; body }
 
 let abs_0 name body = abs name bot top body
 
-let app abs arg = App { abs; arg }
+let app abs arg = App { span; abs; arg }
 
 let rec' name body =
   let bind = bind name in
   let body = body (var bind) in
-  Rec { bind; body }
+  Rec { span; bind; body }
 
-let union left right = Union { left; right }
+let union left right = Union { span; left; right }
 
-let inter left right = Inter { left; right }
+let inter left right = Inter { span; left; right }
 
 let ctx = empty
 

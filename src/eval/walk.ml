@@ -4,7 +4,7 @@ open Value
 type context = {
   out: Util.writer;
   defs: def_expr BindMap.t;
-  primitives: (Abt.Bind.bind_expr * value) list;
+  primitives: (Abt.Expr.bind_expr * value) list;
   frame: frame;
 }
 

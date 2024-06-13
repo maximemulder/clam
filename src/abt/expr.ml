@@ -1,7 +1,11 @@
-open Bind
 open Type
 
 type span = Code.span
+
+type bind_expr = {
+  id: int;
+  name: string;
+}
 
 type expr =
   | Unit    of unit'
@@ -93,7 +97,7 @@ and lam_app = {
 
 and univ_abs = {
   span: span;
-  param: param_type;
+  param: param;
   body: expr;
 }
 
