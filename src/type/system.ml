@@ -62,24 +62,72 @@ and substitute_base bind other type' =
   | App app ->
     let* abs = substitute bind other app.abs in
     let* arg = substitute bind other app.arg in
-    compute abs arg
+    return (App { span = app.span; abs; arg })
   | type' ->
     map (substitute bind other) type'
 
 (* TYPE COMPUTATION *)
 
-and compute abs arg =
-  map_set (compute_base arg) abs
+(*
+  TODO: Compute should return an option that indicates if the application could
+  be reduced or not.
+*)
 
-and compute_base arg abs =
+and compute type' =
+  match type' with
+  | App app ->
+    compute_app app.abs app.arg
+  | _ ->
+    return None
+
+and compute_app abs arg =
   match abs with
   | Abs abs ->
-    substitute abs.param.bind arg abs.body
-  | Var var ->
-    let span = Code.merge_span var.span (type_span arg) in
-    return (App { span; abs = Var var; arg })
+    let* type' = substitute abs.param.bind arg abs.body in
+    return (Some type')
+  | App app ->
+    let* abs = compute_app app.abs app.arg in (
+    match abs with
+    | Some abs ->
+      compute_app abs arg
+    | None ->
+      return None
+    )
+  | Var _ ->
+    return None
   | _ ->
-    failwith "Ill-formed type application in `compute`."
+    failwith "Ill-formed type application in `compute_base`."
+
+(*
+and compute abs arg =
+  let* type' = compute_base abs arg in
+  match type' with
+  | Some type' ->
+    return type'
+  | None ->
+    return (App { span = Abt.Span.type_span abs; abs; arg })
+
+and compute_base abs arg =
+  match abs with
+  | Abs abs ->
+    let* type' = substitute abs.param.bind arg abs.body in
+    return (Some type')
+  | App app ->
+    let* abs = compute_base app.abs app.arg in (
+    match abs with
+    | Some abs ->
+      compute_base abs arg
+    | None ->
+      return None)
+  | Var _ ->
+    return None
+  | _ ->
+    failwith "Ill-formed type application in `compute_base`."
+*)
+(*
+  (union (app (abs t t) int) int)
+  (constrain (app (abs t t) int) int -> true)
+*)
 
 (* TYPE PROMOTION LOWER *)
 
@@ -149,7 +197,32 @@ and isa sub sup =
   in
   return res
 
+(**
+  [isa_base sub sup]
+*)
 and isa_base sub sup =
+  isa_compute sub sup
+
+(**
+  [isa_compute sub sup]
+*)
+and isa_compute sub sup =
+  let* sub_compute = compute sub in
+  match sub_compute with
+  | Some sub ->
+    isa sub sup
+  | None ->
+  let* sup_compute = compute sup in
+  match sup_compute with
+  | Some sup ->
+    isa sub sup
+  | None ->
+  isa_rec sub sup
+
+(**
+  [isa_rec sub sup]
+*)
+and isa_rec sub sup =
   let* rec' = is_rec sub sup in
   if rec' then
     return true
@@ -168,6 +241,9 @@ and isa_base sub sup =
       isa sub body
     )
   | _ ->
+  isa_set sub sup
+
+and isa_set sub sup =
   match split_inter sup with
   | Some (left, right) ->
     isa_inter_sup sub left right
@@ -184,6 +260,9 @@ and isa_base sub sup =
   | Some (left, right) ->
     isa_union_sup sub left right
   | None ->
+    isa_base2 sub sup
+
+and isa_base2 sub sup =
   let* fresh_sub = get_type_fresh sub in
   let* fresh_sup = get_type_fresh sup in
   match fresh_sub, fresh_sup with
@@ -357,12 +436,12 @@ and isa_app sub sup =
 
 and isa_app_sub app sup =
   let* abs = promote_upper app.abs in
-  let* sub = compute abs app.arg in
+  let sub = App { app with abs } in
   isa sub sup
 
 and isa_app_sup app sub =
   let* abs = promote_lower app.abs in
-  let* sup = compute abs app.arg in
+  let sup = App { app with abs } in
   isa sub sup
 
 (* TYPE JOIN *)

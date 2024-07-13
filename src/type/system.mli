@@ -37,7 +37,7 @@ val substitute : Abt.Type.bind_type -> Abt.Type.type' -> Abt.Type.type' -> Abt.T
   - [abs] must be a valid type abstraction.
   - [arg] should be a valid type argument for [abs].
 *)
-val compute : Abt.Type.type' -> Abt.Type.type' -> Abt.Type.type' Context.Monad.t
+val compute : Abt.Type.type' -> Abt.Type.type' option Context.Monad.t
 
 (**
   [promote_lower type']

@@ -141,13 +141,13 @@ and desugar_interval param =
     return (lower, upper)
   | Some lower, None ->
     let* lower = desugar_type lower in
-    (* let upper = Type.Kind.get_kind_max param.span lower in *)
-    let upper = Abt.Type.Top { span = param.span } in
+    let upper = Type.Kind.get_kind_max param.span
+      (Type.Kind.get_kind lower Type.Context.empty |> fst) in
     return (lower, upper)
   | None, Some upper ->
     let* upper = desugar_type upper in
-    (* let lower = Type.Kind.get_kind_max param.span upper in *)
-    let lower = Abt.Type.Bot { span = param.span } in
+    let lower = Type.Kind.get_kind_min param.span
+      (Type.Kind.get_kind upper Type.Context.empty |> fst) in
     return (lower, upper)
   | _, _ ->
     return (Abt.Type.Bot { span = param.span }, Abt.Type.Top { span = param.span })

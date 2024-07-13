@@ -43,10 +43,10 @@ module Searcher(S: SEARCHER) = struct
       | Fresh fresh ->
         search f fresh.lower (* This line is bugged *)
       )
-    | App app ->
+    (* | App app ->
       let* abs = promote_lower app.abs     in
       let* arg = compute abs app.arg in
-      search f arg
+      search f arg *)
     | Union union ->
       let* left  = search f union.left  in
       let* right = search f union.right in

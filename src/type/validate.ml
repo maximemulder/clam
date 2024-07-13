@@ -33,16 +33,13 @@ and validate (type': type') =
   | Inter inter   -> validate_inter inter
 
 and validate_tuple tuple =
-  let* () = list_iter validate_proper tuple.elems in
-  return ()
+  list_iter validate_proper tuple.elems
 
 and validate_record record =
-  let* () = map_iter validate_record_attr record.attrs in
-  return ()
+  map_iter validate_record_attr record.attrs
 
 and validate_record_attr attr =
-  let* () = validate_proper attr.type' in
-  return ()
+  validate_proper attr.type'
 
 and validate_lam lam =
   let* () = validate_proper lam.param in
@@ -111,6 +108,9 @@ and validate_app_param abs =
   | Inter inter ->
     (* Both operands have the same kind in a well-formed intersection. *)
     validate_app_param inter.left
+  | App app ->
+    (* TODO: This is obviously wrong. Change once I refactor kinds ? *)
+    return (Bot { span = app.span }, Top { span = app.span })
   | _ ->
     invalid_arg "validate_app_param"
 
