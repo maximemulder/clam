@@ -74,7 +74,7 @@ let rec constrain sub sup =
     constrain sub.right sup
   | sub ->
   match sup with
-  | Union sup ->
+  | Inter sup ->
     constrain sub sup.left &&
     constrain sub sup.right
   | sup ->
