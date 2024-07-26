@@ -1,9 +1,9 @@
 open Code
 
 type term =
+  | Type
   | Bot
   | Top
-  | Type
   | Var    of var
   | Row    of row
   | Record of record

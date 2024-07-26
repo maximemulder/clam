@@ -1,3 +1,5 @@
 open Ast
 
-val check : term -> unit
+val constrain : term -> term -> bool
+
+val check : term -> term -> bool

@@ -1,21 +1,21 @@
 open Ast
 
-let todo = failwith "TODO"
+let todo _ = failwith "TODO"
 
-let bool = todo (* TODO *)
+let bool span =
+  Var { span; name = "Bool" }
+
+let true' span =
+  Var { span; name = "True" }
+
+let false' span =
+  Var { span; name = "False" }
 
 let with_var_exis = todo (* TODO *)
 
 let with_var_univ = todo (* TODO *)
 
 let rec constrain sub sup =
-
-  (* Type *)
-
-  match sub, sup with
-  | Type, Type ->
-    true
-  | sub, sup ->
 
   (* Group *)
 
@@ -32,15 +32,17 @@ let rec constrain sub sup =
 
   match sub with
   | If sub ->
-    constrain sub.cond bool &&
-    false
-    (* TODO: Eval ? *)
+    check sub.cond (bool sub.span) &&
+    check sub.then' Type &&
+    check sub.else' Type &&
+    constrain (eval (If sub)) sup
   | sub ->
   match sup with
   | If sup ->
-    constrain sup.cond bool &&
-    false
-    (* TODO: Eval. *)
+    check sup.cond (bool sup.span) &&
+    check sup.then' Type &&
+    check sup.else' Type &&
+    constrain sub (eval (If sup))
   | sup ->
 
   (* Type ascription *)
@@ -77,15 +79,26 @@ let rec constrain sub sup =
     true
   | sub, sup ->
 
+  (* Type *)
+
+  match sup with
+  | Type ->
+    true
+  | sup ->
+  match sub with
+  | Type ->
+    false
+  | sub ->
+
   (* Bot & Top *)
 
   match sub with
   | Bot ->
-    sup <> Type
-  | sub ->
+    true
+  | _ ->
   match sup with
   | Top ->
-    sub <> Type
+    true
   | _ ->
 
   (* TODO: Others *)
@@ -93,24 +106,29 @@ let rec constrain sub sup =
 
 and check term type' =
   match term with
-  | Bot | Top ->
+  | Bot ->
+    constrain Top type'
+  | Top ->
+    constrain Type type'
+  | Row row ->
+    check row.type' Type &&
     constrain Type type'
   | Group group ->
     check group.body type'
   | If if' ->
-    check if'.cond bool &&
+    check if'.cond (bool if'.span) &&
     check if'.then' type' &&
     check if'.else' type'
   | Ascr ascr ->
     check ascr.body ascr.type' &&
     constrain ascr.type' type'
   | Union union ->
-    constrain union.left  Top &&
-    constrain union.right Top &&
+    check union.left  Type &&
+    check union.right Type &&
     constrain Type type'
   | Inter inter ->
-    constrain inter.left  Top &&
-    constrain inter.right Top &&
+    check inter.left  Type &&
+    check inter.right Type &&
     constrain Type type'
   | Type ->
     false
@@ -118,6 +136,15 @@ and check term type' =
 
     (* TODO: Others *)
     false
+
+and eval term =
+  match term with
+  | Var var ->
+    Var var
+  | Group group ->
+    eval group.body
+  | _ ->
+    todo ()
 
 (*
 let rec check term =

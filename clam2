@@ -1,0 +1,1 @@
+dune build && _build/install/default/bin/clam2 $*
