@@ -10,22 +10,12 @@ let with_var_univ = todo (* TODO *)
 
 let rec constrain sub sup =
 
-  (* Bot & Top *)
-
-  (* TODO: What about variables ? *)
+  (* Type *)
 
   match sub, sup with
-  | Bot, Bot | Top, Top | Bot, Top ->
+  | Type, Type ->
     true
   | sub, sup ->
-  match sub with
-  | Bot ->
-    with_var_exis (fun var -> constrain sup var)
-  | sub ->
-  match sup with
-  | Top ->
-    with_var_univ (fun var -> constrain var sub)
-  | sup ->
 
   (* Group *)
 
@@ -85,7 +75,18 @@ let rec constrain sub sup =
   match sub, sup with
   | Var sub, Var sup when sub.name = sup.name ->
     true
-  | _, _ ->
+  | sub, sup ->
+
+  (* Bot & Top *)
+
+  match sub with
+  | Bot ->
+    sup <> Type
+  | sub ->
+  match sup with
+  | Top ->
+    sub <> Type
+  | _ ->
 
   (* TODO: Others *)
   false
@@ -93,7 +94,7 @@ let rec constrain sub sup =
 and check term type' =
   match term with
   | Bot | Top ->
-    constrain type' Type
+    constrain Type type'
   | Group group ->
     check group.body type'
   | If if' ->
@@ -104,11 +105,15 @@ and check term type' =
     check ascr.body ascr.type' &&
     constrain ascr.type' type'
   | Union union ->
-    constrain union.left  Type &&
-    constrain union.right Type
+    constrain union.left  Top &&
+    constrain union.right Top &&
+    constrain Type type'
   | Inter inter ->
-    constrain inter.left  Type &&
-    constrain inter.right Type
+    constrain inter.left  Top &&
+    constrain inter.right Top &&
+    constrain Type type'
+  | Type ->
+    false
   | _ ->
 
     (* TODO: Others *)
