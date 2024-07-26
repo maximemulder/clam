@@ -1,0 +1,33 @@
+def Unit
+
+def True
+
+def False
+
+def Bool = True | False
+
+def Nat
+
+def Zero : Nat
+
+def Succ : Nat -> Nat
+
+def List : Type -> Type
+
+def ListNil : List(Bot)
+
+def ListCons : [A] -> List(A) -> (e) -> List(A | e)
+
+def Vec : Nat -> Type -> Type
+
+def VecNil : Vec(0, Bot)
+
+def VecCons : [n] -> [A] -> Vec(n, A) -> (e) -> Vec(Succ(n), A | e)
+
+def Char : Nat -> Type
+
+def String
+
+def StringNil : String
+
+def StringCons : Char -> String -> String
