@@ -1,13 +1,15 @@
 open Code
 
 type term =
+  | Bot
+  | Top
   | Type
   | Var    of var
   | Row    of row
   | Record of record
   | Group  of group
-  | Ascr   of ascr
   | If     of if'
+  | Ascr   of ascr
   | Abs    of abs
   | App    of app
   | Univ   of univ
