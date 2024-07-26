@@ -11,4 +11,3 @@ let () =
   constrain top top;
   constrain bot top;
   constrain top bot;
-  constrain (var "A") (var "A");

@@ -1,4 +1,5 @@
 open Code
+open Ident
 
 type term =
   | Type
@@ -38,7 +39,7 @@ and ascr = {
 
 and var = {
   span: span;
-  name: string;
+  ident: ident;
 }
 
 and row = {
@@ -72,7 +73,7 @@ and univ = {
 
 and rec' = {
   span: span;
-  name: string;
+  ident: ident;
   body: term;
 }
 
@@ -95,6 +96,6 @@ and attr = {
 
 and param = {
   span: span;
-  name: string option;
+  ident: ident option;
   type': term option;
 }

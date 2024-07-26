@@ -1,7 +1,7 @@
 (executable
   (name clam2)
   (public_name clam2)
-  (libraries code))
+  (libraries code util))
 
 (env
   (dev

@@ -4,6 +4,7 @@ type writer = string -> unit
 
 module Func  = Func
 module Monad = Monad
+module Monad2 = Monad2
 
 (**
   Returns both the index and the value of the leftmost element that satisfies

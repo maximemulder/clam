@@ -1,3 +1,7 @@
 (library
   (name util)
   (libraries code str))
+
+(env
+  (dev
+    (flags (:standard -warn-error -A -w -32))))

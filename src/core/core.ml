@@ -1,19 +1,16 @@
 open Ast
+open Ctx
 
-let todo _ = failwith "TODO"
+let todo () = failwith "TODO"
 
 let bool span =
-  Var { span; name = "Bool" }
+  Var { span; ident = {name = "Bool"; index = 0} }
 
 let true' span =
-  Var { span; name = "True" }
+  Var { span; ident = {name = "True"; index = 0} }
 
 let false' span =
-  Var { span; name = "False" }
-
-let with_var_exis = todo (* TODO *)
-
-let with_var_univ = todo (* TODO *)
+  Var { span; ident = {name = "False"; index = 0} }
 
 let rec constrain sub sup =
 
@@ -75,7 +72,7 @@ let rec constrain sub sup =
   (* Variable *)
 
   match sub, sup with
-  | Var sub, Var sup when sub.name = sup.name ->
+  | Var sub, Var sup when sub.ident.index = sup.ident.index ->
     true
   | sub, sup ->
 
@@ -122,6 +119,15 @@ and check term type' =
   | Ascr ascr ->
     check ascr.body ascr.type' &&
     constrain ascr.type' type'
+  | App app ->
+    with_exis app.span (fun param_type ->
+      with_var app.span param_type (fun param_ident ->
+        let param = { span = app.span; ident = param_ident; type' = param_type } in
+        let abs = Abs { span = app.span; param; body = type' } in
+        check app.abs abs &&
+        check app.arg param_type
+      )
+    )
   | Union union ->
     check union.left  Type &&
     check union.right Type &&
