@@ -2,6 +2,11 @@ open Ast
 open Ident
 open Util.Monad
 
+type ctx_val = {
+  ident: ident;
+  value: term;
+}
+
 type ctx_var = {
   ident: ident;
   type': term;
@@ -16,18 +21,22 @@ type ctx_exis = {
 }
 
 type ctx = {
+  vals: ctx_val list;
   vars: ctx_var list;
   univs: ctx_univ list;
   exiss: ctx_exis list;
 }
 
-let ctx_empty = { vars = []; univs = []; exiss = [] }
+let ctx_empty = { vals = []; vars = []; univs = []; exiss = [] }
 
 let add_var ident type' ctx =
   { ctx with vars = { ident; type' } :: ctx.vars }
 
 let add_exis ident ctx =
   { ctx with exiss = { ident } :: ctx.exiss }
+
+let find_val ident ctx =
+  Ok (List.find_opt (fun (val': ctx_val) -> val'.ident = ident) ctx.vals, ctx)
 
 module S = struct
   type state = ctx

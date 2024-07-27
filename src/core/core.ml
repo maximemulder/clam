@@ -96,7 +96,7 @@ and constrain_inner sub sup =
   match sup with
   | Union sup ->
     any [
-      constrain sub  sup.left;
+      constrain sub sup.left;
       constrain sub sup.right;
     ];
   | sup ->
@@ -155,8 +155,18 @@ and check_inner term type' =
       check term type'
     | None -> ( (* TMP HACK FOR POC *)
       match type' with
-      | Var type' when (var.ident = ident_true || var.ident = ident_false) && type'.ident = ident_bool ->
-        return ()
+      | Var type' ->
+        let* val' = find_val type'.ident in
+        (match val' with
+        | Some val' ->
+          check (Var var) (val'.value)
+        | None ->
+          failwith "Variable not in context")
+      | Union union ->
+        any [
+          check (Var var) union.left;
+          check (Var var) union.right;
+        ]
       | Inter inter ->
         all [
           check (Var var) inter.left;

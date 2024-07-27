@@ -20,14 +20,14 @@ let print_result res =
     ) constraints
 
 let constrain sub sup =
-  let res = constrain sub sup ctx_empty in
+  let res = constrain sub sup ctx in
   print_endline (display sub ^ " < "  ^ display sup);
   print_result res
 
 let check term type' =
-  let res = check term type' ctx_empty in
+  let res = check term type' ctx in
   print_endline (display term ^ " : "  ^ display type');
   print_result res
 
 let () =
-  check true' (if' true' (group (singleton true')) false')
+  check true' (if' true' (group bool) false')

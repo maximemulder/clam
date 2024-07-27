@@ -1,13 +1,9 @@
 open Ast
+open Ctx
 open Ident
 open Prim
 
 let span = Code.span_primitive
-
-let unit   = var_unit  span
-let true'  = var_true  span
-let false' = var_false span
-let bool   = var_bool  span
 
 let singleton term =
   Interval { span; lower = term; upper = term }
@@ -68,3 +64,21 @@ let union left right =
 
 let inter left right =
   Inter { span; left; right }
+
+let unit   = var_unit  span
+let true'  = var_true  span
+let false' = var_false span
+let bool   = var_bool  span
+
+let ctx = {
+  vals = [
+    {ident = ident_bool; value = (union (singleton true') (singleton false'))}
+  ];
+  vars = [
+    {ident = ident_unit;  type' = Top};
+    {ident = ident_true;  type' = Top};
+    {ident = ident_false; type' = Top};
+  ];
+  univs = [];
+  exiss = [];
+}
