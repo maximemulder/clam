@@ -2,22 +2,22 @@ open Code
 open Ident
 
 type term =
-  | Type
   | Bot
   | Top
-  | Var    of var
-  | Row    of row
-  | Record of record
-  | Group  of group
-  | If     of if'
-  | Ascr   of ascr
-  | Abs    of abs
-  | App    of app
-  | Univ   of univ
-  | Rec    of rec'
-  (* | Not of not *)
-  | Union  of union
-  | Inter  of inter
+  | Var      of var
+  | Row      of row
+  | Record   of record
+  | Group    of group
+  | If       of if'
+  | Ascr     of ascr
+  | Abs      of abs
+  | App      of app
+  | Univ     of univ
+  | Rec      of rec'
+  (* | Not   of not *)
+  | Union    of union
+  | Inter    of inter
+  | Interval of interval
 
 and group = {
   span: span;
@@ -87,6 +87,12 @@ and inter = {
   span: span;
   left: term;
   right: term;
+}
+
+and interval = {
+  span: span;
+  lower: term;
+  upper: term;
 }
 
 and attr = {

@@ -9,8 +9,14 @@ let true'  = var_true  span
 let false' = var_false span
 let bool   = var_bool  span
 
+let singleton term =
+  Interval { span; lower = term; upper = term }
+
+let interval lower upper =
+  Interval { span; lower; upper }
+
 let type' =
-  Type
+  Interval { span; lower = Bot; upper = Bot }
 
 let bot =
   Bot

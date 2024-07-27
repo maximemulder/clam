@@ -15,7 +15,7 @@ let print_result res =
     List.iter(fun constrain -> match constrain with
       | SubType constrain ->
         print_endline ("  " ^ display constrain.sub ^ " < " ^ display constrain.sup)
-      | InType constrain ->
+      | HasType constrain ->
         print_endline ("  "  ^ display constrain.term ^ " : "  ^ display constrain.type')
     ) constraints
 
@@ -30,4 +30,4 @@ let check term type' =
   print_result res
 
 let () =
-  constrain (group true') (if' true' (group (inter true' false')) false')
+  check true' (if' true' (group (singleton true')) false')

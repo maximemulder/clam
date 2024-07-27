@@ -2,8 +2,6 @@ open Ast
 
 let rec display term =
   match term with
-  | Type ->
-    "Type"
   | Bot ->
     "Bot"
   | Top ->
@@ -18,5 +16,15 @@ let rec display term =
     display union.left ^ " | " ^ display union.right
   | Inter inter ->
     display inter.left ^ " & " ^ display inter.right
+  | Interval interval ->
+    display_interval interval
   | _ ->
     "?"
+
+and display_interval interval =
+  if interval.lower = interval.upper then
+    (* [interval] is a singleton interval *)
+    ":" ^ display interval.lower
+  else
+    (* [type'] is a non-singleton interval *)
+    display interval.lower ^ " .. " ^ display interval.upper

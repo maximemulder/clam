@@ -8,6 +8,8 @@ open Prim
 
 let todo () = failwith "TODO"
 
+let tmp = Interval { span = Code.span_primitive; lower = Bot; upper = Top }
+
 let rec constrain sub sup ctx =
   let res = constrain_inner sub sup ctx in
   match res with
@@ -36,8 +38,8 @@ and constrain_inner sub sup =
   | If sub ->
     all [
       check sub.cond (var_bool sub.span);
-      check sub.then' Type;
-      check sub.else' Type;
+      check sub.then' tmp;
+      check sub.else' tmp;
       constrain (step_if sub) sup;
     ]
   | sub ->
@@ -45,8 +47,8 @@ and constrain_inner sub sup =
   | If sup ->
     all [
       check sup.cond (var_bool sup.span);
-      check sup.then' Type;
-      check sup.else' Type;
+      check sup.then' tmp;
+      check sup.else' tmp;
       constrain sub (step_if sup);
     ];
   | sup ->
@@ -70,6 +72,20 @@ and constrain_inner sub sup =
 
   (* Unions & Intersection *)
 
+  match sup with
+  | Inter sup ->
+    all [
+      constrain sub sup.left;
+      constrain sub sup.right;
+    ];
+  | sup ->
+  match sub with
+  | Inter sub ->
+    any [
+      constrain sub.left  sup;
+      constrain sub.right sup;
+    ];
+  | sub ->
   match sub with
   | Union sub ->
     all [
@@ -78,9 +94,9 @@ and constrain_inner sub sup =
     ];
   | sub ->
   match sup with
-  | Inter sup ->
-    all [
-      constrain sub sup.left;
+  | Union sup ->
+    any [
+      constrain sub  sup.left;
       constrain sub sup.right;
     ];
   | sup ->
@@ -93,14 +109,14 @@ and constrain_inner sub sup =
     return ()
   | sub, sup ->
 
-  (* Type *)
+  (* Interval *)
 
   match sup with
-  | Type ->
+  | Interval _ ->
     return ()
   | sup ->
   match sub with
-  | Type ->
+  | Interval _ ->
     failure
   | sub ->
 
@@ -124,7 +140,7 @@ and check term type' ctx =
   | Ok ((), ctx) ->
     Ok ((), ctx)
   | Error constraints ->
-    Error ((InType { term; type' }) :: constraints)
+    Error ((HasType { term; type' }) :: constraints)
 
 and check_inner term type' =
   let failure = lift (fail []) in
@@ -132,7 +148,7 @@ and check_inner term type' =
   | Bot ->
     constrain Top type'
   | Top ->
-    constrain Type type'
+    constrain tmp type'
   | Var var -> (
     match step type' with
     | Some type' ->
@@ -146,15 +162,18 @@ and check_inner term type' =
           check (Var var) inter.left;
           check (Var var) inter.right;
         ]
-      | Type ->
-        return ()
+      | Interval interval ->
+        all [
+          constrain interval.lower (Var var);
+          constrain (Var var) interval.upper;
+        ]
       | _ ->
         failure
     ))
   | Row row ->
     all [
-      check row.type' Type;
-      constrain Type type';
+      check row.type' tmp;
+      constrain tmp type';
     ]
   | Group group ->
     check group.body type'
@@ -182,18 +201,16 @@ and check_inner term type' =
     )
   | Union union ->
     all [
-      check union.left  Type;
-      check union.right Type;
-      constrain Type type';
+      check union.left  tmp;
+      check union.right tmp;
+      constrain tmp type';
     ];
   | Inter inter ->
     all [
-      check inter.left  Type;
-      check inter.right Type;
-      constrain Type type';
+      check inter.left  tmp;
+      check inter.right tmp;
+      constrain tmp type';
     ]
-  | Type ->
-    failure
   | _ ->
 
     (* TODO: Others *)

@@ -35,7 +35,7 @@ end
 
 type constrain =
   | SubType of { sub: term; sup: term }
-  | InType  of { term: term; type': term }
+  | HasType of { term: term; type': term }
 
 module R = struct
   type error = constrain list
@@ -47,11 +47,18 @@ module Monad = Util.Monad2.State.StateT(Util.Monad2.Result.Result(R))(S)
 
 open Monad
 
-let all (fs: (ctx -> ((unit * ctx), R.error) result) list) (ctx: ctx) : ((unit * ctx), R.error) result =
+let all fs ctx =
   List.fold_left (fun prev f -> match prev with
     | Ok ((), ctx) -> f ctx
     | Error constraints -> Error constraints
   ) (Ok ((), ctx)) fs
+
+(* TODO: This function is incomplete *)
+let any fs ctx =
+  List.fold_left (fun prev f -> match prev with
+    | Ok ((), ctx) -> Ok ((), ctx)
+    | Error _ -> f ctx
+  ) (Error []) fs
 
 let with_var type' f =
   let ident = new_ident_anon () in
