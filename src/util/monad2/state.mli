@@ -6,12 +6,9 @@ module type STATE = sig
 end
 
 module StateT (M: MONAD) (S: STATE) : sig
-  include MONAD
-    with type 'a t = S.state -> ('a * S.state) M.t
-
   include TRANS
-    with type 'a m := 'a M.t
-     and type 'a t := 'a t
+    with type 'a t = S.state -> ('a * S.state) M.t
+     and type 'a m := 'a M.t
 
   val get : S.state t
 

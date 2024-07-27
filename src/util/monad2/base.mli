@@ -13,8 +13,9 @@ module type MONAD = sig
 end
 
 module type TRANS = sig
+  include MONAD
+
   type 'a m
-  type 'a t
 
   val lift : 'a m -> 'a t
 end
