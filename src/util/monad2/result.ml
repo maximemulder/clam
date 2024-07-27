@@ -15,8 +15,8 @@ module ResultT (M: MONAD) (R: RESULT) = struct
     let bind m f =
       M.bind m (fun m ->
         match m with
-        | Ok v ->
-          f v
+        | Ok a ->
+          f a
         | Error e ->
           M.return (Error e)
     )
