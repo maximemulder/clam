@@ -3,6 +3,15 @@ open Ident
 
 let span = Code.span_primitive
 
+let unit =
+  Var { span; ident = { name = "Unit"; index = 0 } }
+
+let true' =
+  Var { span; ident = { name = "True"; index = 0 } }
+
+let false' =
+  Var { span; ident = { name = "False"; index = 0 } }
+
 let type' =
   Type
 

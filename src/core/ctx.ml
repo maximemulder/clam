@@ -29,11 +29,29 @@ let add_var ident type' ctx =
 let add_exis ident ctx =
   { ctx with exiss = { ident } :: ctx.exiss }
 
-module Monad = Util.Monad.StateMonad(struct
-  type s = ctx
-end)
+module S = struct
+  type state = ctx
+end
+
+type constrain =
+  | SubType of { sub: term; sup: term }
+  | InType  of { term: term; type': term }
+
+module R = struct
+  type error = constrain list
+end
+
+module M = Util.Monad2.Result.Result(R)
+
+module Monad = Util.Monad2.State.StateT(Util.Monad2.Result.Result(R))(S)
 
 open Monad
+
+let all (fs: (ctx -> ((unit * ctx), R.error) result) list) (ctx: ctx) : ((unit * ctx), R.error) result =
+  List.fold_left (fun prev f -> match prev with
+    | Ok ((), ctx) -> f ctx
+    | Error constraints -> Error constraints
+  ) (Ok ((), ctx)) fs
 
 let with_var type' f =
   let ident = new_ident_anon () in

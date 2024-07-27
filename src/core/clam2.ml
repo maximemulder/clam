@@ -1,13 +1,33 @@
-open Build
 open Core
+open Ctx
+open Display
+
+open Build
+
+open Ctx.Monad
+
+let print_result res =
+  match res with
+  | Ok ((), _) ->
+    print_endline ("TRUE")
+  | Error constraints ->
+    print_endline ("FALSE");
+    List.iter(fun constrain -> match constrain with
+      | SubType constrain ->
+        print_endline ("  " ^ display constrain.sub ^ " < " ^ display constrain.sup)
+      | InType constrain ->
+        print_endline ("  "  ^ display constrain.term ^ " : "  ^ display constrain.type')
+    ) constraints
 
 let constrain sub sup =
-  print_endline (constrain sub sup |> string_of_bool)
+  let res = constrain sub sup ctx_empty in
+  print_endline (display sub ^ " < "  ^ display sup);
+  print_result res
 
 let check term type' =
-  print_endline (check term type' |> string_of_bool)
+  let res = check term type' ctx_empty in
+  print_endline (display term ^ " : "  ^ display type');
+  print_result res
 
 let () =
-  constrain top top;
-  constrain bot top;
-  constrain top bot;
+  constrain (group true') (if' true' (group (inter true' false')) false')
