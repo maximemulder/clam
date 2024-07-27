@@ -5,3 +5,5 @@
 (env
   (dev
     (flags (:standard -warn-error -A -w -32))))
+
+(include_subdirs qualified)
