@@ -4,17 +4,9 @@ open Ctx
 open Ctx.M
 open Ctx.Monad
 open Display
+open Prim
 
 let todo () = failwith "TODO"
-
-let bool span =
-  Var { span; ident = {name = "Bool"; index = 0} }
-
-let true' span =
-  Var { span; ident = {name = "True"; index = 0} }
-
-let false' span =
-  Var { span; ident = {name = "False"; index = 0} }
 
 let rec constrain sub sup ctx =
   let res = constrain_inner sub sup ctx in
@@ -43,7 +35,7 @@ and constrain_inner sub sup =
   match sub with
   | If sub ->
     all [
-      check sub.cond (bool sub.span);
+      check sub.cond (var_bool sub.span);
       check sub.then' Type;
       check sub.else' Type;
       constrain (step_if sub) sup;
@@ -52,7 +44,7 @@ and constrain_inner sub sup =
   match sup with
   | If sup ->
     all [
-      check sup.cond (bool sup.span);
+      check sup.cond (var_bool sup.span);
       check sup.then' Type;
       check sup.else' Type;
       constrain sub (step_if sup);
@@ -147,7 +139,7 @@ and check_inner term type' =
       check term type'
     | None -> ( (* TMP HACK FOR POC *)
       match type' with
-      | Var type' when var.ident.name = "True" && type'.ident.name = "Bool" ->
+      | Var type' when (var.ident = ident_true || var.ident = ident_false) && type'.ident = ident_bool ->
         return ()
       | Inter inter ->
         all [
@@ -168,7 +160,7 @@ and check_inner term type' =
     check group.body type'
   | If if' ->
     all [
-      check if'.cond (bool if'.span);
+      check if'.cond (var_bool if'.span);
       check if'.then' type';
       check if'.else' type';
     ]
@@ -217,9 +209,9 @@ and step term =
 
 and step_if if' =
   match if'.cond with
-  | Var { ident = { name = "True"; _}; _ } ->
+  | Var var when var.ident = ident_true ->
     if'.then'
-  | Var { ident = { name = "False"; _}; _} ->
+  | Var var when var.ident = ident_false ->
     if'.else'
   | cond ->
     If { if' with cond }
