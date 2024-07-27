@@ -22,11 +22,11 @@ module ResultT (M: MONAD) (R: RESULT) = struct
     )
   end)
 
-  let fail e =
-    M.return (Error e)
-
   let lift m =
     M.bind m return
+
+  let fail e =
+    M.return (Error e)
 end
 
 module Result = ResultT(Identity)

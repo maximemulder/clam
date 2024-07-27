@@ -17,6 +17,9 @@ module StateT (M: MONAD) (S: STATE) = struct
       M.bind (m s) (uncurry f)
   end)
 
+  let lift m s =
+    M.bind m (fun a -> return a s)
+
   let get s =
     M.return (s, s)
 
@@ -25,9 +28,6 @@ module StateT (M: MONAD) (S: STATE) = struct
 
   let modify f s =
     M.return ((), f s)
-
-  let lift m s =
-    M.bind m (fun a -> return a s)
 end
 
 module State = StateT(Identity)
