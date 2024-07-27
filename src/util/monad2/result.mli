@@ -13,4 +13,4 @@ module ResultT (M: MONAD) (R: RESULT) : sig
   val fail : R.error -> 'a t
 end
 
-module Result (R: RESULT) : module type of ResultT(Identity)(R)
+module Result : module type of ResultT(Identity)

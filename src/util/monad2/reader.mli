@@ -13,4 +13,4 @@ module ReaderT (M: MONAD) (R: READER) : sig
   val get : R.reader t
 end
 
-module Reader (R: READER) : module type of ReaderT(Identity)(R)
+module Reader : module type of ReaderT(Identity)

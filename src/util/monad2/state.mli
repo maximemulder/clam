@@ -17,4 +17,4 @@ module StateT (M: MONAD) (S: STATE) : sig
   val modify : (S.state -> S.state) -> unit t
 end
 
-module State (S: STATE) : module type of StateT(Identity)(S)
+module State : module type of StateT(Identity)
