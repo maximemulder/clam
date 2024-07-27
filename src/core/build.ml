@@ -11,9 +11,6 @@ let singleton term =
 let interval lower upper =
   Interval { span; lower; upper }
 
-let type' =
-  Interval { span; lower = Bot; upper = Bot }
-
 let bot =
   Bot
 
@@ -27,7 +24,7 @@ let row tag type' =
   Row { span; tag; type' }
 
 let record attrs =
-  let attrs = List.map (fun (tag, value) -> { tag; value }) attrs in
+  let attrs = List.map (fun (tag, term) -> { tag; term }) attrs in
   Record { span; attrs }
 
 let group body =
@@ -69,10 +66,12 @@ let unit   = var_unit  span
 let true'  = var_true  span
 let false' = var_false span
 let bool   = var_bool  span
+let type'  = var_type  span
 
 let ctx = {
   vals = [
-    {ident = ident_bool; value = (union (singleton true') (singleton false'))}
+    {ident = ident_bool; value = union (singleton true') (singleton false')};
+    {ident = ident_type; value = interval Bot Top};
   ];
   vars = [
     {ident = ident_unit;  type' = Top};

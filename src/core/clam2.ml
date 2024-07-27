@@ -19,6 +19,12 @@ let print_result res =
         print_endline ("  "  ^ display constrain.term ^ " : "  ^ display constrain.type')
     ) constraints
 
+let type_pair_abs = abs "A" (Some type') (fun a -> (inter (row "0" a) (row "1" a)))
+
+let type_pair_bool = app type_pair_abs bool
+
+let expr_pair = record ["0", true'; "1", false']
+
 let constrain sub sup =
   let res = constrain sub sup ctx in
   print_endline (display sub ^ " < "  ^ display sup);
@@ -30,4 +36,5 @@ let check term type' =
   print_result res
 
 let () =
-  check true' (if' true' (group bool) false')
+  (* check expr_pair type_pair_bool *)
+  check bool type'

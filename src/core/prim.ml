@@ -5,6 +5,7 @@ let ident_unit  = new_ident "Unit"
 let ident_true  = new_ident "True"
 let ident_false = new_ident "False"
 let ident_bool  = new_ident "Bool"
+let ident_type  = new_ident "Type"
 
 let var_unit span =
   Var { span; ident = ident_unit }
@@ -17,3 +18,6 @@ let var_false span =
 
 let var_bool span =
   Var { span; ident = ident_bool }
+
+let var_type span =
+  Var { span; ident = ident_type }

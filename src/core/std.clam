@@ -1,3 +1,5 @@
+def Type = Bot .. Top
+
 def Unit
 
 def True

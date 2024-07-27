@@ -97,7 +97,7 @@ and interval = {
 
 and attr = {
   tag: string;
-  value: term;
+  term: term;
 }
 
 and param = {
