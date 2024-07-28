@@ -36,5 +36,5 @@ let check term type' =
   print_result res
 
 let () =
-  (* check expr_pair type_pair_bool *)
-  check bool type'
+  check expr_pair type_pair_bool
+  (* check bool type' *)

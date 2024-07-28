@@ -5,6 +5,7 @@ open Ctx.M
 open Ctx.Monad
 open Display
 open Prim
+open Subst
 
 let todo () = failwith "TODO"
 
@@ -116,8 +117,11 @@ and constrain_inner sub sup =
     return ()
   | sup ->
   match sub with
-  | Interval _ ->
-    failure
+  | Interval sub ->
+    all [
+      check sub.lower sup;
+      check sub.upper sup;
+    ]
   | sub ->
 
   (* Bot & Top *)
@@ -125,10 +129,27 @@ and constrain_inner sub sup =
   match sub with
   | Bot ->
     return ()
-  | _ ->
+  | sub ->
   match sup with
   | Top ->
     return ()
+  | sup ->
+
+  (* Row *)
+  match sub, sup with
+  | Row sub, Row sup when sub.tag = sup.tag ->
+    constrain sub.type' sup.type'
+  | sub, sup ->
+
+  (* Application *)
+
+  match sub with
+  | App sub ->
+    constrain (step_app sub) sup
+  | sub ->
+  match sup with
+  | App sup ->
+    constrain sub (step_app sup)
   | _ ->
 
   (* TODO: Others *)
@@ -185,6 +206,10 @@ and check_inner term type' =
       check row.type' tmp;
       constrain tmp type';
     ]
+  | Record record ->
+    let record_type = List.map (fun attr -> Row { span = record.span; tag = attr.tag; type' = (Interval { span = record.span; lower = attr.term; upper = attr.term }) }) record.attrs
+      |> List.fold_left (fun row record_type' -> Inter { span = record.span; left = row; right = record_type' }) Bot in
+    constrain record_type type'
   | Group group ->
     check group.body type'
   | If if' ->
@@ -229,10 +254,16 @@ and check_inner term type' =
 and step term =
   match term with
   | Group group ->
-    Some group.body
+    Some (step_group group)
   | If if' ->
     Some (step_if if')
-  | _ -> None
+  | App app ->
+    Some (step_app app)
+  | _ ->
+    None
+
+and step_group group =
+  group.body
 
 and step_if if' =
   match if'.cond with
@@ -241,7 +272,23 @@ and step_if if' =
   | Var var when var.ident = ident_false ->
     if'.else'
   | cond ->
+    let cond = Option.get (step cond) in
     If { if' with cond }
+
+and step_app app =
+  match app.abs with
+  | Abs abs ->
+    step_app_abs abs app.arg
+  | abs ->
+    let abs = Option.get (step abs) in
+    App { app with abs }
+
+and step_app_abs abs arg =
+  match abs.param.ident with
+  | Some ident ->
+    subst ident arg abs.body
+  | None ->
+    failwith "Ill-formed type abstraction in `step_app_abs`"
 
 and eval term =
   match step term with
