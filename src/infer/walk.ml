@@ -26,7 +26,6 @@ let rec infer_parent (expr: Abt.Expr.expr) parent =
   constrain span type' parent
 
 and infer (expr: Abt.Expr.expr) =
-
   match expr with
   | Unit unit     -> infer_unit unit
   | Bool bool     -> infer_bool bool

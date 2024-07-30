@@ -66,12 +66,9 @@ and display_inter inter =
   display inter.left ^ " & " ^ display inter.right
 
 and display_interval interval =
+  (* Is [interval] a singleton interval ? *)
   if interval.lower = interval.upper then
-    (* [interval] is a singleton interval *)
     ":" ^ display interval.lower
-  else if interval.lower = Bot && interval.upper = Top then
-    (* [interval] is the first universal interval *)
-    "Type"
   else
     display interval.lower ^ " .. " ^ display interval.upper
 

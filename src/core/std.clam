@@ -1,4 +1,4 @@
-def Type = Bot .. Top
+Type = Bot .. Top
 
 def Unit
 
@@ -6,7 +6,7 @@ def True
 
 def False
 
-def Bool = True | False
+Bool = True | False
 
 def Nat
 
@@ -16,15 +16,15 @@ def Succ : Nat -> Nat
 
 def List : Type -> Type
 
-def ListNil : List(Bot)
+def ListNil : List Bot
 
-def ListCons : [A] -> List(A) -> (e) -> List(A | e)
+def ListCons : [A] -> (e: A) -> List A -> List A
 
 def Vec : Nat -> Type -> Type
 
-def VecNil : Vec(0, Bot)
+def VecNil : Vec 0 Bot
 
-def VecCons : [n] -> [A] -> Vec(n, A) -> (e) -> Vec(Succ(n), A | e)
+def VecCons : [n] -> [A] -> (e: A) -> Vec n A -> Vec (Succ n) A
 
 def Char : Nat -> Type
 

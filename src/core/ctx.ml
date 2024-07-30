@@ -50,24 +50,42 @@ module R = struct
   type error = constrain list
 end
 
-module M = Util.Monad2.Result.Result(R)
+module Result = Util.Monad2.Result.Result(R)
 
-module Monad = Util.Monad2.State.StateT(Util.Monad2.Result.Result(R))(S)
+module ResultState = Util.Monad2.State.StateT(Util.Monad2.Result.Result(R))(S)
 
-open Monad
+open ResultState
+
+type proof = {
+  constrain: constrain;
+  children: proof list;
+}
+
+let fail = lift (Result.fail [])
+
+let success = return []
 
 let all fs ctx =
   List.fold_left (fun prev f -> match prev with
-    | Ok ((), ctx) -> f ctx
+    | Ok (children, ctx) -> (match f ctx with
+      | Ok (children2, ctx) -> Ok (children @ children2 , ctx)
+      | Error constraints -> Error constraints
+    )
     | Error constraints -> Error constraints
-  ) (Ok ((), ctx)) fs
+  ) (Ok ([], ctx)) fs
 
 (* TODO: This function is incomplete *)
 let any fs ctx =
   List.fold_left (fun prev f -> match prev with
-    | Ok ((), ctx) -> Ok ((), ctx)
+    | Ok (children, ctx) -> Ok (children, ctx)
     | Error _ -> f ctx
   ) (Error []) fs
+
+let one f ctx =
+  match f ctx with
+  | Ok (subproof, ctx) ->
+    Ok ([subproof], ctx)
+  | Error constraints -> Error constraints
 
 let with_var type' f =
   let ident = new_ident_anon () in

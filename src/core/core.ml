@@ -1,8 +1,7 @@
 open Ast
 open Ctx
 
-open Ctx.M
-open Ctx.Monad
+open Ctx.ResultState
 open Display
 open Prim
 open Subst
@@ -13,15 +12,14 @@ let tmp = Interval { span = Code.span_primitive; lower = Bot; upper = Top }
 
 let rec constrain sub sup ctx =
   let res = constrain_inner sub sup ctx in
+  let constrain = SubType { sub; sup } in
   match res with
-  | Ok ((), ctx) ->
-    Ok ((), ctx)
+  | Ok (children, ctx) ->
+    Ok ([{ constrain; children }], ctx)
   | Error constraints ->
-    Error ((SubType { sub; sup }) :: constraints)
+    Error (constrain :: constraints)
 
 and constrain_inner sub sup =
-  let failure = lift (fail []) in
-
   (* Group *)
 
   match sub with
@@ -103,18 +101,11 @@ and constrain_inner sub sup =
   | sup ->
   (* TODO: Annoying cases *)
 
-  (* Variable *)
-
-  match sub, sup with
-  | Var sub, Var sup when sub.ident.name = sup.ident.name ->
-    return ()
-  | sub, sup ->
-
   (* Interval *)
 
   match sup with
   | Interval _ ->
-    return ()
+    success
   | sup ->
   match sub with
   | Interval sub ->
@@ -128,11 +119,11 @@ and constrain_inner sub sup =
 
   match sub with
   | Bot ->
-    return ()
+    success
   | sub ->
   match sup with
   | Top ->
-    return ()
+    success
   | sup ->
 
   (* Row *)
@@ -153,18 +144,18 @@ and constrain_inner sub sup =
   | _ ->
 
   (* TODO: Others *)
-  failure
+  fail
 
 and check term type' ctx =
   let res = check_inner term type' ctx in
+  let constrain = HasType { term; type' } in
   match res with
-  | Ok ((), ctx) ->
-    Ok ((), ctx)
+  | Ok (children, ctx) ->
+    Ok ([{ constrain; children }], ctx)
   | Error constraints ->
-    Error ((HasType { term; type' }) :: constraints)
+    Error (constrain :: constraints)
 
 and check_inner term type' =
-  let failure = lift (fail []) in
   match term with
   | Bot ->
     constrain Top type'
@@ -199,7 +190,7 @@ and check_inner term type' =
           constrain (Var var) interval.upper;
         ]
       | _ ->
-        failure
+        fail
     ))
   | Row row ->
     all [
@@ -249,7 +240,7 @@ and check_inner term type' =
   | _ ->
 
     (* TODO: Others *)
-    failure
+    fail
 
 and step term =
   match term with

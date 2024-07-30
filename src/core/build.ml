@@ -53,7 +53,7 @@ let univ name type' body =
 
 let rec' name body =
   let ident = new_ident name in
-  let body = body ident in
+  let body = body (var ident) in
   Rec { span; ident; body }
 
 let union left right =
