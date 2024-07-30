@@ -14,13 +14,13 @@ let print_constrain constrain =
 let rec print_proof indent proof =
   print_string (Util.string_repeat indent "  ");
   print_constrain proof.constrain;
-  List.iter (print_proof (indent + 1)) proof.children
+  List.iter (print_proof (indent + 1)) proof.subproofs
 
 let print_result res =
   match res with
-  | Ok (proofs, _) ->
+  | Ok (proof, _) ->
     print_endline ("TRUE");
-    List.iter (print_proof 0) proofs
+    print_proof 0 proof
   | Error constraints ->
     print_endline ("FALSE");
     List.iter print_constrain constraints

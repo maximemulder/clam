@@ -58,7 +58,7 @@ open ResultState
 
 type proof = {
   constrain: constrain;
-  children: proof list;
+  subproofs: proof list;
 }
 
 let fail = lift (Result.fail [])
@@ -67,8 +67,8 @@ let success = return []
 
 let all fs ctx =
   List.fold_left (fun prev f -> match prev with
-    | Ok (children, ctx) -> (match f ctx with
-      | Ok (children2, ctx) -> Ok (children @ children2 , ctx)
+    | Ok (prev_proofs, ctx) -> (match f ctx with
+      | Ok (curr_proof, ctx) -> Ok (curr_proof :: prev_proofs, ctx)
       | Error constraints -> Error constraints
     )
     | Error constraints -> Error constraints
@@ -77,14 +77,17 @@ let all fs ctx =
 (* TODO: This function is incomplete *)
 let any fs ctx =
   List.fold_left (fun prev f -> match prev with
-    | Ok (children, ctx) -> Ok (children, ctx)
-    | Error _ -> f ctx
+    | Ok (proofs, ctx) -> Ok (proofs, ctx)
+    | Error _ -> (match f ctx with
+      | Ok (proof, ctx) -> Ok([proof], ctx)
+      | Error constraints -> Error constraints
+    )
   ) (Error []) fs
 
 let one f ctx =
   match f ctx with
-  | Ok (subproof, ctx) ->
-    Ok ([subproof], ctx)
+  | Ok (proof, ctx) ->
+    Ok ([proof], ctx)
   | Error constraints -> Error constraints
 
 let with_var type' f =

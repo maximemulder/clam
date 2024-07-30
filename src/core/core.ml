@@ -14,8 +14,8 @@ let rec constrain sub sup ctx =
   let res = constrain_inner sub sup ctx in
   let constrain = SubType { sub; sup } in
   match res with
-  | Ok (children, ctx) ->
-    Ok ([{ constrain; children }], ctx)
+  | Ok (subproofs, ctx) ->
+    Ok ({ constrain; subproofs }, ctx)
   | Error constraints ->
     Error (constrain :: constraints)
 
@@ -24,11 +24,11 @@ and constrain_inner sub sup =
 
   match sub with
   | Group sub ->
-    constrain sub.body sup
+    one (constrain sub.body sup)
   | sub ->
   match sup with
   | Group sup ->
-    constrain sub sup.body
+    one (constrain sub sup.body)
   | sup ->
 
   (* If *)
@@ -49,7 +49,7 @@ and constrain_inner sub sup =
       check sup.then' tmp;
       check sup.else' tmp;
       constrain sub (step_if sup);
-    ];
+    ]
   | sup ->
 
   (* Type ascription *)
@@ -59,14 +59,14 @@ and constrain_inner sub sup =
     all [
       check sub.body sub.type';
       constrain sub.body sup;
-    ];
+    ]
   | sub ->
   match sup with
   | Ascr sup ->
     all [
       check sup.body sup.type';
       constrain sub sup.body;
-    ];
+    ]
   | sup ->
 
   (* Unions & Intersection *)
@@ -76,14 +76,14 @@ and constrain_inner sub sup =
     all [
       constrain sub sup.left;
       constrain sub sup.right;
-    ];
+    ]
   | sup ->
   match sub with
   | Inter sub ->
     any [
       constrain sub.left  sup;
       constrain sub.right sup;
-    ];
+    ]
   | sub ->
   match sub with
   | Union sub ->
@@ -129,18 +129,18 @@ and constrain_inner sub sup =
   (* Row *)
   match sub, sup with
   | Row sub, Row sup when sub.tag = sup.tag ->
-    constrain sub.type' sup.type'
+    one (constrain sub.type' sup.type')
   | sub, sup ->
 
   (* Application *)
 
   match sub with
   | App sub ->
-    constrain (step_app sub) sup
+    one (constrain (step_app sub) sup)
   | sub ->
   match sup with
   | App sup ->
-    constrain sub (step_app sup)
+    one (constrain sub (step_app sup))
   | _ ->
 
   (* TODO: Others *)
@@ -150,28 +150,28 @@ and check term type' ctx =
   let res = check_inner term type' ctx in
   let constrain = HasType { term; type' } in
   match res with
-  | Ok (children, ctx) ->
-    Ok ([{ constrain; children }], ctx)
+  | Ok (subproofs, ctx) ->
+    Ok ({ constrain; subproofs }, ctx)
   | Error constraints ->
     Error (constrain :: constraints)
 
 and check_inner term type' =
   match term with
   | Bot ->
-    constrain Top type'
+    one (constrain Top type')
   | Top ->
-    constrain tmp type'
+    one (constrain tmp type')
   | Var var -> (
     match step type' with
     | Some type' ->
-      check term type'
+      one (check term type')
     | None -> ( (* TMP HACK FOR POC *)
       match type' with
       | Var type' ->
         let* val' = find_val type'.ident in
         (match val' with
         | Some val' ->
-          check (Var var) (val'.value)
+          one (check (Var var) (val'.value))
         | None ->
           failwith "Variable not in context")
       | Union union ->
@@ -200,9 +200,9 @@ and check_inner term type' =
   | Record record ->
     let record_type = List.map (fun attr -> Row { span = record.span; tag = attr.tag; type' = (Interval { span = record.span; lower = attr.term; upper = attr.term }) }) record.attrs
       |> List.fold_left (fun row record_type' -> Inter { span = record.span; left = row; right = record_type' }) Bot in
-    constrain record_type type'
+    one (constrain record_type type')
   | Group group ->
-    check group.body type'
+    one (check group.body type')
   | If if' ->
     all [
       check if'.cond (var_bool if'.span);
