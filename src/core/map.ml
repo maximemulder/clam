@@ -4,24 +4,24 @@ let rec map f term =
   match term with
   | Bot | Top | Var _ ->
     term
-  | Row row ->
-    let type' = f row.type' in
-    Row { row with type' }
   | Record record ->
-    let attrs = List.map (map_attr f) record.attrs in
+    let attrs = List.map (map_record_attr f) record.attrs in
     Record { record with attrs }
+  | Attr attr ->
+    let record = f attr.record in
+    Attr { attr with record }
   | Group group ->
-    let body = f group.body in
-    Group { group with body }
+    let term = f group.term in
+    Group { group with term }
   | If if' ->
     let cond = f if'.cond in
     let then' = f if'.then' in
     let else' = f if'.else' in
     If { if' with cond; then'; else' }
   | Ascr ascr ->
-    let body = f ascr.body in
+    let term = f ascr.term in
     let type' = f ascr.type' in
-    Ascr { ascr with body; type' }
+    Ascr { ascr with term; type' }
   | Abs abs ->
     let type' = Option.map f abs.param.type' in
     let body = f abs.body in
@@ -45,10 +45,10 @@ let rec map f term =
     let left = f inter.left in
     let right = f inter.right in
     Inter { inter with left; right }
-  | Interval interval ->
-    let lower = f interval.lower in
-    let upper = f interval.upper in
-    Interval { interval with lower; upper }
+  | Range range ->
+    let lower = f range.lower in
+    let upper = f range.upper in
+    Range { range with lower; upper }
 
-and map_attr f attr =
+and map_record_attr f attr =
   { attr with term = f attr.term }

@@ -5,11 +5,11 @@ open Prim
 
 let span = Code.span_primitive
 
-let singleton term =
-  Interval { span; lower = term; upper = term }
+let single term =
+  Range { span; lower = term; upper = term }
 
-let interval lower upper =
-  Interval { span; lower; upper }
+let range lower upper =
+  Range { span; lower; upper }
 
 let bot =
   Bot
@@ -20,27 +20,27 @@ let top =
 let var ident =
   Var { span; ident }
 
-let row tag type' =
-  Row { span; tag; type' }
-
 let record attrs =
   let attrs = List.map (fun (tag, term) -> { tag; term }) attrs in
   Record { span; attrs }
 
-let group body =
-  Group { span; body }
+let attr record tag =
+  Attr { span; record; tag }
+
+let group term =
+  Group { span; term }
 
 let if' cond then' else' =
   If { span; cond; then'; else' }
 
-let ascr body type' =
-  Ascr { span; body; type' }
+let ascr term type' =
+  Ascr { span; term; type' }
 
 let abs name type' body =
   let ident = new_ident name in
   let body = body (var ident) in
   let ident = Some ident in
-  Abs { span; param = { span; ident; type' }; body }
+  Abs { span; param = { ident; type' }; body }
 
 let app abs arg =
   App { span; abs; arg }
@@ -49,7 +49,7 @@ let univ name type' body =
   let ident = new_ident name in
   let body = body (var ident) in
   let ident = Some ident in
-  Univ { span; param = { span; ident; type' }; body }
+  Univ { span; param = { ident; type' }; body }
 
 let rec' name body =
   let ident = new_ident name in
@@ -70,8 +70,8 @@ let type'  = var_type  span
 
 let ctx = {
   vals = [
-    {ident = ident_bool; value = union (singleton true') (singleton false')};
-    {ident = ident_type; value = interval Bot Top};
+    {ident = ident_bool; value = union true' false'};
+    {ident = ident_type; value = range Bot Top};
   ];
   vars = [
     {ident = ident_unit;  type' = Top};

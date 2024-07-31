@@ -1,3 +1,4 @@
+module Res = Result
 open Core
 open Ctx
 open Display
@@ -25,13 +26,13 @@ let print_result res =
     print_endline ("FALSE");
     List.iter print_constrain constraints
 
-let type_pair_abs = abs "A" (Some type') (fun a -> (inter (row "0" a) (row "1" a)))
+let type_pair_abs = abs "A" (Some type') (fun a -> (record ["0", a; "1", a]))
 
 let type_pair_bool = app type_pair_abs bool
 
 let expr_pair = record ["0", true'; "1", false']
 
-let type_list = abs "A" (Some type') (fun a -> rec' "List" (fun list -> union (row "cons" (inter (row "elem" a) (row "next" list))) (row "nil" unit)))
+let type_list = abs "A" (Some type') (fun a -> rec' "List" (fun list -> union (record ["cons", record ["elem", a; "next", list]]) (record ["nil", unit])))
 
 let constrain sub sup =
   let res = constrain sub sup ctx in
@@ -39,6 +40,7 @@ let constrain sub sup =
   print_result res
 
 let check term type' =
+  let type', _ = Res.get_ok (to_type type' ctx) in
   let res = check term type' ctx in
   print_endline (display term ^ " : "  ^ display type');
   print_result res

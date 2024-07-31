@@ -38,6 +38,9 @@ let add_exis ident ctx =
 let find_val ident ctx =
   Ok (List.find_opt (fun (val': ctx_val) -> val'.ident = ident) ctx.vals, ctx)
 
+let find_var ident ctx =
+  Ok (List.find_opt (fun (var: ctx_var) -> var.ident = ident) ctx.vars, ctx)
+
 module S = struct
   type state = ctx
 end

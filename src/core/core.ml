@@ -2,13 +2,13 @@ open Ast
 open Ctx
 
 open Ctx.ResultState
-open Display
 open Prim
 open Subst
+open Map_ctx
 
 let todo () = failwith "TODO"
 
-let tmp = Interval { span = Code.span_primitive; lower = Bot; upper = Top }
+let tmp = Range { span = Code.span_primitive; lower = Bot; upper = Top }
 
 let rec constrain sub sup ctx =
   let res = constrain_inner sub sup ctx in
@@ -24,11 +24,11 @@ and constrain_inner sub sup =
 
   match sub with
   | Group sub ->
-    one (constrain sub.body sup)
+    one (constrain sub.term sup)
   | sub ->
   match sup with
   | Group sup ->
-    one (constrain sub sup.body)
+    one (constrain sub sup.term)
   | sup ->
 
   (* If *)
@@ -57,15 +57,15 @@ and constrain_inner sub sup =
   match sub with
   | Ascr sub ->
     all [
-      check sub.body sub.type';
-      constrain sub.body sup;
+      check sub.term sub.type';
+      constrain sub.term sup;
     ]
   | sub ->
   match sup with
   | Ascr sup ->
     all [
-      check sup.body sup.type';
-      constrain sub sup.body;
+      check sup.term sup.type';
+      constrain sub sup.term;
     ]
   | sup ->
 
@@ -104,11 +104,11 @@ and constrain_inner sub sup =
   (* Interval *)
 
   match sup with
-  | Interval _ ->
+  | Range _ ->
     success
   | sup ->
   match sub with
-  | Interval sub ->
+  | Range sub ->
     all [
       check sub.lower sup;
       check sub.upper sup;
@@ -128,8 +128,14 @@ and constrain_inner sub sup =
 
   (* Row *)
   match sub, sup with
-  | Row sub, Row sup when sub.tag = sup.tag ->
-    one (constrain sub.type' sup.type')
+  | Record sub, Record sup ->
+    all (List.map (fun (sup: record_attr) ->
+      match List.find_opt (fun (sub: record_attr) -> sub.tag == sup.tag) sub.attrs with
+      | Some sub ->
+        constrain sub.term sup.term
+      | None ->
+        fail
+    ) sup.attrs)
   | sub, sup ->
 
   (* Application *)
@@ -145,6 +151,30 @@ and constrain_inner sub sup =
 
   (* TODO: Others *)
   fail
+
+(**
+  Get a type from a term in a type position, by recursively applying the
+  following transormation:
+  - Terms that represent types are returned as is.
+  - Terms that represent values are promoted to singleton types.
+*)
+and to_type term =
+  match term with
+  | Var var ->
+    let* var1 = find_var var.ident in (
+    match var1 with
+    | Some _ ->
+      return (Range { span = var.span; lower = (Var var); upper = (Var var) })
+    | None ->
+    let* var2 = find_val var.ident in
+    match var2 with
+    | Some var2 ->
+      to_type var2.value
+    | None ->
+      (* TODO: This is a hack *)
+      return (Range { span = var.span; lower = (Var var); upper = (Var var) }))
+  | term ->
+    map_term_ctx to_type term
 
 and check term type' ctx =
   let res = check_inner term type' ctx in
@@ -173,7 +203,7 @@ and check_inner term type' =
         | Some val' ->
           one (check (Var var) (val'.value))
         | None ->
-          failwith "Variable not in context")
+          failwith ("Variable not in context " ^ var.ident.name ^" " ^ type'.ident.name))
       | Union union ->
         any [
           check (Var var) union.left;
@@ -184,25 +214,19 @@ and check_inner term type' =
           check (Var var) inter.left;
           check (Var var) inter.right;
         ]
-      | Interval interval ->
+      | Range range ->
         all [
-          constrain interval.lower (Var var);
-          constrain (Var var) interval.upper;
+          constrain range.lower (Var var);
+          constrain (Var var) range.upper;
         ]
       | _ ->
         fail
     ))
-  | Row row ->
-    all [
-      check row.type' tmp;
-      constrain tmp type';
-    ]
   | Record record ->
-    let record_type = List.map (fun attr -> Row { span = record.span; tag = attr.tag; type' = (Interval { span = record.span; lower = attr.term; upper = attr.term }) }) record.attrs
-      |> List.fold_left (fun row record_type' -> Inter { span = record.span; left = row; right = record_type' }) Bot in
+    let* record_type = infer_record record in
     one (constrain record_type type')
   | Group group ->
-    one (check group.body type')
+    one (check group.term type')
   | If if' ->
     all [
       check if'.cond (var_bool if'.span);
@@ -211,13 +235,13 @@ and check_inner term type' =
     ]
   | Ascr ascr ->
     all [
-      check ascr.body ascr.type';
+      check ascr.term ascr.type';
       constrain ascr.type' type';
     ]
   | App app ->
     with_exis app.span (fun param_type ->
       with_var param_type (fun param_ident ->
-        let param = { span = app.span; ident = Some param_ident; type' = Some param_type } in
+        let param: param = { ident = Some param_ident; type' = Some param_type } in
         let abs = Abs { span = app.span; param; body = type' } in
         all [
           check app.abs abs;
@@ -242,6 +266,14 @@ and check_inner term type' =
     (* TODO: Others *)
     fail
 
+and infer_record record =
+  let attrs = List.map (infer_record_attr record.span) record.attrs in
+  return (Record { record with attrs })
+
+and infer_record_attr span attr =
+  let term = Range { span; lower = attr.term; upper = attr.term } in
+  { attr with term }
+
 and step term =
   match term with
   | Group group ->
@@ -254,7 +286,7 @@ and step term =
     None
 
 and step_group group =
-  group.body
+  group.term
 
 and step_if if' =
   match if'.cond with

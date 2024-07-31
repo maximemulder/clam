@@ -10,6 +10,12 @@ module type MONAD = sig
   include BASE
 
   val (let*) : 'a t -> ('a -> 'b t) -> 'b t
+
+  module MUtil : sig
+    val option_map : ('a -> 'b t) -> 'a option -> 'b option t
+
+    val list_map : ('a -> 'b t) -> 'a list -> 'b list t
+  end
 end
 
 module type TRANS = sig
