@@ -68,6 +68,9 @@ let fail = lift (Result.fail [])
 
 let success = return []
 
+let success_proof proof =
+  return proof
+
 let all fs ctx =
   List.fold_left (fun prev f -> match prev with
     | Ok (prev_proofs, ctx) -> (match f ctx with

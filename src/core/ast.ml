@@ -30,6 +30,7 @@ and record = {
 }
 
 and record_attr =  {
+  span: span;
   tag: string;
   term: term;
 }

@@ -35,17 +35,17 @@ let expr_pair = record ["0", true'; "1", false']
 let type_list = abs "A" (Some type') (fun a -> rec' "List" (fun list -> union (record ["cons", record ["elem", a; "next", list]]) (record ["nil", unit])))
 
 let constrain sub sup =
-  let res = constrain sub sup ctx in
+  let res = sub_type sub sup ctx in
   print_endline (display sub ^ " < "  ^ display sup);
   print_result res
 
 let check term type' =
-  let type', _ = Res.get_ok (to_type type' ctx) in
-  let res = check term type' ctx in
+  let res = has_type term type' ctx in
   print_endline (display term ^ " : "  ^ display type');
   print_result res
 
 let () =
   (* check expr_pair type_list *)
   (* check bool type' *)
-  check expr_pair type_pair_bool
+  check expr_pair type_pair_bool;
+  check (record ["a", bool]) (record ["a", bool]);

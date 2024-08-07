@@ -21,7 +21,7 @@ let var ident =
   Var { span; ident }
 
 let record attrs =
-  let attrs = List.map (fun (tag, term) -> { tag; term }) attrs in
+  let attrs = List.map (fun (tag, term) -> { span; tag; term }) attrs in
   Record { span; attrs }
 
 let attr record tag =
